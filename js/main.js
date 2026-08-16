@@ -1,0 +1,1012 @@
+    const screenMenu = document.getElementById("screen-menu");
+    const screenGame = document.getElementById("screen-game");
+    const settingsOverlay = document.getElementById("settingsOverlay");
+    const gameOverOverlay = document.getElementById("gameOverOverlay");
+    const charPick = document.getElementById("charPick");
+    let gameOver = false;
+
+    function showScreen(name) {
+      screenMenu.classList.toggle("active", name === "menu");
+      screenGame.classList.toggle("active", name === "game");
+      if (name !== "game") {
+        document.body.classList.remove("phase-fever", "phase-impact");
+      }
+    }
+
+    function applyRewardEntry(entry) {
+      const res = entry.grant(run.floor + 1);
+      run.rewardsClaimed[run.floor] = true;
+      return res.label;
+    }
+
+    // Floor reward picker — choose 1 of 3, each card explains what it does
+    function openRewardPicker(entries, opts = {}) {
+      const ov = document.getElementById("upgradeOverlay");
+      const wrap = document.getElementById("upgradeCards");
+      if (!ov || !wrap) return;
+      const t = document.getElementById("upgradeTitle");
+      const s = document.getElementById("upgradeSub");
+      if (t) t.textContent = opts.title || "Floor Reward";
+      if (s) s.textContent = opts.sub || "Pick one";
+      const rr = document.getElementById("upgradeReroll");
+      if (rr) rr.style.display = "none";
+      wrap.innerHTML = "";
+      entries.forEach(e => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "upgrade-card";
+        const row = document.createElement("span");
+        row.className = "up-card-head";
+        const n = document.createElement("span");
+        n.className = "up-card-name";
+        n.textContent = e.name;
+        const badge = document.createElement("span");
+        badge.className = "reward-tier " + (e.tier || "common");
+        badge.textContent = (e.tier || "common").toUpperCase();
+        row.append(n, badge);
+        const d = document.createElement("span");
+        d.className = "up-card-desc";
+        d.textContent = e.desc;
+        btn.append(row, d);
+        btn.title = e.desc;
+        btn.addEventListener("click", () => {
+          const label = applyRewardEntry(e);
+          ov.classList.remove("open");
+          opts.onPick(label);
+        });
+        wrap.appendChild(btn);
+      });
+      ov.classList.add("open");
+    }
+
+    function showFloorBanner() {
+      const ov = document.getElementById("floorBannerOverlay");
+      const kicker = document.getElementById("floorBannerKicker");
+      const title = document.getElementById("floorBannerTitle");
+      const sub = document.getElementById("floorBannerSub");
+      if (!ov) return;
+      let kick = "Floor";
+      let extra = "";
+      if (BOSS_KITS[run.floor]) {
+        kick = "Boss Floor";
+        extra = BOSS_KITS[run.floor].name;
+      } else if (isEliteFloor(run.floor)) {
+        kick = "Elite Floor";
+        extra = (ELITE_KITS[run.floor] && ELITE_KITS[run.floor].name) || "Powerful foe";
+      }
+      kicker.textContent = kick;
+      title.textContent = String(run.floor);
+      sub.textContent = extra;
+      ov.classList.add("open");
+      setTimeout(() => ov.classList.remove("open"), 1400);
+    }
+
+    // Reusable centered banner (floors, phases, big moments)
+    function showBannerCard(kicker, title, sub, variant) {
+      const ov = document.getElementById("floorBannerOverlay");
+      const card = document.getElementById("floorBannerCard");
+      if (!ov || !card) return;
+      const k = document.getElementById("floorBannerKicker");
+      const t = document.getElementById("floorBannerTitle");
+      const s = document.getElementById("floorBannerSub");
+      if (k) k.textContent = kicker;
+      if (t) t.textContent = title;
+      if (s) s.textContent = sub;
+      card.classList.remove("fever", "impact");
+      if (variant) card.classList.add(variant);
+      ov.classList.add("open");
+      setTimeout(() => {
+        ov.classList.remove("open");
+        card.classList.remove("fever", "impact");
+      }, 1500);
+    }
+
+    function showUltReadyBanner() {
+      if (combat.ultAnnounced) return;
+      combat.ultAnnounced = true;
+      if (typeof tutorialOnUltReady === "function") tutorialOnUltReady();
+      const ov = document.getElementById("ultReadyOverlay");
+      if (!ov) return;
+      ov.classList.add("open");
+      setTimeout(() => ov.classList.remove("open"), 1600);
+      setLog("🔥 ULTIMATE READY!");
+    }
+
+    function showVictoryOverlay(reward) {
+      // reward may be a string (picker pick) or { label, permanent, tempLabel }
+      const label = typeof reward === "string" ? reward : reward && reward.label;
+      const permanent = typeof reward === "string" ? true : reward && reward.permanent !== false;
+      const temp = reward && reward.tempLabel;
+      const rewardMsg = document.getElementById("rewardMsg");
+      const isFinal = run.floor >= MAX_FLOOR;
+      gameOverOverlay.classList.remove("lose");
+      gameOverOverlay.classList.add("win");
+      if (isFinal) {
+        document.getElementById("gameOverTitle").textContent = "Campaign Clear!";
+        document.getElementById("gameOverMsg").textContent = `All ${MAX_FLOOR} floors conquered.`;
+        rewardMsg.innerHTML = label
+          ? (permanent ? `🎁 Permanent: ${label}` : `🎁 ${label}`)
+          : "🏆 Victory";
+        document.getElementById("btnGoRetry").textContent = "Menu";
+        clearSave();
+      } else {
+        document.getElementById("gameOverTitle").textContent = `Floor ${run.floor} Clear`;
+        document.getElementById("gameOverMsg").textContent = isBossFloor(run.floor)
+          ? "Boss defeated!"
+          : isEliteFloor(run.floor)
+            ? "Elite defeated!"
+            : "Rival defeated.";
+        rewardMsg.innerHTML = label
+          ? (permanent
+              ? `🎁 Permanent: ${label}${temp ? `<br>⚡ Rare perk for next floor: ${temp}` : ""}`
+              : `🎁 ${label}`)
+          : "";
+        document.getElementById("btnGoRetry").textContent = "Next Floor";
+        const savedFloor = run.floor;
+        run.floor = savedFloor + 1;
+        saveRun();
+        run.floor = savedFloor;
+      }
+      sayVoice("victory", { force: true });
+      playVictory();
+      gameOverOverlay.classList.add("open");
+    }
+
+    // Boss win → choose 1 of 3 upgrades (4 with a pending extra-pick reward), then show the victory overlay
+    function openUpgradePicker(onPick) {
+      const wrap = document.getElementById("upgradeCards");
+      const ov = document.getElementById("upgradeOverlay");
+      if (!wrap || !ov) { onPick(null); return; }
+      const pend = run.pending || {};
+      let rerollLeft = pend.reroll || 0;
+      const extra = pend.extraPick || 0;
+      pend.extraPick = 0;
+      pend.reroll = 0;
+      const render = () => {
+        const choices = pickUpgradeChoices(3 + extra);
+        wrap.innerHTML = "";
+        choices.forEach(u => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "action-btn upgrade-card";
+          if (u.desc) {
+            const n = document.createElement("span");
+            n.className = "up-card-name";
+            n.textContent = u.name || u.label;
+            const d = document.createElement("span");
+            d.className = "up-card-desc";
+            d.textContent = u.desc;
+            btn.append(n, d);
+            btn.title = u.desc;
+          } else {
+            btn.textContent = u.name || u.label;
+          }
+          btn.addEventListener("click", () => {
+            run.pickedUpgrades.push(u.id);
+            run.rewardsClaimed[run.floor] = true;
+            u.apply();
+            ov.classList.remove("open");
+            onPick(u.name || u.label);
+          });
+          wrap.appendChild(btn);
+        });
+      };
+      render();
+      const rrBtn = document.getElementById("upgradeReroll");
+      if (rrBtn) {
+        rrBtn.style.display = rerollLeft > 0 ? "" : "none";
+        rrBtn.textContent = rerollLeft > 0 ? `Reroll (${rerollLeft})` : "Reroll";
+        rrBtn.addEventListener("click", () => {
+          if (rerollLeft <= 0) return;
+          rerollLeft--;
+          render();
+          if (rerollLeft <= 0) rrBtn.style.display = "none";
+        });
+      }
+      ov.classList.add("open");
+    }
+
+    function checkGameOver() {
+      if (gameOver) return;
+      if (combat.enemyHp <= 0) {
+        gameOver = true;
+        busy = true;
+        if (isBossFloor(run.floor)) {
+          openUpgradePicker(rewardLabel => showVictoryOverlay(rewardLabel));
+        } else if (isEliteFloor(run.floor)) {
+          const perm = GAUNTLET_REWARDS[run.floor];
+          let permanentLabel = null;
+          if (perm) {
+            perm.apply();
+            permanentLabel = perm.label;
+          }
+          openRewardPicker(buildEliteTempChoices(), {
+            title: "Elite Reward",
+            sub: "Pick a rare perk for the next floor",
+            onPick: label => showVictoryOverlay({ label: permanentLabel, permanent: true, tempLabel: label })
+          });
+        } else {
+          openRewardPicker(buildFloorRewardChoices(), {
+            title: "Floor Reward",
+            sub: "Pick one — it applies to the next floor",
+            onPick: label => showVictoryOverlay({ label, permanent: false })
+          });
+        }
+      } else if (combat.playerHp <= 0) {
+        gameOver = true;
+        busy = true;
+        gameOverOverlay.classList.remove("win");
+        gameOverOverlay.classList.add("lose");
+        shakeBoard("strong");
+        document.getElementById("gameOverTitle").textContent = "Defeat";
+        document.getElementById("gameOverMsg").textContent = `Fell on floor ${run.floor}.`;
+        document.getElementById("rewardMsg").textContent = "";
+        document.getElementById("btnGoRetry").textContent = "Retry Floor";
+        saveRun(); // resume same floor
+        sayVoice("defeat", { force: true });
+        playDefeat();
+        gameOverOverlay.classList.add("open");
+      }
+    }
+
+    const SAVE_KEY = "puzzleGridRun_v1";
+
+    function saveRun() {
+      try {
+        const data = {
+          floor: run.floor,
+          bonusMaxHp: run.bonusMaxHp,
+          bonusShieldMax: run.bonusShieldMax,
+          bonusApMax: run.bonusApMax,
+          rewardsClaimed: run.rewardsClaimed,
+          pickedUpgrades: run.pickedUpgrades,
+          ultChargeBonus: run.ultChargeBonus,
+          bonusSwordDmg: run.bonusSwordDmg,
+          bonusHeal: run.bonusHeal,
+          floorShieldBonus: run.floorShieldBonus,
+          feverEarly: run.feverEarly,
+          enemyUltSlow: run.enemyUltSlow,
+          pending: run.pending,
+          playerClass: combat.playerClass,
+          difficulty: settings.difficulty
+        };
+        localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+      } catch (_) {}
+    }
+
+    function loadRun() {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function clearSave() {
+      try { localStorage.removeItem(SAVE_KEY); } catch (_) {}
+    }
+
+    function hasSave() {
+      const d = loadRun();
+      return d && d.floor >= 1 && d.floor <= MAX_FLOOR;
+    }
+
+    function refreshContinueBtn() {
+      const btn = document.getElementById("btnContinue");
+      const span = document.getElementById("continueFloor");
+      if (!btn) return;
+      if (hasSave()) {
+        const d = loadRun();
+        btn.style.display = "";
+        if (span) span.textContent = String(d.floor);
+      } else {
+        btn.style.display = "none";
+      }
+    }
+
+    function resetRun() {
+      // Abandoning a run mid-tutorial means it won't replay on the next run
+      if (typeof skipTutorial === "function") skipTutorial();
+      run.floor = 1;
+      run.bonusMaxHp = 0;
+      run.bonusShieldMax = 0;
+      run.bonusApMax = 0;
+      run.rewardsClaimed = {};
+      run.pickedUpgrades = [];
+      run.ultChargeBonus = 0;
+      run.bonusSwordDmg = 0;
+      run.bonusHeal = 0;
+      run.floorShieldBonus = 0;
+      run.feverEarly = 0;
+      run.enemyUltSlow = 0;
+      run.cascadeAp = false; run.crossAp = false; run.overflowBoost = false;
+      run.bloomCharge = false; run.sigDouble = false; run.boardWhisper = false;
+      run.phasePower = false; run.fortifiedStart = false; run.venomous = false;
+      run.deepFracture = false; run.arcaneMirror = false; run.lingeringShadow = false;
+      run.heavyChains = false; run.momentum = false; run.luckyDice = false;
+      run.pending = { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 };
+      AP_MAX = 3;
+      clearSave();
+    }
+
+    function applyLoadedRun(d) {
+      run.floor = Math.max(1, Math.min(MAX_FLOOR, d.floor | 0));
+      run.bonusMaxHp = d.bonusMaxHp | 0;
+      run.bonusShieldMax = d.bonusShieldMax | 0;
+      run.bonusApMax = d.bonusApMax | 0;
+      run.rewardsClaimed = d.rewardsClaimed || {};
+      run.pickedUpgrades = d.pickedUpgrades || [];
+      run.ultChargeBonus = d.ultChargeBonus | 0;
+      run.bonusSwordDmg = d.bonusSwordDmg | 0;
+      run.bonusHeal = d.bonusHeal | 0;
+      run.floorShieldBonus = d.floorShieldBonus | 0;
+      run.feverEarly = d.feverEarly | 0;
+      run.enemyUltSlow = d.enemyUltSlow | 0;
+      // Re-derive transformative upgrades from the picked list (not stored as flags)
+      run.cascadeAp = (run.pickedUpgrades || []).includes("cascadeAp");
+      run.crossAp = (run.pickedUpgrades || []).includes("crossAp");
+      run.overflowBoost = (run.pickedUpgrades || []).includes("overflowBoost");
+      run.bloomCharge = (run.pickedUpgrades || []).includes("bloomCharge");
+      run.sigDouble = (run.pickedUpgrades || []).includes("sigDouble");
+      run.boardWhisper = (run.pickedUpgrades || []).includes("boardWhisper");
+      run.phasePower = (run.pickedUpgrades || []).includes("phasePower");
+      run.fortifiedStart = (run.pickedUpgrades || []).includes("fortifiedStart");
+      run.venomous = (run.pickedUpgrades || []).includes("venomous");
+      run.deepFracture = (run.pickedUpgrades || []).includes("deepFracture");
+      run.arcaneMirror = (run.pickedUpgrades || []).includes("arcaneMirror");
+      run.lingeringShadow = (run.pickedUpgrades || []).includes("lingeringShadow");
+      run.heavyChains = (run.pickedUpgrades || []).includes("heavyChains");
+      run.momentum = (run.pickedUpgrades || []).includes("momentum");
+      run.luckyDice = (run.pickedUpgrades || []).includes("luckyDice");
+      run.pending = Object.assign(
+        { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 },
+        d.pending || {}
+      );
+      AP_MAX = 3 + run.bonusApMax;
+      if (d.playerClass && HERO_STATS[d.playerClass]) combat.playerClass = d.playerClass;
+      if (d.difficulty) settings.difficulty = d.difficulty;
+    }
+
+    function startBattle(opts = {}) {
+      // opts.fromVictory = true → advance floor; opts.retry = stay on floor
+      if (opts.fromVictory) {
+        if (run.floor >= MAX_FLOOR) {
+          resetRun();
+          showScreen("menu");
+          buildCharPick();
+          return;
+        }
+        run.floor += 1;
+        if (typeof tutorialOnFloorAdvance === "function") tutorialOnFloorAdvance();
+      }
+      // defeat retry keeps same floor; fresh start from menu resets via resetRun
+      if (run.floor === 1 && !opts.retry && !opts.fromVictory && typeof startTutorialIfNeeded === "function") {
+        startTutorialIfNeeded();
+      }
+
+      const hero = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
+      const maxHp = hero.hp + run.bonusMaxHp;
+      const maxSh = hero.maxShieldCap + run.bonusShieldMax;
+      AP_MAX = 3 + run.bonusApMax;
+
+      gameOver = false;
+      gameOverOverlay.classList.remove("open");
+      combat.playerMaxHp = maxHp;
+      combat.playerHp = maxHp;
+      combat.shield = Math.min(maxSh, hero.startShield + (run.floorShieldBonus || 0) + ((run.pending && run.pending.shield) || 0) + (run.fortifiedStart ? 4 + Math.floor(Math.random() * 3) : 0));
+      combat.enemyShield = 0;
+      combat.sigBank = 0;
+      combat.ap = AP_MAX + ((run.pending && run.pending.bonusAp) || 0);
+      combat.enemyAp = AP_MAX;
+      combat.tempSwordDmg = (run.pending && run.pending.swordBoost) || 0;
+      combat.feverBoost = (run.pending && run.pending.feverBoost) || 0;
+      combat.critChance = (run.pending && run.pending.critChance) || 0;
+      combat.shieldConvertPct = (run.pending && run.pending.shieldConvert) || 0;
+      combat.freeShuffles = run.boardWhisper ? 1 : 0;
+      combat.cascadeApRefunded = false;
+      combat.reflectPct = (hero.reflectPct || 0) * (run.arcaneMirror ? 1.5 : 1);
+      combat.turn = 1;
+      combat.playerTurn = true;
+      combat.empowerNext = !!((run.pending && run.pending.empower) || 0);
+      combat.blindNext = false;
+      combat.weakenNextSword = false;
+      combat.poisonTurns = 0;
+      combat.enemyPoisonTurns = Math.max(combat.enemyPoisonTurns, (run.pending && run.pending.enemyPoison) || 0);
+      combat.firstHitDodged = false;
+      combat.afterglowTurns = 0;
+      combat.markStacks = 0;
+      combat.fractureStacks = 0;
+      combat.fractureTurns = 0;
+      combat.mortalWoundTurns = 0;
+      combat.manaLockTurns = 0;
+      combat.enemyVeilUsed = false;
+      combat.enemyAfterglowTurns = 0;
+      combat.playerFractureStacks = 0;
+      combat.playerFractureTurns = 0;
+      combat.playerMortalWoundTurns = 0;
+      combat.logHistory = [];
+      combat.ultAnnounced = false;
+      combat.enemyUltCharge = 0;
+      combat.bossKit = BOSS_KITS[run.floor] || null;
+      combat.eliteKit = ELITE_KITS[run.floor] || null;
+      combat.enemyClass = pickEnemyVisual(run.floor);
+      combat.enemyUltNeed = combat.bossKit ? combat.bossKit.ultTurns + (run.enemyUltSlow || 0) : 4 + (run.enemyUltSlow || 0);
+      combat.enemyUltNeed += (run.pending && run.pending.enemySlow) || 0;
+      combat.enemyUltNeed += run.heavyChains ? 1 : 0;
+      combat.enemyArchetype = (combat.bossKit || combat.eliteKit) ? null : pickEnemyArchetype(run.floor);
+      combat.enemySpecialCharge = 0;
+      combat.enemySpecialNeed = 4 + Math.floor(Math.random() * 2) + ((run.pending && run.pending.enemySlow) || 0) + (run.heavyChains ? 1 : 0); // 4 or 5
+      // Pending next-floor rewards are consumed when the floor begins
+      run.pending = { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 };
+      busy = false;
+
+      // Single enemy setup (boss / elite / normal)
+      const arch = combat.enemyArchetype;
+      const elite = combat.eliteKit;
+      let unitHp = enemyHpForFloor(run.floor);
+      if (elite) unitHp = Math.round(unitHp * (elite.hpMul || 1.5));
+      else if (arch) unitHp = Math.round(unitHp * (arch.hpMul || 1));
+
+      if (combat.bossKit) {
+        combat.enemyFullName = combat.bossKit.name;
+        combat.enemyName = displayEnemyName(combat.bossKit.name);
+      } else if (elite) {
+        combat.enemyFullName = elite.name;
+        combat.enemyName = displayEnemyName(elite.name);
+      } else {
+        const nm = randomEnemyName();
+        combat.enemyFullName = nm;
+        combat.enemyName = nm;
+      }
+      combat.enemyMaxHp = unitHp;
+      combat.enemyHp = unitHp;
+      combat.enemyShield = arch && arch.startShield ? arch.startShield : 0;
+
+      const floorEl = document.getElementById("floorNum");
+      if (floorEl) floorEl.textContent = String(run.floor);
+      const floorTotalEl = document.getElementById("floorTotal");
+      if (floorTotalEl) floorTotalEl.textContent = String(MAX_FLOOR);
+
+      build();
+      setupFighters();
+      document.getElementById("enemyName").textContent = combat.enemyName;
+      refreshCombatUI();
+      const floorNote = combat.bossKit
+        ? " · BOSS"
+        : elite
+          ? " · ELITE"
+          : "";
+      setLog(`Floor ${run.floor}${floorNote} · ${combat.enemyName}`);
+      saveRun();
+      showScreen("game");
+      showFloorBanner();
+      // Trash talk after floor banner settles
+      setTimeout(() => {
+        if (!gameOver && combat.playerTurn) {
+          // Occasional class jab on later floors
+          if (run.floor >= 3 && Math.random() < 0.22) {
+            sayVoice("classJab", { force: true });
+          } else {
+            sayVoice("floorStart", { force: true });
+          }
+        }
+      }, 1500);
+    }
+
+    document.getElementById("btnGoMenu").addEventListener("click", () => {
+      gameOverOverlay.classList.remove("open");
+      gameOver = false;
+      busy = false;
+      // Keep save if mid-campaign victory already wrote next floor; only clear on abandon from menu intent
+      // User chose Menu — keep existing save so Continue works
+      showScreen("menu");
+      buildCharPick();
+      refreshContinueBtn();
+    });
+    document.getElementById("btnGoRetry").addEventListener("click", () => {
+      if (combat.enemyHp <= 0 && run.floor < MAX_FLOOR) {
+        startBattle({ fromVictory: true });
+        saveRun();
+      } else if (combat.enemyHp <= 0 && run.floor >= MAX_FLOOR) {
+        resetRun();
+        showScreen("menu");
+        buildCharPick();
+        refreshContinueBtn();
+      } else {
+        // defeat — retry same floor
+        startBattle({ retry: true });
+      }
+    });
+
+    function buildCharPick() {
+      charPick.innerHTML = "";
+      ["ninja", "wizard", "knight"].forEach(key => {
+        const c = CHARACTERS[key];
+        const costKey = (settings.costume && COSTUMES[key][settings.costume[key]]) ? settings.costume[key] : "classic";
+        const wpnKeys = Object.keys(WEAPONS[key]);
+        const wpnKey = (settings.weapon && WEAPONS[key][settings.weapon[key]]) ? settings.weapon[key] : wpnKeys[0];
+        const card = document.createElement("div");
+        card.className = "char-card" + (combat.playerClass === key ? " selected" : "");
+        card.innerHTML = `<div class="portrait ${c.role}">${characterSvg(key, costKey, wpnKey)}</div><div class="fighter-name">${c.name}</div>`;
+        card.addEventListener("click", () => {
+          combat.playerClass = key;
+          buildCharPick();
+        });
+        charPick.appendChild(card);
+      });
+      buildCosmeticBar();
+    }
+
+    // Costume / weapon picker for the currently selected hero.
+    function buildCosmeticBar() {
+      const bar = document.getElementById("cosmeticBar");
+      if (!bar) return;
+      const cls = combat.playerClass;
+      const costumes = COSTUMES[cls];
+      const weapons = WEAPONS[cls];
+      const curCost = costumes[settings.costume[cls]] ? settings.costume[cls] : "classic";
+      const curWpn = weapons[settings.weapon[cls]] ? settings.weapon[cls] : Object.keys(weapons)[0];
+
+      const dots = Object.keys(costumes).map(k =>
+        `<button type="button" class="cosmetic-dot${k === curCost ? " active" : ""}" data-cost="${k}" data-cls="${cls}" title="${costumes[k].name}" style="background:${costumes[k].chip}"></button>`
+      ).join("");
+      const btns = Object.keys(weapons).map(k =>
+        `<button type="button" class="cosmetic-btn${k === curWpn ? " active" : ""}" data-wpn="${k}" data-cls="${cls}">${weapons[k].name}</button>`
+      ).join("");
+
+      bar.classList.add("show");
+      bar.innerHTML = `
+        <div class="cosmetic-label">Costume</div>
+        <div class="cosmetic-dots">${dots}</div>
+        <div class="cosmetic-label">Weapon</div>
+        <div class="cosmetic-btns">${btns}</div>
+      `;
+      bar.querySelectorAll("[data-cost]").forEach(btn => btn.addEventListener("click", () => {
+        settings.costume[btn.dataset.cls] = btn.dataset.cost;
+        persistSettings();
+        buildCharPick();
+      }));
+      bar.querySelectorAll("[data-wpn]").forEach(btn => btn.addEventListener("click", () => {
+        settings.weapon[btn.dataset.cls] = btn.dataset.wpn;
+        persistSettings();
+        buildCharPick();
+      }));
+    }
+
+    function openSettings() {
+      document.getElementById("admSword").value = settings.swordDmg;
+      document.getElementById("admStar").value = settings.starDmg;
+      document.getElementById("admHeal").value = settings.healAmt;
+      document.getElementById("admShield").value = settings.shieldOn3;
+      document.getElementById("admShieldMax").value = settings.shieldMax;
+      document.getElementById("admEnemyAtk").value = settings.enemyAtk;
+      document.getElementById("admUlt").value = settings.ultDmg;
+      document.getElementById("admUltNeed").value = settings.ultNeed;
+      const feverEl = document.getElementById("admFever");
+      const impactEl = document.getElementById("admImpact");
+      if (feverEl) feverEl.value = settings.feverTurn || 6;
+      if (impactEl) impactEl.value = settings.impactTurn || 11;
+      document.getElementById("muteToggle").classList.toggle("on", settings.muted);
+      const volSlider = document.getElementById("volSlider");
+      const volLabel = document.getElementById("volLabel");
+      if (volSlider) {
+        volSlider.value = Math.round(settings.volume * 100);
+        if (volLabel) volLabel.textContent = String(volSlider.value);
+      }
+      document.querySelectorAll("#diffSeg button").forEach(b => {
+        b.classList.toggle("on", b.dataset.diff === settings.difficulty);
+      });
+      const tutToggle = document.getElementById("tutToggle");
+      if (tutToggle) {
+        const seen = typeof getTutorialSeen === "function" && getTutorialSeen();
+        tutToggle.classList.toggle("on", !seen);
+        const note = document.getElementById("tutNote");
+        if (note) note.textContent = seen
+          ? "Tutorial already completed — turning this on replays it on your next new run."
+          : "The tutorial will play on your next new run.";
+      }
+      document.getElementById("tabGame").style.display = "";
+      document.getElementById("tabAdmin").style.display = "none";
+      document.querySelectorAll("#settingsTabs button").forEach(b => {
+        b.classList.toggle("on", b.dataset.tab === "game");
+      });
+      settingsOverlay.classList.add("open");
+    }
+
+    function closeSettings() {
+      settingsOverlay.classList.remove("open");
+    }
+
+    function saveSettings() {
+      settings.swordDmg = +document.getElementById("admSword").value || 0;
+      settings.starDmg = +document.getElementById("admStar").value || 0;
+      settings.healAmt = +document.getElementById("admHeal").value || 0;
+      settings.shieldOn3 = +document.getElementById("admShield").value || 0;
+      settings.shieldMax = +document.getElementById("admShieldMax").value || 0;
+      settings.enemyAtk = +document.getElementById("admEnemyAtk").value || 0;
+      settings.ultDmg = +document.getElementById("admUlt").value || 0;
+      settings.ultNeed = Math.max(1, +document.getElementById("admUltNeed").value || 6);
+      const feverEl = document.getElementById("admFever");
+      const impactEl = document.getElementById("admImpact");
+      if (feverEl) settings.feverTurn = Math.max(1, +feverEl.value || 6);
+      if (impactEl) settings.impactTurn = Math.max(settings.feverTurn + 1, +impactEl.value || 11);
+      persistSettings();
+      closeSettings();
+      refreshCombatUI();
+    }
+
+    document.getElementById("btnMenuSettings").addEventListener("click", openSettings);
+    document.getElementById("btnGameSettings").addEventListener("click", openSettings);
+    document.getElementById("btnSettingsClose").addEventListener("click", closeSettings);
+    document.getElementById("btnSettingsSave").addEventListener("click", saveSettings);
+
+    // Help overlay
+    const helpOverlay = document.getElementById("helpOverlay");
+    function openHelp() {
+      if (helpOverlay) helpOverlay.classList.add("open");
+    }
+    function closeHelp() {
+      if (helpOverlay) helpOverlay.classList.remove("open");
+    }
+    const btnMenuHelp = document.getElementById("btnMenuHelp");
+    if (btnMenuHelp) btnMenuHelp.addEventListener("click", openHelp);
+    const btnSettingsHelp = document.getElementById("btnSettingsHelp");
+    if (btnSettingsHelp) btnSettingsHelp.addEventListener("click", openHelp);
+    const btnHelpClose = document.getElementById("btnHelpClose");
+    if (btnHelpClose) btnHelpClose.addEventListener("click", closeHelp);
+    if (helpOverlay) helpOverlay.addEventListener("click", (e) => {
+      if (e.target === helpOverlay) closeHelp();
+    });
+
+    // Replay tutorial toggle
+    const tutToggleEl = document.getElementById("tutToggle");
+    if (tutToggleEl) {
+      tutToggleEl.addEventListener("click", () => {
+        const newOn = !tutToggleEl.classList.contains("on");
+        tutToggleEl.classList.toggle("on", newOn);
+        if (typeof setTutorialSeen === "function") setTutorialSeen(!newOn);
+        if (newOn) {
+          // Reset one-time tip flags so contextual tips replay too
+          try { localStorage.removeItem("puzzleGridSeenTips_v1"); } catch (_) {}
+        }
+        const note = document.getElementById("tutNote");
+        if (note) note.textContent = newOn
+          ? "The tutorial will play on your next new run."
+          : "Tutorial will not replay.";
+      });
+    }
+
+    // Tutorial narration card + skip
+    const tutSkipBtn = document.getElementById("tutSkip");
+    if (tutSkipBtn) tutSkipBtn.addEventListener("click", () => {
+      if (typeof skipTutorial === "function") skipTutorial();
+    });
+    document.getElementById("muteToggle").addEventListener("click", function () {
+      settings.muted = !settings.muted;
+      this.classList.toggle("on", settings.muted);
+      persistSettings();
+    });
+    const volSliderEl = document.getElementById("volSlider");
+    if (volSliderEl) {
+      volSliderEl.addEventListener("input", () => {
+        settings.volume = Math.max(0, Math.min(1, (+volSliderEl.value || 0) / 100));
+        const lab = document.getElementById("volLabel");
+        if (lab) lab.textContent = String(volSliderEl.value);
+        persistSettings();
+      });
+    }
+    document.querySelectorAll("#diffSeg button").forEach(b => {
+      b.addEventListener("click", () => {
+        settings.difficulty = b.dataset.diff;
+        document.querySelectorAll("#diffSeg button").forEach(x => x.classList.toggle("on", x === b));
+        persistSettings();
+      });
+    });
+    document.querySelectorAll("#settingsTabs button").forEach(b => {
+      b.addEventListener("click", () => {
+        const tab = b.dataset.tab;
+        document.querySelectorAll("#settingsTabs button").forEach(x => x.classList.toggle("on", x === b));
+        document.getElementById("tabGame").style.display = tab === "game" ? "" : "none";
+        document.getElementById("tabAdmin").style.display = tab === "admin" ? "" : "none";
+      });
+    });
+
+    document.getElementById("btnStart").addEventListener("click", () => {
+      resetRun();
+      startBattle();
+      refreshContinueBtn();
+    });
+
+    document.getElementById("btnContinue").addEventListener("click", () => {
+      const d = loadRun();
+      if (!d) return;
+      applyLoadedRun(d);
+      startBattle({ retry: true }); // stay on saved floor
+      refreshContinueBtn();
+    });
+
+    document.getElementById("btnExit").addEventListener("click", () => {
+      // Exit from Settings → Menu
+      if (!gameOver) saveRun();
+      closeSettings();
+      gameOver = false;
+      busy = false;
+      showScreen("menu");
+      buildCharPick();
+      refreshContinueBtn();
+    });
+
+    // ----- Battle log modal (last 4 moves, full text) -----
+    const logOverlay = document.getElementById("logOverlay");
+    const logHistoryEl = document.getElementById("logHistory");
+    if (battleLogEl) {
+      battleLogEl.addEventListener("click", () => {
+        const hist = combat.logHistory || [];
+        const entries = hist.slice(-4);
+        if (!entries.length) {
+          logHistoryEl.innerHTML = `<div class="log-entry empty">No moves yet</div>`;
+        } else {
+          logHistoryEl.innerHTML = entries.map(m =>
+            `<div class="log-entry">${m}</div>`
+          ).join("");
+        }
+        logOverlay.classList.add("open");
+      });
+    }
+    document.getElementById("btnLogClose").addEventListener("click", () => {
+      logOverlay.classList.remove("open");
+    });
+    logOverlay.addEventListener("click", e => {
+      if (e.target === logOverlay) logOverlay.classList.remove("open");
+    });
+
+    // ----- Hold portrait → character / enemy info -----
+    const infoOverlay = document.getElementById("infoOverlay");
+    const infoTitle = document.getElementById("infoTitle");
+    const infoBody = document.getElementById("infoBody");
+    let holdTimer = null;
+    let holdTarget = null;
+
+    function heroInfoHtml(cls) {
+      const s = HERO_STATS[cls] || HERO_STATS.ninja;
+      const sig = SIGNATURE[cls];
+      const sigLabel = { sword: "⚔️ Sword", shield: "🛡️ Shield", hp: "❤️ Potion" }[sig] || sig;
+      let passive = "", ult = "", shapes = "";
+      if (cls === "ninja") {
+        passive = "First hit always dodged. Then 20% dodge. Sword matches heal 2 HP (4 on Charged).";
+        ult = "Assassinate: 12–24 true dmg, −3 self HP, Afterglow (50% less dmg 1 turn).";
+        shapes = "⭐ +2 AP + 3→Sword · 💥 Mark (+15% dmg taken) · ⚡ +4 HP";
+      } else if (cls === "wizard") {
+        passive = "Arcane Reflection: 30% of damage taken is reflected as true damage.";
+        ult = "Meteor: 12–24 true dmg (scales with charge).";
+        shapes = "⭐ +12 Shield + 3→Shield · 💥 Mana Lock 2t · ⚡ Steal up to 3 Shield";
+      } else {
+        passive = "Regen +3 HP each turn. Fracture: 2 true dmg/stack at enemy turn start (max 5).";
+        ult = "Earthshatter: 12–24 true +2 Fracture + Mortal Wound (enemy heals −50% 2t).";
+        shapes = "⭐ Fracture×5 true + 3→Potion · 💥 +2 Fracture · ⚡ +1 Fracture";
+      }
+      return `
+        <div class="info-row"><span>Class</span><span>${s.name}</span></div>
+        <div class="info-row"><span>HP</span><span>${s.hp} (+${run.bonusMaxHp} run)</span></div>
+        <div class="info-row"><span>Start Shield</span><span>${s.startShield}</span></div>
+        <div class="info-row"><span>Signature</span><span>${sigLabel}</span></div>
+        <div class="info-row"><span>Charge</span><span>${combat.sigBank}/${settings.ultMaxCharge}</span></div>
+        <div class="info-row"><span>AP</span><span>${combat.ap}/${AP_MAX}</span></div>
+        <div class="info-section">Passive</div>
+        <div class="info-body">${passive}</div>
+        <div class="info-section">Ultimate</div>
+        <div class="info-body">${ult}</div>
+        <div class="info-section">Shape bonuses</div>
+        <div class="info-body">${shapes}</div>
+        <div class="info-section">Active statuses</div>
+        <div class="info-body">${statusSummaryPlayer()}</div>
+      `;
+    }
+
+    function statusSummaryPlayer() {
+      const parts = [];
+      if (combat.afterglowTurns > 0) parts.push(`Afterglow ${combat.afterglowTurns}t`);
+      if (combat.poisonTurns > 0) parts.push(`Poison ${combat.poisonTurns}t`);
+      if (combat.playerFractureStacks > 0) parts.push(`Fracture ${combat.playerFractureStacks} (${combat.playerFractureTurns}t)`);
+      if (combat.playerMortalWoundTurns > 0) parts.push(`Mortal Wound ${combat.playerMortalWoundTurns}t`);
+      if (combat.empowerNext) parts.push("Empower");
+      if (combat.blindNext) parts.push("Blind");
+      if (combat.weakenNextSword) parts.push("Weaken");
+      if (combat.shield > 0) parts.push(`Shield ${combat.shield}`);
+      return parts.length ? parts.join(" · ") : "None";
+    }
+
+    function statusSummaryEnemy() {
+      const parts = [];
+      if (combat.markStacks > 0) parts.push(`Mark ${combat.markStacks}`);
+      if (combat.fractureStacks > 0) parts.push(`Fracture ${combat.fractureStacks} (${combat.fractureTurns}t)`);
+      if (combat.mortalWoundTurns > 0) parts.push(`Mortal Wound ${combat.mortalWoundTurns}t`);
+      if (combat.manaLockTurns > 0) parts.push(`Mana Lock ${combat.manaLockTurns}t`);
+      if (combat.enemyAfterglowTurns > 0) parts.push(`Afterglow ${combat.enemyAfterglowTurns}t`);
+      if (combat.bossKit && combat.bossKit.id === "umbral" && !combat.enemyVeilUsed) parts.push("Shadow Veil");
+      if (combat.enemyPoisonTurns > 0) parts.push(`Poison ${combat.enemyPoisonTurns}t`);
+      if (combat.enemyShield > 0) parts.push(`Shield ${combat.enemyShield}`);
+      return parts.length ? parts.join(" · ") : "None";
+    }
+
+    function enemyInfoHtml() {
+  let encounter = "Normal foe";
+  let details = "";
+  let passiveDetails = "";
+  let specialDetails = "";
+  let ultDetails = "";
+
+  // ---- BOSS ----
+  if (combat.bossKit) {
+    const kit = combat.bossKit;
+    encounter = "👑 Boss";
+    const dmgMult = kit.ultFn.toString().match(/\* (\d+\.?\d*)/);
+    const dmgPercent = dmgMult ? Math.round(parseFloat(dmgMult[1]) * 100) : "???";
+    ultDetails = `
+      <div class="info-section">⚔️ Ultimate</div>
+      <div class="info-body">
+        <strong>${kit.ultName}</strong><br>
+        • Charges in <strong>${kit.ultTurns}</strong> turns<br>
+        • Deals <strong>${dmgPercent}%</strong> base damage<br>
+        • ${kit.ultDesc || kit.ultFn.toString().replace(/[{}]/g, '').replace(/setLog\(["']([^"']*)["']\)/g, '→ $1').split(';')[0] || 'Powerful effect'}
+      </div>
+    `;
+    if (kit.passive) {
+      passiveDetails = `
+        <div class="info-section">🛡️ Boss Passive</div>
+        <div class="info-body">${kit.passive}</div>
+      `;
+    }
+  }
+
+  // ---- ELITE ----
+  if (combat.eliteKit) {
+    const kit = combat.eliteKit;
+    encounter = "⚡ Elite";
+    let passiveText = kit.passive || "None";
+    let onHitText = "";
+    if (kit.onHit) {
+      const fnStr = kit.onHit.toString();
+      if (fnStr.includes('combat.enemyHp = Math.min(combat.enemyMaxHp, combat.enemyHp + 4)')) {
+        onHitText = " • Lifesteal +4 HP on hit";
+      } else if (fnStr.includes('dealDamageToPlayer(Math.max(2, Math.round(enemyAtkForFloor(run.floor) * 0.35)))')) {
+        onHitText = " • Chain Shock: extra 35% damage on hit";
+      } else if (fnStr.includes('combat.poisonTurns = Math.max(combat.poisonTurns || 0, 2)')) {
+        onHitText = " • Applies Poison (2 turns) on hit";
+      } else if (fnStr.includes('combat.enemyShield = Math.min(25, combat.enemyShield + 3)')) {
+        onHitText = " • Gains +3 Shield when damaged";
+      }
+    }
+    passiveDetails = `
+      <div class="info-section">🛡️ Elite Passive</div>
+      <div class="info-body">${passiveText}${onHitText}</div>
+    `;
+  }
+
+  // ---- NORMAL ARCHETYPE ----
+  if (combat.enemyArchetype) {
+    const arch = combat.enemyArchetype;
+    encounter = `🎯 ${arch.label}`;
+    let passiveDesc = arch.passive || "None";
+    if (arch.id === "viper") passiveDesc = "45% chance to apply Poison (2 turns) on hit";
+    else if (arch.id === "hexer") passiveDesc = "40% chance to apply Blind OR Weaken on hit";
+    else if (arch.id === "mender") passiveDesc = `Heals ~${Math.round(3 + run.floor * 0.15)} HP at turn start`;
+    else if (arch.id === "bruiser") passiveDesc = "Heavy hits – +25% damage";
+    else if (arch.id === "raider") passiveDesc = "Glass cannon – +35% damage, -10% HP";
+    passiveDetails = `
+      <div class="info-section">🛡️ Archetype Passive</div>
+      <div class="info-body">${passiveDesc}</div>
+    `;
+  }
+
+  // ---- POWER STRIKE (all normal enemies) ----
+  if (!combat.bossKit && !combat.eliteKit) {
+    const chargeTime = combat.enemySpecialNeed || "4-5";
+    specialDetails = `
+      <div class="info-section">💥 Special Move</div>
+      <div class="info-body">
+        <strong>Power Strike</strong><br>
+        • Charges in <strong>${chargeTime}</strong> turns<br>
+        • Deals <strong>150%</strong> base damage<br>
+        • Warning: "Enemy is charging a special..." appears 1 turn before
+      </div>
+    `;
+  }
+
+  // ---- ENEMY ATTACK SCALING ----
+  const atkNow = enemyAtkForFloor(run.floor);
+  const atkNext = enemyAtkForFloor(run.floor + 1);
+  const scalingInfo = `
+    <div class="info-section">📈 Attack Scaling</div>
+    <div class="info-body">
+      Base: ${settings.enemyAtk} + (Floor-1) × 0.7 + ramp²<br>
+      Current: <strong>~${atkNow}</strong> damage<br>
+      Next floor: ~${atkNext} damage
+    </div>
+  `;
+
+  // ---- BUILD FINAL HTML ----
+  return `
+    <div class="info-row"><span>Name</span><span>${combat.enemyFullName || combat.enemyName || "Rival"}</span></div>
+    <div class="info-row"><span>HP</span><span>${combat.enemyHp}/${combat.enemyMaxHp}</span></div>
+    <div class="info-row"><span>Floor</span><span>${run.floor}</span></div>
+    <div class="info-row"><span>Type</span><span>${encounter}</span></div>
+    <div class="info-row"><span>Attack</span><span>~${atkNow} damage</span></div>
+    ${passiveDetails}
+    ${specialDetails}
+    ${ultDetails}
+    ${scalingInfo}
+    <div class="info-section">📊 Statuses on this foe</div>
+    <div class="info-body">${statusSummaryEnemy()}</div>
+  `;
+}
+
+    function openInfo(who) {
+      if (who === "player") {
+        infoTitle.textContent = (HERO_STATS[combat.playerClass] || {}).name || "Hero";
+        infoBody.innerHTML = heroInfoHtml(combat.playerClass);
+      } else {
+        infoTitle.textContent = combat.enemyFullName || combat.enemyName || "Enemy";
+        infoBody.innerHTML = enemyInfoHtml();
+      }
+      infoOverlay.classList.add("open");
+    }
+
+    function bindHold(el, who) {
+      if (!el) return;
+      const start = e => {
+        if (holdTimer) clearTimeout(holdTimer);
+        holdTarget = who;
+        holdTimer = setTimeout(() => {
+          holdTimer = null;
+          openInfo(who);
+        }, 420);
+      };
+      const cancel = () => {
+        if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+      };
+      el.addEventListener("pointerdown", start);
+      el.addEventListener("pointerup", cancel);
+      el.addEventListener("pointerleave", cancel);
+      el.addEventListener("pointercancel", cancel);
+    }
+
+    bindHold(playerPortraitEl, "player");
+    bindHold(document.getElementById("enemyPortrait"), "enemy");
+
+    // Short click on player still triggers ult; long press opens info
+    // (hold cancels before click fires if we prevent default on long press — skip for simplicity)
+
+    document.getElementById("btnInfoClose").addEventListener("click", () => {
+      infoOverlay.classList.remove("open");
+    });
+    infoOverlay.addEventListener("click", e => {
+      if (e.target === infoOverlay) infoOverlay.classList.remove("open");
+    });
+
+    // Phase event pill → info
+    const phasePillEl = document.getElementById("phasePill");
+    if (phasePillEl) {
+      phasePillEl.addEventListener("click", () => {
+        if (getPhase() === "normal") return;
+        playUiClick("tap");
+        showPhaseInfo();
+      });
+    }
+
+    // UI click SFX + haptic for every button
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      if (btn.disabled) return;
+      if (btn.id === "btnEnd") playUiClick("end");
+      else if (btn.classList.contains("primary") || btn.classList.contains("end-btn")) playUiClick("primary");
+      else playUiClick("tap");
+    }, true);
+
+    // ---------- start ----------
+    buildCharPick();
+    refreshContinueBtn();
+    showScreen("menu");

@@ -47,12 +47,110 @@
         const d = document.createElement("span");
         d.className = "up-card-desc";
         d.textContent = e.desc;
-        btn.append(row, d);
+        const dur = document.createElement("span");
+        const isPerm = opts.permanent === true;
+        dur.className = "reward-dur " + (isPerm ? "permanent" : "floor");
+        dur.textContent = isPerm ? "Permanent" : "This floor";
+        btn.append(row, d, dur);
         btn.title = e.desc;
         btn.addEventListener("click", () => {
           const label = applyRewardEntry(e);
           ov.classList.remove("open");
           opts.onPick(label);
+        });
+        wrap.appendChild(btn);
+      });
+      ov.classList.add("open");
+    }
+
+    function openModifierPicker(onPick) {
+      const ov = document.getElementById("upgradeOverlay");
+      const wrap = document.getElementById("upgradeCards");
+      const t = document.getElementById("upgradeTitle");
+      const s = document.getElementById("upgradeSub");
+      const rr = document.getElementById("upgradeReroll");
+      if (!ov || !wrap) { onPick(null); return; }
+      if (rr) rr.style.display = "none";
+      const easy = FLOOR_MODIFIERS.filter(m => m.tier === "easy");
+      const hard = FLOOR_MODIFIERS.filter(m => m.tier === "hard");
+      const poolE = easy.slice();
+      const poolH = hard.slice();
+      for (let i = poolE.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [poolE[i], poolE[j]] = [poolE[j], poolE[i]]; }
+      for (let i = poolH.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [poolH[i], poolH[j]] = [poolH[j], poolH[i]]; }
+      const choices = [...poolE.slice(0, 2), ...poolH.slice(0, 1)];
+      if (t) t.textContent = "Floor Modifier";
+      if (s) s.textContent = "Pick a buff or a challenge for this floor";
+      wrap.innerHTML = "";
+      choices.forEach(m => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "upgrade-card";
+        const row = document.createElement("span");
+        row.className = "up-card-head";
+        const n = document.createElement("span");
+        n.className = "up-card-name";
+        n.textContent = (m.icon || "") + " " + m.name;
+        const badge = document.createElement("span");
+        badge.className = "modifier-tier " + m.tier;
+        badge.textContent = m.tier === "hard" ? "CHALLENGE" : "BENEFIT";
+        row.append(n, badge);
+        const d = document.createElement("span");
+        d.className = "up-card-desc";
+        d.textContent = m.desc;
+        btn.append(row, d);
+        if (m.tier === "hard") {
+          const reward = document.createElement("span");
+          reward.className = "modifier-reward";
+          reward.textContent = "Rare reward guaranteed next floor";
+          btn.appendChild(reward);
+        }
+        btn.addEventListener("click", () => {
+          ov.classList.remove("open");
+          onPick(m);
+        });
+        wrap.appendChild(btn);
+      });
+      ov.classList.add("open");
+    }
+
+    function openHardStatPicker(onPick) {
+      const ov = document.getElementById("upgradeOverlay");
+      const wrap = document.getElementById("upgradeCards");
+      const t = document.getElementById("upgradeTitle");
+      const s = document.getElementById("upgradeSub");
+      const rr = document.getElementById("upgradeReroll");
+      if (!ov || !wrap) { onPick(); return; }
+      if (rr) rr.style.display = "none";
+      if (t) t.textContent = "Challenge Bonus";
+      if (s) s.textContent = "Pick a permanent upgrade for taking the challenge";
+      wrap.innerHTML = "";
+      const stats = [
+        { icon: "❤️", name: "+5 Max HP", desc: "Permanently boost your health", apply() { run.bonusMaxHp += 5; } },
+        { icon: "🛡️", name: "+2 Max Shield", desc: "Higher shield ceiling", apply() { run.bonusShieldMax += 2; } },
+        { icon: "⚔️", name: "+1 Sword Damage", desc: "Permanently stronger swords", apply() { run.bonusSwordDmg += 1; } },
+        { icon: "⭐", name: "+1 Star Damage", desc: "Permanently stronger stars", apply() { run.bonusStarDmg += 1; } }
+      ];
+      stats.forEach(st => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "upgrade-card";
+        const row = document.createElement("span");
+        row.className = "up-card-head";
+        const n = document.createElement("span");
+        n.className = "up-card-name";
+        n.textContent = st.icon + " " + st.name;
+        const badge = document.createElement("span");
+        badge.className = "reward-dur permanent";
+        badge.textContent = "Permanent";
+        row.append(n, badge);
+        const d = document.createElement("span");
+        d.className = "up-card-desc";
+        d.textContent = st.desc;
+        btn.append(row, d);
+        btn.addEventListener("click", () => {
+          st.apply();
+          ov.classList.remove("open");
+          onPick();
         });
         wrap.appendChild(btn);
       });
@@ -73,6 +171,9 @@
       } else if (isEliteFloor(run.floor)) {
         kick = "Elite Floor";
         extra = (ELITE_KITS[run.floor] && ELITE_KITS[run.floor].name) || "Powerful foe";
+      }
+      if (combat.floorModifier) {
+        extra = (extra ? extra + " — " : "") + combat.floorModifier.icon + " " + combat.floorModifier.name;
       }
       kicker.textContent = kick;
       title.textContent = String(run.floor);
@@ -118,6 +219,7 @@
       const permanent = typeof reward === "string" ? true : reward && reward.permanent !== false;
       const temp = reward && reward.tempLabel;
       const rewardMsg = document.getElementById("rewardMsg");
+      const mod = run.pendingModifier;
       const isFinal = run.floor >= MAX_FLOOR;
       gameOverOverlay.classList.remove("lose");
       gameOverOverlay.classList.add("win");
@@ -136,11 +238,16 @@
           : isEliteFloor(run.floor)
             ? "Elite defeated!"
             : "Rival defeated.";
-        rewardMsg.innerHTML = label
-          ? (permanent
-              ? `🎁 Permanent: ${label}${temp ? `<br>⚡ Rare perk for next floor: ${temp}` : ""}`
-              : `🎁 ${label}`)
-          : "";
+        let msg = "";
+        if (label) {
+          msg = permanent
+            ? `🎁 Permanent: ${label}${temp ? `<br>⚡ Rare perk for next floor: ${temp}` : ""}`
+            : `🎁 ${label}`;
+        }
+        if (mod) {
+          msg += `<br>${mod.icon} Modifier: ${mod.name}`;
+        }
+        rewardMsg.innerHTML = msg;
         document.getElementById("btnGoRetry").textContent = "Next Floor";
         const savedFloor = run.floor;
         run.floor = savedFloor + 1;
@@ -176,7 +283,10 @@
             const d = document.createElement("span");
             d.className = "up-card-desc";
             d.textContent = u.desc;
-            btn.append(n, d);
+            const dur = document.createElement("span");
+            dur.className = "reward-dur permanent";
+            dur.textContent = "Permanent";
+            btn.append(n, d, dur);
             btn.title = u.desc;
           } else {
             btn.textContent = u.name || u.label;
@@ -223,13 +333,33 @@
           openRewardPicker(buildEliteTempChoices(), {
             title: "Elite Reward",
             sub: "Pick a rare perk for the next floor",
-            onPick: label => showVictoryOverlay({ label: permanentLabel, permanent: true, tempLabel: label })
+            onPick: label => openModifierPicker(mod => {
+              run.pendingModifier = mod;
+              if (mod && mod.tier === "hard") {
+                run.pendingModifierRare = true;
+                openHardStatPicker(() => {
+                  showVictoryOverlay({ label: permanentLabel, permanent: true, tempLabel: label });
+                });
+              } else {
+                showVictoryOverlay({ label: permanentLabel, permanent: true, tempLabel: label });
+              }
+            })
           });
         } else {
           openRewardPicker(buildFloorRewardChoices(), {
             title: "Floor Reward",
             sub: "Pick one — it applies to the next floor",
-            onPick: label => showVictoryOverlay({ label, permanent: false })
+            onPick: label => openModifierPicker(mod => {
+              run.pendingModifier = mod;
+              if (mod && mod.tier === "hard") {
+                run.pendingModifierRare = true;
+                openHardStatPicker(() => {
+                  showVictoryOverlay({ label, permanent: false });
+                });
+              } else {
+                showVictoryOverlay({ label, permanent: false });
+              }
+            })
           });
         }
       } else if (combat.playerHp <= 0) {
@@ -262,11 +392,14 @@
           pickedUpgrades: run.pickedUpgrades,
           ultChargeBonus: run.ultChargeBonus,
           bonusSwordDmg: run.bonusSwordDmg,
+          bonusStarDmg: run.bonusStarDmg,
           bonusHeal: run.bonusHeal,
           floorShieldBonus: run.floorShieldBonus,
           feverEarly: run.feverEarly,
           enemyUltSlow: run.enemyUltSlow,
           pending: run.pending,
+          pendingModifier: run.pendingModifier,
+          pendingModifierRare: run.pendingModifierRare,
           playerClass: combat.playerClass,
           difficulty: settings.difficulty
         };
@@ -317,6 +450,7 @@
       run.pickedUpgrades = [];
       run.ultChargeBonus = 0;
       run.bonusSwordDmg = 0;
+      run.bonusStarDmg = 0;
       run.bonusHeal = 0;
       run.floorShieldBonus = 0;
       run.feverEarly = 0;
@@ -326,7 +460,10 @@
       run.phasePower = false; run.fortifiedStart = false; run.venomous = false;
       run.deepFracture = false; run.arcaneMirror = false; run.lingeringShadow = false;
       run.heavyChains = false; run.momentum = false; run.luckyDice = false;
+      run.runicShield = false; run.manaSurge = false; run.mortalStrike = false; run.bulwark = false;
       run.pending = { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 };
+      run.pendingModifier = null;
+      run.pendingModifierRare = false;
       AP_MAX = 3;
       clearSave();
     }
@@ -340,6 +477,7 @@
       run.pickedUpgrades = d.pickedUpgrades || [];
       run.ultChargeBonus = d.ultChargeBonus | 0;
       run.bonusSwordDmg = d.bonusSwordDmg | 0;
+      run.bonusStarDmg = d.bonusStarDmg | 0;
       run.bonusHeal = d.bonusHeal | 0;
       run.floorShieldBonus = d.floorShieldBonus | 0;
       run.feverEarly = d.feverEarly | 0;
@@ -360,11 +498,17 @@
       run.heavyChains = (run.pickedUpgrades || []).includes("heavyChains");
       run.momentum = (run.pickedUpgrades || []).includes("momentum");
       run.luckyDice = (run.pickedUpgrades || []).includes("luckyDice");
+      run.runicShield = (run.pickedUpgrades || []).includes("runicShield");
+      run.manaSurge = (run.pickedUpgrades || []).includes("manaSurge");
+      run.mortalStrike = (run.pickedUpgrades || []).includes("mortalStrike");
+      run.bulwark = (run.pickedUpgrades || []).includes("bulwark");
       run.pending = Object.assign(
         { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 },
         d.pending || {}
       );
       AP_MAX = 3 + run.bonusApMax;
+      run.pendingModifier = d.pendingModifier || null;
+      run.pendingModifierRare = !!d.pendingModifierRare;
       if (d.playerClass && HERO_STATS[d.playerClass]) combat.playerClass = d.playerClass;
       if (d.difficulty) settings.difficulty = d.difficulty;
     }
@@ -417,6 +561,7 @@
       combat.firstHitDodged = false;
       combat.afterglowTurns = 0;
       combat.markStacks = 0;
+      combat.enemyWeakenTurns = 0;
       combat.fractureStacks = 0;
       combat.fractureTurns = 0;
       combat.mortalWoundTurns = 0;
@@ -440,6 +585,27 @@
       combat.enemySpecialNeed = 4 + Math.floor(Math.random() * 2) + ((run.pending && run.pending.enemySlow) || 0) + (run.heavyChains ? 1 : 0); // 4 or 5
       // Pending next-floor rewards are consumed when the floor begins
       run.pending = { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 };
+      // Apply floor modifier
+      combat.floorModifier = run.pendingModifier || null;
+      run.pendingModifier = null;
+      // Clear previous floor's modifier state
+      combat.tempStarDmg = 0;
+      combat.armorPlating = 0;
+      combat.glassCannon = false;
+      combat.cascadeDamageMult = 0;
+      combat.enemySpeedMult = 1;
+      combat.shieldCapOverride = 0;
+      if (combat.floorModifier) {
+        combat.floorModifier.apply(combat);
+        if (combat.enemySpeedMult && combat.enemySpeedMult !== 1) {
+          combat.enemyUltNeed = Math.max(1, Math.round(combat.enemyUltNeed * combat.enemySpeedMult));
+          combat.enemySpecialNeed = Math.max(1, Math.round(combat.enemySpecialNeed * combat.enemySpeedMult));
+        }
+        if (combat.shieldCapOverride) {
+          combat.shield = Math.min(combat.shield, combat.shieldCapOverride);
+        }
+      }
+      run.pendingModifierRare = false;
       busy = false;
 
       // Single enemy setup (boss / elite / normal)
@@ -627,7 +793,7 @@
       settings.shieldMax = +document.getElementById("admShieldMax").value || 0;
       settings.enemyAtk = +document.getElementById("admEnemyAtk").value || 0;
       settings.ultDmg = +document.getElementById("admUlt").value || 0;
-      settings.ultNeed = Math.max(1, +document.getElementById("admUltNeed").value || 6);
+      settings.ultNeed = Math.max(1, +document.getElementById("admUltNeed").value || 3);
       const feverEl = document.getElementById("admFever");
       const impactEl = document.getElementById("admImpact");
       if (feverEl) settings.feverTurn = Math.max(1, +feverEl.value || 6);
@@ -736,31 +902,7 @@
       showScreen("menu");
       buildCharPick();
       refreshContinueBtn();
-    });
-
-    // ----- Battle log modal (last 4 moves, full text) -----
-    const logOverlay = document.getElementById("logOverlay");
-    const logHistoryEl = document.getElementById("logHistory");
-    if (battleLogEl) {
-      battleLogEl.addEventListener("click", () => {
-        const hist = combat.logHistory || [];
-        const entries = hist.slice(-4);
-        if (!entries.length) {
-          logHistoryEl.innerHTML = `<div class="log-entry empty">No moves yet</div>`;
-        } else {
-          logHistoryEl.innerHTML = entries.map(m =>
-            `<div class="log-entry">${m}</div>`
-          ).join("");
-        }
-        logOverlay.classList.add("open");
-      });
-    }
-    document.getElementById("btnLogClose").addEventListener("click", () => {
-      logOverlay.classList.remove("open");
-    });
-    logOverlay.addEventListener("click", e => {
-      if (e.target === logOverlay) logOverlay.classList.remove("open");
-    });
+     });
 
     // ----- Hold portrait → character / enemy info -----
     const infoOverlay = document.getElementById("infoOverlay");
@@ -802,7 +944,19 @@
         <div class="info-body">${shapes}</div>
         <div class="info-section">Active statuses</div>
         <div class="info-body">${statusSummaryPlayer()}</div>
+        ${runUpgradeSection()}
+        ${combat.floorModifier ? `<div class="info-section">Floor Modifier</div><div class="info-body">${combat.floorModifier.icon} ${combat.floorModifier.name} — ${combat.floorModifier.desc}</div>` : ""}
       `;
+    }
+
+    function runUpgradeSection() {
+      const picked = run.pickedUpgrades || [];
+      if (!picked.length) return "";
+      const names = picked.map(id => {
+        const u = RUN_UPGRADES.find(u => u.id === id);
+        return u ? u.name : id;
+      });
+      return `<div class="info-section">Permanent Upgrades</div><div class="info-body">${names.join(" · ")}</div>`;
     }
 
     function statusSummaryPlayer() {
@@ -827,6 +981,7 @@
       if (combat.enemyAfterglowTurns > 0) parts.push(`Afterglow ${combat.enemyAfterglowTurns}t`);
       if (combat.bossKit && combat.bossKit.id === "umbral" && !combat.enemyVeilUsed) parts.push("Shadow Veil");
       if (combat.enemyPoisonTurns > 0) parts.push(`Poison ${combat.enemyPoisonTurns}t`);
+      if ((combat.enemyWeakenTurns || 0) > 0) parts.push(`Weakened ${combat.enemyWeakenTurns}t`);
       if (combat.enemyShield > 0) parts.push(`Shield ${combat.enemyShield}`);
       return parts.length ? parts.join(" · ") : "None";
     }

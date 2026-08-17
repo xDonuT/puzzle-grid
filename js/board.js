@@ -62,7 +62,8 @@
         comboTextEl.textContent = labels[Math.min(level, 7)] || "Divine!";
         const lv = Math.min(level, 5);
         comboTextEl.classList.add("show", `level-${lv}`);
-        if (level >= 3) shakeBoard("light");
+        if (level >= 4) shakeBoard("strong");
+        else if (level >= 2) shakeBoard("light");
       }
       // Board wash / glow
       boardWrapEl.classList.remove("combo-glow-1", "combo-glow-2", "combo-glow-3", "combo-glow-4");
@@ -70,6 +71,11 @@
       else if (level >= 4) boardWrapEl.classList.add("combo-glow-3");
       else if (level >= 3) boardWrapEl.classList.add("combo-glow-2");
       else if (level >= 2) boardWrapEl.classList.add("combo-glow-1");
+      // Screen flash on big combos
+      if (level >= 3) {
+        boardWrapEl.classList.add("combo-flash");
+        setTimeout(() => boardWrapEl.classList.remove("combo-flash"), 200);
+      }
     }
 
     // Subtle-to-strong board shake for impact moments
@@ -158,7 +164,7 @@
     }
 
     // ---------- particles (soft blob-like bursts) ----------
-    function spawnParticles(r, c, type) {
+    function spawnParticles(r, c, type, comboLevel) {
       const el = getCell(r, c);
       const rect = el.getBoundingClientRect();
       const gridRect = gridEl.getBoundingClientRect();
@@ -167,14 +173,17 @@
       const color = COLORS[type]?.icon || "#c9b8a8";
       const softColor = COLORS[type]?.bg || "#e8e0d4";
 
-      const count = 8 + Math.floor(Math.random() * 5);
+      const cl = Math.min(comboLevel || 1, 5);
+      const count = 8 + Math.floor(Math.random() * 5) + (cl - 1) * 3;
+      const distMul = 1 + (cl - 1) * 0.18;
+      const sizeMul = 1 + (cl - 1) * 0.1;
+      const durMul = 1 + (cl - 1) * 0.08;
       for (let i = 0; i < count; i++) {
         const p = document.createElement("div");
         p.className = "particle";
-        const size = 6 + Math.random() * 9;
+        const size = (6 + Math.random() * 9) * sizeMul;
         p.style.width = size + "px";
         p.style.height = size + "px";
-        // Mix icon + tile color for softer look
         p.style.background = i % 2 === 0 ? color : softColor;
         p.style.left = cx + "px";
         p.style.top = cy + "px";
@@ -184,7 +193,7 @@
         p.style.filter = "blur(0.4px)";
 
         const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.7;
-        const dist = 22 + Math.random() * 32;
+        const dist = (22 + Math.random() * 32) * distMul;
         const tx = Math.cos(angle) * dist;
         const ty = Math.sin(angle) * dist - 8;
 
@@ -195,7 +204,7 @@
           { transform: `translate(${tx * 0.6}px, ${ty * 0.5}px) scale(1.05)`, opacity: 0.7, offset: 0.35 },
           { transform: `translate(${tx}px, ${ty}px) scale(0.2)`, opacity: 0 }
         ], {
-          duration: 420 + Math.random() * 200,
+          duration: (420 + Math.random() * 200) * durMul,
           easing: "cubic-bezier(0.15, 0.75, 0.3, 1)",
           fill: "forwards"
         });
@@ -513,11 +522,13 @@
         await sleep(420);
 
         // 2. Particles + pop
+        const comboClass = combo >= 4 ? "c4" : combo >= 3 ? "c3" : combo >= 2 ? "c2" : "";
         for (const { r, c, type } of matchedList) {
           const el = getCell(r, c);
           el.classList.remove("highlight");
           el.classList.add("matching");
-          spawnParticles(r, c, type);
+          if (comboClass) el.classList.add(comboClass);
+          spawnParticles(r, c, type, combo);
         }
         if (shape.isCross && shape.crossCell) {
           spawnCrossFlash(shape.crossCell.r, shape.crossCell.c);
@@ -763,6 +774,38 @@
       setTimeout(() => el.classList.remove("dropping"), 360);
     }
 
+    function clearPotentialHighlights() {
+      for (let r = 0; r < ROWS; r++)
+        for (let c = 0; c < COLS; c++)
+          getCell(r, c).classList.remove("potential-match");
+    }
+
+    function showPotentialMatches(row, col) {
+      clearPotentialHighlights();
+      const type = board[row][col];
+      if (!type) return;
+      const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+      const matchedCells = new Set();
+      for (const [dr, dc] of dirs) {
+        const nr = row + dr, nc = col + dc;
+        if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
+        if (!board[nr][nc]) continue;
+        const tmp = board[row][col]; board[row][col] = board[nr][nc]; board[nr][nc] = tmp;
+        const { mark, any } = findMatches();
+        board[nr][nc] = board[row][col]; board[row][col] = tmp;
+        if (any) {
+          for (let r = 0; r < ROWS; r++)
+            for (let c = 0; c < COLS; c++)
+              if (mark[r][c]) matchedCells.add(r * COLS + c);
+        }
+      }
+      matchedCells.delete(row * COLS + col);
+      for (const idx of matchedCells) {
+        const r = Math.floor(idx / COLS), c = idx % COLS;
+        getCell(r, c).classList.add("potential-match");
+      }
+    }
+
     gridEl.addEventListener("pointerdown", e => {
       if (busy || combat.ap <= 0) return;
       const t = tileAt(e.clientX, e.clientY);
@@ -779,6 +822,7 @@
         startY: e.clientY
       };
       t.el.classList.add("selected");
+      showPotentialMatches(t.row, t.col);
       playPickup();
       e.preventDefault();
     });
@@ -805,6 +849,7 @@
     window.addEventListener("pointerup", e => {
       if (!pointer) return;
       const el = getCell(pointer.row, pointer.col);
+      clearPotentialHighlights();
 
       const dx = e.clientX - pointer.x;
       const dy = e.clientY - pointer.y;
@@ -839,6 +884,7 @@
     window.addEventListener("pointercancel", () => {
       if (pointer) {
         const el = getCell(pointer.row, pointer.col);
+        clearPotentialHighlights();
         applyDropEffect(el);
         pointer = null;
       }

@@ -6,18 +6,47 @@
       /^\(\+\d+ dmg to enemy\)$/.test(b)
     );
 
+    const logBarText = document.getElementById("logBarText");
+    const actionLogBar = document.getElementById("actionLogBar");
+    const actionLogModal = document.getElementById("actionLogModal");
+    const actionLogClose = document.getElementById("actionLogClose");
+    const actionLogScroll = document.getElementById("actionLogScroll");
+
     function pushLog(msg, detail) {
-      // Live line shows the flavor text; the tap-through history keeps the full detail.
-      const live = String(detail != null ? msg : msg);
       const full = String(detail != null ? detail : msg);
       combat.logHistory.push(full);
-      if (combat.logHistory.length > 4) combat.logHistory.shift();
-      if (battleLogEl) {
-        // Board: keep short — CSS clamps to 2 lines; still set full string for accessibility
-        battleLogEl.textContent = live;
-        battleLogEl.title = "Tap for recent moves";
-        battleLogEl.classList.remove("voice-line");
+      if (combat.logHistory.length > 5) combat.logHistory.shift();
+      if (logBarText) logBarText.textContent = msg || full;
+    }
+
+    function refreshLogModal() {
+      if (!actionLogScroll) return;
+      actionLogScroll.innerHTML = "";
+      const entries = combat.logHistory.slice(-5);
+      for (const text of entries) {
+        const el = document.createElement("div");
+        el.className = "log-entry";
+        el.textContent = text;
+        actionLogScroll.appendChild(el);
       }
+      actionLogScroll.scrollTop = actionLogScroll.scrollHeight;
+    }
+
+    if (actionLogBar) {
+      actionLogBar.addEventListener("click", () => {
+        refreshLogModal();
+        actionLogModal.classList.add("open");
+      });
+    }
+    if (actionLogClose) {
+      actionLogClose.addEventListener("click", () => {
+        actionLogModal.classList.remove("open");
+      });
+    }
+    if (actionLogModal) {
+      actionLogModal.addEventListener("click", (e) => {
+        if (e.target === actionLogModal) actionLogModal.classList.remove("open");
+      });
     }
 
     // ---------- Dynamic trash-talk / voice lines ----------
@@ -107,14 +136,8 @@
       }
       if (!line) return null;
       if (asLog) {
-        // Voice lines go to log with a distinct feel
         combat.logHistory.push(line);
-        if (combat.logHistory.length > 4) combat.logHistory.shift();
-        if (battleLogEl) {
-          battleLogEl.textContent = line;
-          battleLogEl.title = "Tap for recent moves";
-          battleLogEl.classList.add("voice-line");
-        }
+        if (combat.logHistory.length > 5) combat.logHistory.shift();
       }
       return line;
     }
@@ -230,10 +253,12 @@
       }},
       { id: "charge", label: "Charge", apply: () => {
         combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + 2);
+        dmgPop("player", "+2 charge", "heal");
         return `+2 charge`;
       }},
       { id: "empower", label: "Empower", apply: () => {
         combat.empowerNext = true;
+        dmgPop("player", "Empower!", "heal");
         return `next atk +50%`;
       }}
     ];
@@ -246,14 +271,17 @@
       { id: "poison", label: "Poison", apply: () => {
         combat.poisonTurns = Math.max(combat.poisonTurns || 0, 2);
         combat.enemyPoisonTurns = Math.max(combat.enemyPoisonTurns || 0, 2);
+        dmgPop("player", "Poison!", "dmg");
         return `poison 2 turns`;
       }},
       { id: "blind", label: "Blind", apply: () => {
         combat.blindNext = true;
+        dmgPop("player", "Blind!", "dmg");
         return `next atk -50%`;
       }},
       { id: "weaken", label: "Weaken", apply: () => {
         combat.weakenNextSword = true;
+        dmgPop("player", "Weaken!", "dmg");
         return `next sword -2`;
       }}
     ];
@@ -290,20 +318,16 @@
       if (badge) el.appendChild(badge);
     }
 
-    // Rebuild the status-chip row shown just under the portrait (tap a chip for details)
+    // Rebuild the status-chip row between HP and AP (tap a chip for details)
     function syncPortraitChips(el, chips) {
       if (!el) return;
-      const main = el.parentElement;
-      if (!main) return;
-      let box = main.querySelector(".portrait-status");
-      if (!box) {
-        box = document.createElement("div");
-        box.className = "portrait-status";
-        main.insertBefore(box, el.nextSibling);
-      }
+      const combatant = el.closest ? el.closest(".combatant") : el.parentElement.parentElement;
+      if (!combatant) return;
+      const box = combatant.querySelector(".status-row");
+      if (!box) return;
       box.innerHTML = chips.map(c => {
         const info = STATUS_INFO[c.key];
-        const label = c.count > 0 ? `${c.emoji}${c.count}` : c.emoji;
+        const label = c.count > 0 ? `${c.emoji}<span class="status-num">${c.count}</span>` : c.emoji;
         return `<span class="status-icon ${c.key}" data-status="${c.key}" role="button" title="${info ? info.name : c.key}">${label}</span>`;
       }).join("");
       box.style.display = chips.length ? "" : "none";
@@ -331,17 +355,16 @@
       document.getElementById("enemyName").textContent = CHARACTERS[combat.enemyClass].name;
     }
 
-    const enemyHpFill = document.getElementById("enemyHpFill");
     const enemyHpText = document.getElementById("enemyHpText");
-    const playerHpFill = document.getElementById("playerHpFill");
     const playerHpText = document.getElementById("playerHpText");
+    const playerHeartHp = document.getElementById("playerHeartHp");
+    const enemyHeartHp = document.getElementById("enemyHeartHp");
     const turnNumEl = document.getElementById("turnNum");
     const ultPipsEl = document.getElementById("ultPips");
     const apPipsEl = document.getElementById("apPips");
     const btnShuffle = document.getElementById("btnShuffle");
     const btnEnd = document.getElementById("btnEnd");
     const endWrap = document.getElementById("endWrap");
-    const battleLogEl = document.getElementById("battleLog");
     const shieldBadgeEl = document.getElementById("shieldBadge");
     const playerPortraitEl = document.getElementById("playerPortrait");
 
@@ -356,12 +379,12 @@
     function refreshCombatUI() {
       const pPct = Math.max(0, Math.min(100, (combat.playerHp / combat.playerMaxHp) * 100));
       const ePct = Math.max(0, Math.min(100, (combat.enemyHp / combat.enemyMaxHp) * 100));
-      playerHpFill.style.height = pPct + "%";
-      enemyHpFill.style.height = ePct + "%";
-      playerHpFill.classList.toggle("low", pPct < 30);
-      enemyHpFill.classList.toggle("low", ePct < 30);
-      playerHpText.textContent = `${combat.playerHp}/${combat.playerMaxHp}`;
-      enemyHpText.textContent = `${combat.enemyHp}/${combat.enemyMaxHp}`;
+      const pHp = `${combat.playerHp}/${combat.playerMaxHp}`;
+      const eHp = `${combat.enemyHp}/${combat.enemyMaxHp}`;
+      if (playerHpText) playerHpText.textContent = pHp;
+      if (enemyHpText) enemyHpText.textContent = eHp;
+      if (playerHeartHp) playerHeartHp.classList.toggle("low", pPct < 30);
+      if (enemyHeartHp) enemyHeartHp.classList.toggle("low", ePct < 30);
       if (turnNumEl) {
         turnNumEl.textContent = `Turn ${combat.turn}`;
       }
@@ -555,6 +578,10 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (combat.afterglowTurns > 0) {
         dmg = Math.round(dmg * 0.5);
       }
+      // Mortal Strike (Knight): enemy deals 25% less damage for duration
+      if ((combat.enemyWeakenTurns || 0) > 0) {
+        dmg = Math.round(dmg * 0.75);
+      }
 
       // Wizard Arcane Reflection: 30% of pre-mitigation dmg reflected as true dmg
       if (combat.playerClass === "wizard" && dmg > 0) {
@@ -708,7 +735,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           swordCount++;
           if (!forEnemy && sigType === "sword") { hasSigMatch = true; sigSwordCount++; }
         } else if (type === "star") {
-          dmg += settings.starDmg;
+          dmg += settings.starDmg + (run.bonusStarDmg || 0) + (combat.tempStarDmg || 0);
         } else if (type === "hp") {
           healCount++;
           // Knight signature: +6 per potion tile
@@ -746,7 +773,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       // Signature Echo: matching your signature tile also counts as a small star
       if (!forEnemy && hasSigMatch && run.sigDouble) {
         const sigN = sigType === "sword" ? sigSwordCount : sigType === "hp" ? sigHpCount : sigShieldCount;
-        if (sigN > 0) dmg += settings.starDmg * sigN;
+        if (sigN > 0) dmg += (settings.starDmg + (run.bonusStarDmg || 0)) * sigN;
       }
 
       // Damage gets full shape mult; heals only partial (prevents 60+ HP clears)
@@ -764,7 +791,18 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           sh = shieldFromCount(shieldTiles);
         }
       }
+      if (combat.armorPlating && !forEnemy) sh += combat.armorPlating;
       if (mult > 1 && sh > 0) sh = Math.round(sh * Math.min(1.25, mult));
+
+      // Glass Cannon: player damage +50%, healing -50%
+      if (!forEnemy && combat.glassCannon) {
+        dmg = Math.round(dmg * 1.5);
+        heal = Math.round(heal * 0.5);
+      }
+      // Cascade Boost: cascade damage +50%
+      if (!forEnemy && combo >= 2 && combat.cascadeDamageMult) {
+        dmg = Math.round(dmg * combat.cascadeDamageMult);
+      }
 
       // Ninja lifesteal (toned down)
       let lifeSteal = 0;
@@ -896,11 +934,29 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         let healApplied = 0, shieldApplied = 0;
         if (heal > 0) healApplied = applyHealing(heal, healCount);
         if (sh > 0) shieldApplied = applyShielding(sh, shieldCount);
+        // Runic Shield (Wizard): shield matches deal damage equal to shield gained
+        if (!forEnemy && shieldApplied > 0 && run.runicShield && Math.random() < 0.25) {
+          dealDamageToEnemy(shieldApplied);
+          dmgPop("enemy", `🔮${shieldApplied}`, "true");
+          bitsExtra.push(`Runic ${shieldApplied}`);
+        }
+        // Bulwark (Knight): shield matches apply 1 Fracture stack (once per turn)
+        if (!forEnemy && shieldApplied > 0 && run.bulwark && !combat._bulwarkUsed) {
+          combat._bulwarkUsed = true;
+          combat.fractureStacks = Math.min(5, combat.fractureStacks + 1);
+          combat.fractureTurns = Math.max(combat.fractureTurns, 2);
+          bitsExtra.push(`Bulwark Fracture ${combat.fractureStacks}`);
+        }
         if (hasSigMatch) {
           const before = combat.sigBank;
           combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + 1 + (run.ultChargeBonus || 0));
           if (before < settings.ultNeed && combat.sigBank >= settings.ultNeed) {
             showUltReadyBanner();
+          }
+          // Mana Surge (Wizard): full charge — signature matches refund 1 AP
+          if (run.manaSurge && combat.sigBank >= settings.ultMaxCharge) {
+            combat.ap = Math.min(AP_MAX, combat.ap + 1);
+            bitsExtra.push("Mana Surge +1 AP");
           }
         }
         const bits = [label];
@@ -1086,6 +1142,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       combat.turn += 1;
       combat.playerTurn = true;
       combat.cascadeApRefunded = false; // Cascade Refund: once per turn
+      combat._bulwarkUsed = false; // Bulwark: once per turn
       if (typeof tutorialOnPhase === "function") tutorialOnPhase(getPhase());
 
       // Decay timed statuses
@@ -1098,6 +1155,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       }
       if (combat.enemyAfterglowTurns > 0) combat.enemyAfterglowTurns--;
       if (combat.playerMortalWoundTurns > 0) combat.playerMortalWoundTurns--;
+      if (combat.enemyWeakenTurns > 0) combat.enemyWeakenTurns--;
 
       // Knight Regeneration at start of own turn
       if (combat.playerClass === "knight" && combat.playerHp > 0) {
@@ -1181,7 +1239,10 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           const el = getCell(r, c);
           el.classList.remove("highlight");
           el.classList.add("matching");
-          spawnParticles(r, c, type);
+          if (combo >= 4) el.classList.add("c4");
+          else if (combo >= 3) el.classList.add("c3");
+          else if (combo >= 2) el.classList.add("c2");
+          spawnParticles(r, c, type, combo);
         }
         if (shape.isCross && shape.crossCell) {
           spawnCrossFlash(shape.crossCell.r, shape.crossCell.c);
@@ -1236,7 +1297,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
     // Helper function to apply shielding with overflow-to-damage mechanic
     function applyShielding(amt, shieldCount = 0) {
       const hero = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
-      const maxSh = hero.maxShieldCap + run.bonusShieldMax;
+      const maxSh = combat.shieldCapOverride || (hero.maxShieldCap + run.bonusShieldMax);
       const shielded = Math.min(amt, maxSh - combat.shield);
       combat.shield += shielded;
       if (shielded > 0) {
@@ -1273,6 +1334,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
     // Floating damage/heal numbers over the board (third row — right in the player's
     // line of sight), direction-split: enemy-affecting events float on the left,
     // player-affecting on the right. Absolutely positioned so nothing reflows.
+    let popCount = 0;
+    let popCountReset = null;
     function dmgPop(side, text, kind = "dmg") {
       const board = document.querySelector(".board-wrap");
       if (!board) return;
@@ -1281,28 +1344,33 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       pop.className = `dmg-pop ${kind}`;
       pop.textContent = text;
       const sideX = side === "enemy" ? 0.25 : 0.75;
-      const jitterX = Math.random() * 24 - 12;
-      const jitterY = Math.random() * 16 - 8;
+      popCount++;
+      if (popCountReset) clearTimeout(popCountReset);
+      popCountReset = setTimeout(() => { popCount = 0; }, 600);
+      const stackOffset = Math.min(popCount - 1, 5) * 22;
+      const jitterX = Math.random() * 60 - 30;
+      const jitterY = Math.random() * 20 - 10;
       pop.style.left = Math.round(br.width * sideX + jitterX) + "px";
-      pop.style.top = Math.round(br.height * 0.42 + jitterY) + "px";
+      pop.style.top = Math.round(br.height * 0.42 + jitterY + stackOffset) + "px";
       board.appendChild(pop);
+      const drift = 10 + Math.random() * 14;
       const anim = pop.animate([
         { transform: "translate(-50%, -50%) scale(0.6)", opacity: 0 },
-        { transform: "translate(-50%, -50%) translateY(-10px) scale(1.18)", opacity: 1, offset: 0.12 },
-        { transform: "translate(-50%, -50%) translateY(-10px) scale(1.18)", opacity: 1, offset: 0.52 },
-        { transform: "translate(-50%, -50%) translateY(-34px) scale(1)", opacity: 0 }
+        { transform: `translate(-50%, -50%) translateY(-${drift}px) scale(1.18)`, opacity: 1, offset: 0.12 },
+        { transform: `translate(-50%, -50%) translateY(-${drift}px) scale(1.18)`, opacity: 1, offset: 0.52 },
+        { transform: `translate(-50%, -50%) translateY(-${drift + 24}px) scale(1)`, opacity: 0 }
       ], { duration: 1150, easing: "ease-out", fill: "forwards" });
       anim.onfinish = () => pop.remove();
     }
 
-    // Flash the HP bar when it changes (down = damage, up = heal)
+    // Flash the HP indicator when it changes (down = damage, up = heal)
     function hpFlash(side, dir) {
-      const fill = document.getElementById(side === "player" ? "playerHpFill" : "enemyHpFill");
-      if (!fill) return;
-      fill.classList.remove("hp-hit", "hp-heal");
-      void fill.offsetWidth;
-      fill.classList.add(dir === "down" ? "hp-hit" : "hp-heal");
-      setTimeout(() => fill.classList.remove("hp-hit", "hp-heal"), 480);
+      const hpEl = document.getElementById(side === "player" ? "playerHeartHp" : "enemyHeartHp");
+      if (!hpEl) return;
+      hpEl.classList.remove("hp-hit", "hp-heal");
+      void hpEl.offsetWidth;
+      hpEl.classList.add(dir === "down" ? "hp-hit" : "hp-heal");
+      setTimeout(() => hpEl.classList.remove("hp-hit", "hp-heal"), 480);
     }
 
     // Portrait juice: attacker lunges toward the opponent, the target hurt-shakes.
@@ -1342,10 +1410,10 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       const wrap = document.querySelector(".board-wrap");
       if (!wrap) return;
       const pop = document.createElement("div");
-      pop.className = `score-popup ult-pop ${cls}`;
+      pop.className = `score-popup ult-pop huge ${cls}`;
       pop.textContent = `−${dmg}`;
       wrap.appendChild(pop);
-      setTimeout(() => pop.remove(), 900);
+      setTimeout(() => pop.remove(), 1200);
     }
 
     function runUltFlash(cls) {
@@ -1396,6 +1464,11 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         combat.fractureTurns = Math.max(combat.fractureTurns, 2);
         combat.mortalWoundTurns = Math.max(combat.mortalWoundTurns, 2);
         bits.push("Earthshatter", `${dmg} true`, `Fracture ${combat.fractureStacks}`, "Mortal Wound");
+        // Mortal Strike (Knight): ult also reduces enemy damage by 25% for 2 turns
+        if (run.mortalStrike) {
+          combat.enemyWeakenTurns = Math.max(combat.enemyWeakenTurns || 0, 2);
+          bits.push("Weaken 25%");
+        }
       } else {
         bits.push("Ultimate", `${dmg} dmg`);
       }
@@ -1491,6 +1564,12 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       refreshCombatUI();
     });
 
-    playerPortraitEl.addEventListener("click", () => useUltimate());
+    playerPortraitEl.addEventListener("click", () => {
+      if (ultReady() && combat.playerTurn && !busy && combat.ap > 0) {
+        useUltimate();
+      } else {
+        openInfo("player");
+      }
+    });
 
     // ----- Screens & settings -----

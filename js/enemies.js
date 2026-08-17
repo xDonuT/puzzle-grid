@@ -368,11 +368,14 @@
       pickedUpgrades: [], // ids chosen from the boss upgrade picker (each unique per run)
       ultChargeBonus: 0,
       bonusSwordDmg: 0,
+      bonusStarDmg: 0,
       bonusHeal: 0,
       floorShieldBonus: 0,
       feverEarly: 0,
       enemyUltSlow: 0,
-      pending: { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 }
+      pending: { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 },
+      pendingModifier: null,
+      pendingModifierRare: false
     };
 
     // Boss floors are marked here (also drives boss HP scaling); rewards are now
@@ -411,7 +414,12 @@
       { id: "afterglowPlus", name: "🌑 Lingering Shadow", desc: "Ninja Afterglow lasts 2 turns", apply: () => { run.lingeringShadow = true; } },
       { id: "enemySlow2", name: "⛓️ Heavy Chains", desc: "Enemy specials/ults +1 additional turn", apply: () => { run.heavyChains = true; } },
       { id: "apCarry", name: "⚡ Momentum", desc: "Unused AP carries over up to +2 next turn", apply: () => { run.momentum = true; } },
-      { id: "mysteryBias", name: "🎲 Lucky Dice", desc: "Mystery tiles are 70% buffs before Star Impact", apply: () => { run.luckyDice = true; } }
+      { id: "mysteryBias", name: "🎲 Lucky Dice", desc: "Mystery tiles are 70% buffs before Star Impact", apply: () => { run.luckyDice = true; } },
+      // ---- Class-specific upgrades ----
+      { id: "runicShield", name: "🔮 Runic Shield", desc: "Wizard: Shield matches deal damage equal to shield gained", apply: () => { run.runicShield = true; } },
+      { id: "manaSurge", name: "⚡ Mana Surge", desc: "Wizard: Full charge — signature matches refund 1 AP", apply: () => { run.manaSurge = true; } },
+      { id: "mortalStrike", name: "⚔️ Mortal Strike", desc: "Knight: Ultimate also reduces enemy damage by 25% for 2 turns", apply: () => { run.mortalStrike = true; } },
+      { id: "bulwark", name: "🛡️ Bulwark", desc: "Knight: Shield matches apply 1 Fracture stack (once per turn)", apply: () => { run.bulwark = true; } }
     ];
 
     function isBossFloor(f) {
@@ -466,6 +474,27 @@
         grant() { run.pending.feverBoost += 4; return { label: "⭐ Start next floor significantly closer to Star Fever" }; } }
     ];
 
+    // Floor modifiers — picked after the reward. Easy = benefits player (normal reward).
+    // Hard = hurts player but guarantees a rare-tier reward next floor.
+    const FLOOR_MODIFIERS = [
+      { id: "swordMastery", tier: "easy", icon: "⚔️", name: "Sword Mastery", desc: "Sword damage +2 this floor.",
+        apply(c) { c.tempSwordDmg += 2; } },
+      { id: "starBurst", tier: "easy", icon: "⭐", name: "Star Burst", desc: "Star damage +2 this floor.",
+        apply(c) { c.tempStarDmg = (c.tempStarDmg || 0) + 2; } },
+      { id: "ironSkin", tier: "easy", icon: "🛡️", name: "Iron Skin", desc: "+5 max HP this floor.",
+        apply(c) { c.playerMaxHp += 5; c.playerHp = Math.min(c.playerMaxHp, c.playerHp + 5); } },
+      { id: "timeRush", tier: "hard", icon: "⏱️", name: "Time Rush", desc: "Enemy specials & ults charge 40% faster.",
+        apply(c) { c.enemySpeedMult = 0.6; } },
+      { id: "glassCannon", tier: "hard", icon: "💥", name: "Glass Cannon", desc: "Player damage +50%, healing -50%.",
+        apply(c) { c.glassCannon = true; } },
+      { id: "shieldWeakness", tier: "hard", icon: "🛡️", name: "Shield Weakness", desc: "Shield cap reduced to 8.",
+        apply(c) { c.shieldCapOverride = 8; } },
+      { id: "armorPlating", tier: "easy", icon: "🛡️", name: "Armor Plating", desc: "+2 shield per match.",
+        apply(c) { c.armorPlating = (c.armorPlating || 0) + 2; } },
+      { id: "cascadeBoost", tier: "easy", icon: "⚡", name: "Cascade Boost", desc: "Cascade damage +50%.",
+        apply(c) { c.cascadeDamageMult = 1.5; } }
+    ];
+
     function pickDistinct(pool, n, taken) {
       const available = pool.filter(e => !taken.has(e.id));
       const out = [];
@@ -479,6 +508,12 @@
     // Regular floors: 2 Commons + 1 Uncommon (that top slot rolls Rare ~40%)
     function buildFloorRewardChoices() {
       const taken = new Set();
+      if (run.pendingModifierRare) {
+        run.pendingModifierRare = false;
+        const rares = pickDistinct(FLOOR_REWARDS_RARE, 2, taken);
+        const extra = pickDistinct(FLOOR_REWARDS_UNCOMMON, 1, taken);
+        return [...rares, ...extra];
+      }
       const commons = pickDistinct(FLOOR_REWARDS_COMMON, 2, taken);
       const topIsRare = Math.random() < 0.4;
       const topPool = topIsRare ? FLOOR_REWARDS_RARE : FLOOR_REWARDS_UNCOMMON;
@@ -584,7 +619,9 @@
       lastPhase: "normal",
       tempSwordDmg: 0,
       enemySpecialCharge: 0,
-      enemySpecialNeed: 4
+      enemySpecialNeed: 4,
+      enemyWeakenTurns: 0,
+      _bulwarkUsed: false
     };
 
     // Track unused AP bonus from previous turn

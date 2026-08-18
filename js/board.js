@@ -467,6 +467,7 @@
         const shape = analyzeShapes(mark);
         // T/+ cross refunds 1 AP; each L X-seal detonated refunds 1 AP
         shape.apRefund = !!((shape.isCross && shape.crossKind !== "l") || xDetonated.length > 0);
+        shape.comboLevel = combo; // current cascade depth for combat hooks
         // Combat effects from this clear (cascades also apply)
         applyMatchCombat(matchedList, false, shape);
         // Tutorial / contextual tips observe the clear

@@ -390,36 +390,47 @@
     // Post-boss upgrade pool — each pick may be taken once per run.
     // name = card title · desc = short effect line
     const RUN_UPGRADES = [
-      { id: "hp10", name: "❤️ +10 Max HP", desc: "Permanently boost your health", apply: () => { run.bonusMaxHp += 10; } },
-      { id: "shield5", name: "🛡️ +5 Max Shield", desc: "Higher shield ceiling", apply: () => { run.bonusShieldMax += 5; } },
-      { id: "ap1", name: "⚡ +1 Max AP", desc: "More actions each turn", apply: () => { run.bonusApMax += 1; AP_MAX = 3 + run.bonusApMax; } },
-      { id: "ultCharge", name: "🔥 Faster Ult", desc: "Signature charge +1 per signature match", apply: () => { run.ultChargeBonus += 1; } },
-      { id: "swordDmg", name: "⚔️ +1 Sword Damage", desc: "Permanently stronger swords", apply: () => { run.bonusSwordDmg += 1; } },
-      { id: "healAmt", name: "💚 +2 Heal Amount", desc: "Potions heal more", apply: () => { run.bonusHeal += 2; } },
-      { id: "floorShield", name: "🛡️ +1 Shield at Floor Start", desc: "Begin each floor shielded", apply: () => { run.floorShieldBonus += 1; } },
-      { id: "feverEarly", name: "⭐ Fever 1 Turn Earlier", desc: "Star Fever arrives sooner", apply: () => { run.feverEarly += 1; } },
-      { id: "enemyUltSlow", name: "⛓️ Enemy Ult +1 Turn", desc: "Rival ultimates charge slower", apply: () => { run.enemyUltSlow += 1; } },
+      // ---- General / Stat boosts (any class) ----
+      { id: "hp10", name: "❤️ +10 Max HP", desc: "Permanently boost your health", classRequirement: "ANY", apply: () => { run.bonusMaxHp += 10; } },
+      { id: "shield5", name: "🛡️ +5 Max Shield", desc: "Higher shield ceiling", classRequirement: "ANY", apply: () => { run.bonusShieldMax += 5; } },
+      { id: "ap1", name: "⚡ +1 Max AP", desc: "More actions each turn", classRequirement: "ANY", apply: () => { run.bonusApMax += 1; AP_MAX = 3 + run.bonusApMax; } },
+      { id: "ultCharge", name: "🔥 Faster Ult", desc: "Signature charge +1 per signature match", classRequirement: "ANY", apply: () => { run.ultChargeBonus += 1; } },
+      { id: "swordDmg", name: "⚔️ +1 Sword Damage", desc: "Permanently stronger swords", classRequirement: "ANY", apply: () => { run.bonusSwordDmg += 1; } },
+      { id: "healAmt", name: "💚 +2 Heal Amount", desc: "Potions heal more", classRequirement: "ANY", apply: () => { run.bonusHeal += 2; } },
+      { id: "floorShield", name: "🛡️ +1 Shield at Floor Start", desc: "Begin each floor shielded", classRequirement: "ANY", apply: () => { run.floorShieldBonus += 1; } },
+      { id: "feverEarly", name: "⭐ Fever 1 Turn Earlier", desc: "Star Fever arrives sooner", classRequirement: "ANY", apply: () => { run.feverEarly += 1; } },
+      { id: "enemyUltSlow", name: "⛓️ Enemy Ult +1 Turn", desc: "Rival ultimates charge slower", classRequirement: "ANY", apply: () => { run.enemyUltSlow += 1; } },
       // ---- Transformative upgrades (change how you play) ----
-      { id: "cascadeAp", name: "⚡ Cascade Refund", desc: "Every cascade after the first refunds 1 AP", apply: () => { run.cascadeAp = true; } },
-      { id: "crossAp", name: "✚ Seal Mastery", desc: "T/+ and L seals refund 1 additional AP", apply: () => { run.crossAp = true; } },
-      { id: "overflowBoost", name: "💚 Overflow Surge", desc: "Overflow heal/shield damage +50%", apply: () => { run.overflowBoost = true; } },
-      { id: "bloomCharge", name: "🌸 Bloom Signature", desc: "Detonating a Bloom gives +1 Sig charge", apply: () => { run.bloomCharge = true; } },
-      { id: "sigDouble", name: "⭐ Signature Echo", desc: "Your signature tile also counts as a small star", apply: () => { run.sigDouble = true; } },
-      { id: "boardWhisper", name: "🔄 Board Whisper", desc: "1 free Shuffle each floor", apply: () => { run.boardWhisper = true; } },
-      { id: "phasePower", name: "🌠 Phase Attunement", desc: "Signature effects stronger in Fever; Mystery +1 charge in Impact", apply: () => { run.phasePower = true; } },
-      { id: "startShield", name: "🛡️ Fortified Start", desc: "Begin every floor with +4–6 extra Shield", apply: () => { run.fortifiedStart = true; } },
-      { id: "poisonMaster", name: "☠️ Venomous", desc: "Sword matches can poison the enemy (30%)", apply: () => { run.venomous = true; } },
-      { id: "fractureBoost", name: "💥 Deep Fracture", desc: "Fracture deals +1 true damage per stack", apply: () => { run.deepFracture = true; } },
-      { id: "reflectBoost", name: "🪞 Arcane Mirror", desc: "Wizard reflection 30% → 45%", apply: () => { run.arcaneMirror = true; } },
-      { id: "afterglowPlus", name: "🌑 Lingering Shadow", desc: "Ninja Afterglow lasts 2 turns", apply: () => { run.lingeringShadow = true; } },
-      { id: "enemySlow2", name: "⛓️ Heavy Chains", desc: "Enemy specials/ults +1 additional turn", apply: () => { run.heavyChains = true; } },
-      { id: "apCarry", name: "⚡ Momentum", desc: "Unused AP carries over up to +2 next turn", apply: () => { run.momentum = true; } },
-      { id: "mysteryBias", name: "🎲 Lucky Dice", desc: "Mystery tiles are 70% buffs before Star Impact", apply: () => { run.luckyDice = true; } },
-      // ---- Class-specific upgrades ----
-      { id: "runicShield", name: "🔮 Runic Shield", desc: "Wizard: Shield matches deal damage equal to shield gained", apply: () => { run.runicShield = true; } },
-      { id: "manaSurge", name: "⚡ Mana Surge", desc: "Wizard: Full charge — signature matches refund 1 AP", apply: () => { run.manaSurge = true; } },
-      { id: "mortalStrike", name: "⚔️ Mortal Strike", desc: "Knight: Ultimate also reduces enemy damage by 25% for 2 turns", apply: () => { run.mortalStrike = true; } },
-      { id: "bulwark", name: "🛡️ Bulwark", desc: "Knight: Shield matches apply 1 Fracture stack (once per turn)", apply: () => { run.bulwark = true; } }
+      { id: "cascadeAp", name: "⚡ Cascade Refund", desc: "Every cascade after the first refunds 1 AP", classRequirement: "ANY", apply: () => { run.cascadeAp = true; } },
+      { id: "crossAp", name: "✚ Seal Mastery", desc: "T/+ and L seals refund 1 additional AP", classRequirement: "ANY", apply: () => { run.crossAp = true; } },
+      { id: "overflowBoost", name: "💚 Overflow Surge", desc: "Overflow heal/shield damage +50%", classRequirement: "ANY", apply: () => { run.overflowBoost = true; } },
+      { id: "bloomCharge", name: "🌸 Bloom Signature", desc: "Detonating a Bloom gives +1 Sig charge", classRequirement: "ANY", apply: () => { run.bloomCharge = true; } },
+      { id: "sigDouble", name: "⭐ Signature Echo", desc: "Your signature tile also counts as a small star", classRequirement: "ANY", apply: () => { run.sigDouble = true; } },
+      { id: "boardWhisper", name: "🔄 Board Whisper", desc: "1 free Shuffle each floor", classRequirement: "ANY", apply: () => { run.boardWhisper = true; } },
+      { id: "phasePower", name: "🌠 Phase Attunement", desc: "Signature effects stronger in Fever; Mystery +1 charge in Impact", classRequirement: "ANY", apply: () => { run.phasePower = true; } },
+      { id: "startShield", name: "🛡️ Fortified Start", desc: "Begin every floor with +4–6 extra Shield", classRequirement: "ANY", apply: () => { run.fortifiedStart = true; } },
+      { id: "poisonMaster", name: "☠️ Venomous", desc: "Sword matches can poison the enemy (30%)", classRequirement: "ANY", apply: () => { run.venomous = true; } },
+      { id: "fractureBoost", name: "💥 Deep Fracture", desc: "Fracture deals +1 true damage per stack", classRequirement: "ANY", apply: () => { run.deepFracture = true; } },
+      { id: "reflectBoost", name: "🪞 Arcane Mirror", desc: "Wizard reflection 30% → 45%", classRequirement: "ANY", apply: () => { run.arcaneMirror = true; } },
+      { id: "afterglowPlus", name: "🌑 Lingering Shadow", desc: "Ninja Afterglow lasts 2 turns", classRequirement: "ANY", apply: () => { run.lingeringShadow = true; } },
+      { id: "enemySlow2", name: "⛓️ Heavy Chains", desc: "Enemy specials/ults +1 additional turn", classRequirement: "ANY", apply: () => { run.heavyChains = true; } },
+      { id: "apCarry", name: "⚡ Momentum", desc: "Unused AP carries over up to +2 next turn", classRequirement: "ANY", apply: () => { run.momentum = true; } },
+      { id: "mysteryBias", name: "🎲 Lucky Dice", desc: "Mystery tiles are 70% buffs before Star Impact", classRequirement: "ANY", apply: () => { run.luckyDice = true; } },
+      // ---- Wizard-specific ----
+      { id: "runicShield", name: "🔮 Runic Shield", desc: "Wizard: Shield matches deal damage equal to shield gained", classRequirement: "WIZARD", apply: () => { run.runicShield = true; } },
+      { id: "manaSurge", name: "⚡ Mana Surge", desc: "Wizard: Full charge — signature matches refund 1 AP", classRequirement: "WIZARD", apply: () => { run.manaSurge = true; } },
+      // ---- Knight-specific ----
+      { id: "mortalStrike", name: "⚔️ Mortal Strike", desc: "Knight: Ultimate also reduces enemy damage by 25% for 2 turns", classRequirement: "KNIGHT", apply: () => { run.mortalStrike = true; } },
+      { id: "bulwark", name: "🛡️ Bulwark", desc: "Knight: Shield matches apply 1 Fracture stack (once per turn)", classRequirement: "KNIGHT", apply: () => { run.bulwark = true; } },
+      // ---- Ninja-specific ----
+      { id: "venomousBlade", name: "🗡️ Venomous Blade", desc: "Ninja: Matches of 4+ Swords or cascades apply +2 Poison", classRequirement: "NINJA", apply: () => { run.venomousBlade = true; } },
+      { id: "miasmaReflex", name: "💨 Miasma Reflex", desc: "Ninja: Dodging triggers 100% of Poison stacks as immediate damage", classRequirement: "NINJA", apply: () => { run.miasmaReflex = true; } },
+      // ---- Wizard-specific (Poison/Acid) ----
+      { id: "acidicBarrier", name: "🧪 Acidic Barrier", desc: "Wizard: Every 10 damage absorbed by Shield applies +1 Poison", classRequirement: "WIZARD", apply: () => { run.acidicBarrier = true; } },
+      { id: "contagionCatalyst", name: "☣️ Contagion Catalyst", desc: "Wizard: Clearing a Mystery tile while Shielded doubles enemy Poison", classRequirement: "WIZARD", apply: () => { run.contagionCatalyst = true; } },
+      // ---- Knight-specific (Poison/Acid) ----
+      { id: "corrosiveOverheal", name: "🩸 Corrosive Overheal", desc: "Knight: Excess healing converts to Acid stacks (1 per 5 HP)", classRequirement: "KNIGHT", apply: () => { run.corrosiveOverheal = true; } },
+      { id: "toxicFortitude", name: "🏰 Toxic Fortitude", desc: "Knight: Start of turn, gain Shield = 2× total (Poison + Acid) on rival", classRequirement: "KNIGHT", apply: () => { run.toxicFortitude = true; } }
     ];
 
     function isBossFloor(f) {
@@ -427,8 +438,14 @@
     }
 
     // 3 random upgrade choices, never repeating a pick already taken this run
+    // Class-specific cards only show for the matching hero
     function pickUpgradeChoices(n = 3) {
-      const avail = RUN_UPGRADES.filter(u => !(run.pickedUpgrades || []).includes(u.id));
+      const hero = (combat.playerClass || "ninja").toUpperCase();
+      const avail = RUN_UPGRADES.filter(u => {
+        if ((run.pickedUpgrades || []).includes(u.id)) return false;
+        if (u.classRequirement === "ANY") return true;
+        return u.classRequirement === hero;
+      });
       const pool = avail.slice();
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -621,7 +638,10 @@
       enemySpecialCharge: 0,
       enemySpecialNeed: 4,
       enemyWeakenTurns: 0,
-      _bulwarkUsed: false
+      _bulwarkUsed: false,
+      // Poison / Acid stacks
+      poisonStacks: 0,
+      acidStacks: 0
     };
 
     // Track unused AP bonus from previous turn

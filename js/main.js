@@ -13,6 +13,84 @@
       }
     }
 
+    // ─── Card builder helpers ───
+    function detectArchetype(name, desc, icon) {
+      const s = (name + " " + desc + " " + (icon || "")).toLowerCase();
+      if (/poison|venom|miasma|acid|contagion|corrosive|toxic/.test(s)) return { tag: "🧪 Poison", cls: "poison" };
+      if (/burn|fire|flame|scorch|ember/.test(s))                  return { tag: "🔥 Fire",   cls: "fire" };
+      if (/frost|ice|freeze|chill|cold/.test(s))                   return { tag: "❄️ Ice",     cls: "ice" };
+      if (/shock|lightning|spark|static/.test(s))                  return { tag: "⚡ Shock",   cls: "lightning" };
+      if (/shield|armor|fortif|ward|barrier|defen/.test(s))        return { tag: "🛡️ Defense", cls: "defense" };
+      if (/heal|hp|heart|regen|life/.test(s))                      return { tag: "❤️ Life",    cls: "life" };
+      return { tag: "⭐ General", cls: "general" };
+    }
+    function extractCallout(name, desc) {
+      // Pull the most prominent stat from name or desc
+      const m = name.match(/[\+\-]?\d+\s*[a-z%×]+/i) || desc.match(/[\+\-]?\d+\s*[a-z%×]+/i);
+      return m ? m[0].toUpperCase() : "";
+    }
+    function synergyTip(name, desc, cls) {
+      const s = (name + " " + desc).toLowerCase();
+      if (cls === "poison")  return "Best for stacking Poison & Acid builds";
+      if (cls === "fire")    return "Best for high-damage aggressive builds";
+      if (cls === "ice")     return "Best for control & survivability";
+      if (cls === "defense") return "Best for Shield-focused Wizard & Knight";
+      if (cls === "life")    return "Best for Knight sustain & overheal builds";
+      if (/sword|slash|damage/.test(s))    return "Best for Ninja Sword & Combo setups";
+      if (/shield|barrier/.test(s))        return "Best for Wizard Shield builds";
+      if (/heal|heart|hp/.test(s))         return "Best for Knight sustain builds";
+      if (/ap|action/.test(s))             return "Best for multi-action combo turns";
+      if (/star|signature|charge/.test(s)) return "Best for fast Ultimate cycling";
+      if (/cascade|combo/.test(s))         return "Best for cascade-heavy boards";
+      if (/fracture/.test(s))              return "Best for Knight Fracture stacking";
+      if (/ult|ultimate/.test(s))          return "Best for big burst damage turns";
+      return "";
+    }
+    function buildRewardCard(btn, entry, opts) {
+      const name = entry.name || "";
+      const desc = entry.desc || "";
+      const icon = entry.icon || "";
+      const arch = detectArchetype(name, desc, icon);
+      const callout = extractCallout(name, desc);
+      const synergy = synergyTip(name, desc, arch.cls);
+      const tier = entry.tier || "common";
+      const isPerm = opts.permanent === true;
+      btn.className = "upgrade-card glow-" + arch.cls;
+      // Top row: archetype tag + tier badge + duration badge
+      const top = document.createElement("div");
+      top.className = "up-card-top";
+      const archTag = document.createElement("span");
+      archTag.className = "up-card-archetype " + arch.cls;
+      archTag.textContent = arch.tag;
+      const tierBadge = document.createElement("span");
+      tierBadge.className = "reward-tier " + tier;
+      tierBadge.textContent = tier.toUpperCase();
+      const durBadge = document.createElement("span");
+      durBadge.className = "reward-dur " + (isPerm ? "permanent" : "floor");
+      durBadge.textContent = isPerm ? "PERMANENT" : "THIS FLOOR";
+      top.append(archTag, tierBadge, durBadge);
+      // Title
+      const title = document.createElement("div");
+      title.className = "up-card-title";
+      title.textContent = name;
+      // Stat callout box
+      const calloutBox = document.createElement("div");
+      calloutBox.className = "up-card-callout";
+      calloutBox.textContent = callout || desc.toUpperCase();
+      // Description
+      const descEl = document.createElement("div");
+      descEl.className = "up-card-desc";
+      descEl.textContent = desc;
+      btn.append(top, title, calloutBox, descEl);
+      // Synergy footer
+      if (synergy) {
+        const syn = document.createElement("div");
+        syn.className = "up-card-synergy";
+        syn.textContent = "💡 " + synergy;
+        btn.appendChild(syn);
+      }
+    }
+
     function applyRewardEntry(entry) {
       const res = entry.grant(run.floor + 1);
       run.rewardsClaimed[run.floor] = true;
@@ -34,24 +112,7 @@
       entries.forEach(e => {
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "upgrade-card";
-        const row = document.createElement("span");
-        row.className = "up-card-head";
-        const n = document.createElement("span");
-        n.className = "up-card-name";
-        n.textContent = e.name;
-        const badge = document.createElement("span");
-        badge.className = "reward-tier " + (e.tier || "common");
-        badge.textContent = (e.tier || "common").toUpperCase();
-        row.append(n, badge);
-        const d = document.createElement("span");
-        d.className = "up-card-desc";
-        d.textContent = e.desc;
-        const dur = document.createElement("span");
-        const isPerm = opts.permanent === true;
-        dur.className = "reward-dur " + (isPerm ? "permanent" : "floor");
-        dur.textContent = isPerm ? "Permanent" : "This floor";
-        btn.append(row, d, dur);
+        buildRewardCard(btn, e, opts);
         btn.title = e.desc;
         btn.addEventListener("click", () => {
           const label = applyRewardEntry(e);
@@ -84,24 +145,36 @@
       choices.forEach(m => {
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "upgrade-card";
-        const row = document.createElement("span");
-        row.className = "up-card-head";
-        const n = document.createElement("span");
-        n.className = "up-card-name";
-        n.textContent = (m.icon || "") + " " + m.name;
-        const badge = document.createElement("span");
-        badge.className = "modifier-tier " + m.tier;
-        badge.textContent = m.tier === "hard" ? "CHALLENGE" : "BENEFIT";
-        row.append(n, badge);
-        const d = document.createElement("span");
-        d.className = "up-card-desc";
-        d.textContent = m.desc;
-        btn.append(row, d);
+        const arch = detectArchetype(m.name, m.desc, m.icon);
+        const callout = extractCallout(m.name, m.desc);
+        btn.className = "upgrade-card glow-" + arch.cls;
+        // Top row
+        const top = document.createElement("div");
+        top.className = "up-card-top";
+        const archTag = document.createElement("span");
+        archTag.className = "up-card-archetype " + arch.cls;
+        archTag.textContent = arch.tag;
+        const tierBadge = document.createElement("span");
+        tierBadge.className = "modifier-tier " + m.tier;
+        tierBadge.textContent = m.tier === "hard" ? "CHALLENGE" : "BENEFIT";
+        top.append(archTag, tierBadge);
+        // Title
+        const title = document.createElement("div");
+        title.className = "up-card-title";
+        title.textContent = (m.icon || "") + " " + m.name;
+        // Callout
+        const calloutBox = document.createElement("div");
+        calloutBox.className = "up-card-callout";
+        calloutBox.textContent = callout || m.desc.toUpperCase();
+        // Description
+        const descEl = document.createElement("div");
+        descEl.className = "up-card-desc";
+        descEl.textContent = m.desc;
+        btn.append(top, title, calloutBox, descEl);
         if (m.tier === "hard") {
-          const reward = document.createElement("span");
+          const reward = document.createElement("div");
           reward.className = "modifier-reward";
-          reward.textContent = "Rare reward guaranteed next floor";
+          reward.textContent = " Rare reward guaranteed next floor";
           btn.appendChild(reward);
         }
         btn.addEventListener("click", () => {
@@ -125,28 +198,15 @@
       if (s) s.textContent = "Pick a permanent upgrade for taking the challenge";
       wrap.innerHTML = "";
       const stats = [
-        { icon: "❤️", name: "+5 Max HP", desc: "Permanently boost your health", apply() { run.bonusMaxHp += 5; } },
-        { icon: "🛡️", name: "+2 Max Shield", desc: "Higher shield ceiling", apply() { run.bonusShieldMax += 2; } },
-        { icon: "⚔️", name: "+1 Sword Damage", desc: "Permanently stronger swords", apply() { run.bonusSwordDmg += 1; } },
-        { icon: "⭐", name: "+1 Star Damage", desc: "Permanently stronger stars", apply() { run.bonusStarDmg += 1; } }
+        { icon: "❤️", name: "+5 Max HP", desc: "Permanently boost your health", tier: "uncommon", apply() { run.bonusMaxHp += 5; } },
+        { icon: "🛡️", name: "+2 Max Shield", desc: "Higher shield ceiling", tier: "uncommon", apply() { run.bonusShieldMax += 2; } },
+        { icon: "⚔️", name: "+1 Sword Damage", desc: "Permanently stronger swords", tier: "uncommon", apply() { run.bonusSwordDmg += 1; } },
+        { icon: "⭐", name: "+1 Star Damage", desc: "Permanently stronger stars", tier: "uncommon", apply() { run.bonusStarDmg += 1; } }
       ];
       stats.forEach(st => {
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "upgrade-card";
-        const row = document.createElement("span");
-        row.className = "up-card-head";
-        const n = document.createElement("span");
-        n.className = "up-card-name";
-        n.textContent = st.icon + " " + st.name;
-        const badge = document.createElement("span");
-        badge.className = "reward-dur permanent";
-        badge.textContent = "Permanent";
-        row.append(n, badge);
-        const d = document.createElement("span");
-        d.className = "up-card-desc";
-        d.textContent = st.desc;
-        btn.append(row, d);
+        buildRewardCard(btn, st, { permanent: true });
         btn.addEventListener("click", () => {
           st.apply();
           ov.classList.remove("open");
@@ -275,20 +335,11 @@
         choices.forEach(u => {
           const btn = document.createElement("button");
           btn.type = "button";
-          btn.className = "action-btn upgrade-card";
           if (u.desc) {
-            const n = document.createElement("span");
-            n.className = "up-card-name";
-            n.textContent = u.name || u.label;
-            const d = document.createElement("span");
-            d.className = "up-card-desc";
-            d.textContent = u.desc;
-            const dur = document.createElement("span");
-            dur.className = "reward-dur permanent";
-            dur.textContent = "Permanent";
-            btn.append(n, d, dur);
+            buildRewardCard(btn, { name: u.name || u.label, desc: u.desc, tier: "uncommon" }, { permanent: true });
             btn.title = u.desc;
           } else {
+            btn.className = "upgrade-card glow-general";
             btn.textContent = u.name || u.label;
           }
           btn.addEventListener("click", () => {
@@ -462,6 +513,8 @@
       run.deepFracture = false; run.arcaneMirror = false; run.lingeringShadow = false;
       run.heavyChains = false; run.momentum = false; run.luckyDice = false;
       run.runicShield = false; run.manaSurge = false; run.mortalStrike = false; run.bulwark = false;
+      run.venomousBlade = false; run.miasmaReflex = false; run.acidicBarrier = false; run.contagionCatalyst = false;
+      run.corrosiveOverheal = false; run.toxicFortitude = false;
       run.pending = { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 };
       run.pendingModifier = null;
       run.pendingModifierRare = false;
@@ -503,6 +556,12 @@
       run.manaSurge = (run.pickedUpgrades || []).includes("manaSurge");
       run.mortalStrike = (run.pickedUpgrades || []).includes("mortalStrike");
       run.bulwark = (run.pickedUpgrades || []).includes("bulwark");
+      run.venomousBlade = (run.pickedUpgrades || []).includes("venomousBlade");
+      run.miasmaReflex = (run.pickedUpgrades || []).includes("miasmaReflex");
+      run.acidicBarrier = (run.pickedUpgrades || []).includes("acidicBarrier");
+      run.contagionCatalyst = (run.pickedUpgrades || []).includes("contagionCatalyst");
+      run.corrosiveOverheal = (run.pickedUpgrades || []).includes("corrosiveOverheal");
+      run.toxicFortitude = (run.pickedUpgrades || []).includes("toxicFortitude");
       run.pending = Object.assign(
         { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 },
         d.pending || {}
@@ -558,6 +617,8 @@
       combat.weakenNextSword = false;
       combat.poisonTurns = 0;
       combat.enemyPoisonTurns = Math.max(combat.enemyPoisonTurns, (run.pending && run.pending.enemyPoison) || 0);
+      combat.poisonStacks = 0;
+      combat.acidStacks = 0;
       combat.firstHitDodged = false;
       combat.afterglowTurns = 0;
       combat.markStacks = 0;
@@ -883,24 +944,31 @@
       DIFFICULTY_OPTIONS.forEach(d => {
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "upgrade-card";
-        const row = document.createElement("span");
-        row.className = "up-card-head";
-        const n = document.createElement("span");
-        n.className = "up-card-name";
-        n.textContent = d.icon + " " + d.name;
-        if (settings.difficulty === d.id) {
+        const arch = detectArchetype(d.name, d.desc, d.icon);
+        const isActive = settings.difficulty === d.id;
+        btn.className = "upgrade-card glow-" + arch.cls;
+        // Top row
+        const top = document.createElement("div");
+        top.className = "up-card-top";
+        const archTag = document.createElement("span");
+        archTag.className = "up-card-archetype " + arch.cls;
+        archTag.textContent = arch.tag;
+        top.append(archTag);
+        if (isActive) {
           const badge = document.createElement("span");
           badge.className = "reward-dur permanent";
-          badge.textContent = "Current";
-          row.append(n, badge);
-        } else {
-          row.append(n);
+          badge.textContent = "CURRENT";
+          top.append(badge);
         }
-        const desc = document.createElement("span");
-        desc.className = "up-card-desc";
-        desc.textContent = d.desc;
-        btn.append(row, desc);
+        // Title
+        const title = document.createElement("div");
+        title.className = "up-card-title";
+        title.textContent = d.icon + " " + d.name;
+        // Callout
+        const calloutBox = document.createElement("div");
+        calloutBox.className = "up-card-callout";
+        calloutBox.textContent = d.desc;
+        btn.append(top, title, calloutBox);
         btn.addEventListener("click", () => {
           settings.difficulty = d.id;
           persistSettings();

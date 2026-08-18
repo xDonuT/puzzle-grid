@@ -413,6 +413,7 @@
         const dimmed = busy || !combat.playerTurn;
         endWrap.classList.toggle("dim", dimmed);
         endWrap.classList.toggle("enemy-turn", !combat.playerTurn);
+        endWrap.classList.toggle("ap-empty", combat.playerTurn && !busy && combat.ap <= 0);
       }
       updatePhaseVisual();
       const turnPill = document.getElementById("turnPill") || (turnNumEl ? turnNumEl.parentElement : null);
@@ -511,6 +512,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (combat.mortalWoundTurns > 0) eChips.push({ key: "mortal", emoji: "💔", count: combat.mortalWoundTurns });
       if (combat.manaLockTurns > 0) eChips.push({ key: "manalock", emoji: "🔒", count: combat.manaLockTurns });
       if (combat.enemyPoisonTurns > 0) eChips.push({ key: "poison", emoji: "☠️", count: combat.enemyPoisonTurns });
+      if (combat.poisonStacks > 0) eChips.push({ key: "poisonStacks", emoji: "🧪", count: combat.poisonStacks });
+      if (combat.acidStacks > 0) eChips.push({ key: "acidStacks", emoji: "🩸", count: combat.acidStacks });
       syncPortraitChips(enemyPortraitEl, eChips);
 
       // Enemy shield badge (mirror of the player's)
@@ -553,6 +556,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       fracture: { name: "Fracture", detail: "At the start of the enemy’s turn they take 2 true damage per stack (max 5). From Knight skills." },
       mortal: { name: "Mortal Wound", detail: "Enemy healing is halved for the listed turns." },
       manalock: { name: "Mana Lock", detail: "Enemy cannot gain shield for the listed turns." },
+      poisonStacks: { name: "Poison", detail: "Deals stacks × (3 + Floor×0.5) true damage at the start of your turn, then decays by 1. Applied by class perks." },
+      acidStacks: { name: "Acid", detail: "All incoming damage is amplified by +2% per stack (cap 30 → +60% max). Applied by class perks." },
       gauntlet: { name: "Gauntlet", detail: "Multi-enemy floor. Shows which foe you are fighting now." },
       arch: { name: "Archetype", detail: "This foe’s special behavior (see name)." }
     };
@@ -578,10 +583,26 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         if (!combat.firstHitDodged) {
           combat.firstHitDodged = true;
           setLog("Shadow Step · Dodge!");
+          // Miasma Reflex: dodge triggers 100% of Poison stacks as immediate damage
+          if (run.miasmaReflex && combat.poisonStacks > 0) {
+            const miasmaDmg = combat.poisonStacks;
+            combat.enemyHp = Math.max(0, combat.enemyHp - miasmaDmg);
+            dmgPop("enemy", `☠${miasmaDmg}`, "true");
+            setLog("Miasma Reflex", `Miasma Reflex · ${miasmaDmg} Poison dmg`);
+            if (combat.enemyHp <= 0) checkGameOver();
+          }
           return;
         }
         if (Math.random() < 0.20) {
           setLog("Shadow Step · Dodge!");
+          // Miasma Reflex
+          if (run.miasmaReflex && combat.poisonStacks > 0) {
+            const miasmaDmg = combat.poisonStacks;
+            combat.enemyHp = Math.max(0, combat.enemyHp - miasmaDmg);
+            dmgPop("enemy", `☠${miasmaDmg}`, "true");
+            setLog("Miasma Reflex", `Miasma Reflex · ${miasmaDmg} Poison dmg`);
+            if (combat.enemyHp <= 0) checkGameOver();
+          }
           return;
         }
       }
@@ -612,6 +633,12 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         combat.shield -= toShield;
         if (toHp > 0) combat.playerHp = Math.max(0, combat.playerHp - toHp);
         if (toShield > 0) dmgPop("player", `🛡${toShield}`, "shielded");
+        // Acidic Barrier (Wizard): every 10 damage absorbed by Shield applies +1 Poison
+        if (toShield >= 10 && run.acidicBarrier && combat.playerClass === "wizard") {
+          const acidPiles = Math.floor(toShield / 10);
+          combat.poisonStacks += acidPiles;
+          dmgPop("enemy", `🧪+${acidPiles}`, "poison");
+        }
       } else {
         combat.playerHp = Math.max(0, combat.playerHp - dmg);
       }
@@ -662,6 +689,11 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       // Mark amplifier (Ninja cross): +15% per stack, max 3
       if (combat.markStacks > 0) {
         dmg = Math.round(dmg * (1 + 0.15 * Math.min(3, combat.markStacks)));
+      }
+
+      // Acid amplifier: +2% per stack, cap 30 stacks (+60%)
+      if (combat.acidStacks > 0) {
+        dmg = Math.round(dmg * (1 + Math.min(30, combat.acidStacks) * 0.02));
       }
 
       const trueDmg = !!opts.trueDmg; // ultimates & fracture
@@ -780,6 +812,14 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (!forEnemy && run.venomous && swordCount > 0 && Math.random() < 0.3) {
         combat.enemyPoisonTurns = Math.max(combat.enemyPoisonTurns || 0, 2);
         bitsExtra.push("Poison 2t");
+      }
+
+      // Venomous Blade (Ninja): 4+ Swords or cascade (combo >= 2) applies +2 Poison stacks
+      if (!forEnemy && run.venomousBlade && combat.playerClass === "ninja") {
+        if (swordCount >= 4 || (shape.comboLevel || 0) >= 2) {
+          combat.poisonStacks += 2;
+          bitsExtra.push(`Venom Blade +2 ☠`);
+        }
       }
 
       // Signature Echo: matching your signature tile also counts as a small star
@@ -920,6 +960,11 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (!forEnemy && questionCount > 0) {
         const res = rollMysteryEffect();
         mysteryBits.push(`🎲 ${res.isBuff ? "Buff" : "Debuff"}: ${res.label} (${res.detail})`);
+        // Contagion Catalyst (Wizard): Mystery tile clear while Shielded doubles enemy Poison
+        if (run.contagionCatalyst && combat.playerClass === "wizard" && combat.shield > 0 && combat.poisonStacks > 0) {
+          combat.poisonStacks *= 2;
+          mysteryBits.push(`☣️ Poison doubled → ${combat.poisonStacks}`);
+        }
       }
 
       const maxSh = settings.shieldMax + run.bonusShieldMax;
@@ -1190,7 +1235,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         if (combat.playerFractureTurns <= 0) combat.playerFractureStacks = 0;
       }
 
-      // Poison ticks
+      // Poison ticks (legacy duration-based)
       if (combat.poisonTurns > 0) {
         dealDamageToPlayer(3, { noFracture: true });
         combat.poisonTurns--;
@@ -1198,6 +1243,30 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (combat.enemyPoisonTurns > 0) {
         dealDamageToEnemy(3, { trueDmg: true });
         combat.enemyPoisonTurns--;
+      }
+
+      // --- New Poison/Acid stack system (ticks at start of player turn) ---
+      // Poison DoT: stacks × (3 + floorLevel × 0.5), then decay 1 stack
+      if (combat.poisonStacks > 0) {
+        const poisonDmg = Math.round(combat.poisonStacks * (3 + run.floor * 0.5));
+        dealDamageToEnemy(poisonDmg, { trueDmg: true });
+        dmgPop("enemy", `☠${poisonDmg}`, "poison");
+        combat.poisonStacks = Math.max(0, combat.poisonStacks - 1);
+      }
+
+      // Toxic Fortitude (Knight): start-of-turn shield = 2× (poison + acid) on rival
+      if (combat.playerClass === "knight" && run.toxicFortitude && combat.playerHp > 0) {
+        const totalStacks = combat.poisonStacks + combat.acidStacks;
+        if (totalStacks > 0) {
+          const toxicShield = totalStacks * 2;
+          const hero = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
+          const maxSh = combat.shieldCapOverride || (hero.maxShieldCap + run.bonusShieldMax);
+          const shielded = Math.min(toxicShield, maxSh - combat.shield);
+          if (shielded > 0) {
+            combat.shield += shielded;
+            dmgPop("player", `🏰+${shielded}`, "shield");
+          }
+        }
       }
 
       refreshCombatUI();
@@ -1309,6 +1378,12 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       const overflow = amount - healed;
       if (overflow > 0) {
         dealDamageToEnemy(run.overflowBoost ? Math.max(2, Math.round(healCount * 1.5)) : healCount);
+        // Corrosive Overheal (Knight): excess heal converts to Acid stacks (1 per 5 HP)
+        if (combat.playerClass === "knight" && run.corrosiveOverheal && overflow >= 5) {
+          const acidGain = Math.floor(overflow / 5);
+          combat.acidStacks = Math.min(30, combat.acidStacks + acidGain);
+          dmgPop("enemy", `🩸+${acidGain}`, "acid");
+        }
       }
       return healed;
     }

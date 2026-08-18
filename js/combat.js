@@ -367,6 +367,38 @@
     const endWrap = document.getElementById("endWrap");
     const shieldBadgeEl = document.getElementById("shieldBadge");
     const playerPortraitEl = document.getElementById("playerPortrait");
+    const enemyThinkingEl = document.getElementById("enemyThinking");
+
+    // Analyze what a move will match and return a label for the thinking indicator
+    function analyzeMoveTarget(move) {
+      if (!move) return null;
+      const { r1, c1, r2, c2 } = move;
+      const t = board[r1][c1];
+      board[r1][c1] = board[r2][c2];
+      board[r2][c2] = t;
+      const { mark, any } = findMatches();
+      // revert
+      board[r2][c2] = board[r1][c1];
+      board[r1][c1] = t;
+      if (!any) return null;
+      const counts = {};
+      for (let r = 0; r < ROWS; r++)
+        for (let c = 0; c < COLS; c++)
+          if (mark[r][c]) counts[board[r][c]] = (counts[board[r][c]] || 0) + 1;
+      let best = null, bestN = 0;
+      for (const k in counts) { if (counts[k] > bestN) { bestN = counts[k]; best = k; } }
+      const icons = { sword: "⚔️", star: "⭐", hp: "❤️", shield: "🛡️", question: "🎲" };
+      const names = { sword: "swords", star: "stars", hp: "hearts", shield: "shields", question: "mystery" };
+      return best ? { icon: icons[best] || "🎯", name: names[best] || best, count: bestN } : null;
+    }
+    function showEnemyThinking(target) {
+      if (!enemyThinkingEl || !target) return;
+      enemyThinkingEl.textContent = `Hunting ${target.icon} ${target.name}`;
+      enemyThinkingEl.classList.add("show");
+    }
+    function hideEnemyThinking() {
+      if (enemyThinkingEl) enemyThinkingEl.classList.remove("show");
+    }
 
     function setLog(msg, detail) {
       pushLog(msg, detail);
@@ -386,7 +418,7 @@
       if (playerHeartHp) playerHeartHp.classList.toggle("low", pPct < 30);
       if (enemyHeartHp) enemyHeartHp.classList.toggle("low", ePct < 30);
       if (turnNumEl) {
-        turnNumEl.textContent = `Turn ${combat.turn}`;
+        turnNumEl.textContent = `Turn ${combat.turn} \u00b7 F${run.floor}`;
       }
       if (btnShuffle) {
         const free = (combat.freeShuffles || 0) > 0;
@@ -1145,14 +1177,17 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         }
 
         // Preview glow on tiles rival will swap
+        const target = analyzeMoveTarget(move);
+        showEnemyThinking(target);
         const a = getCell(move.r1, move.c1);
         const b = getCell(move.r2, move.c2);
         a.classList.add("highlight");
         b.classList.add("highlight");
         setLog("Rival found a move…");
-        await sleep(320);
+        await sleep(380);
         a.classList.remove("highlight");
         b.classList.remove("highlight");
+        hideEnemyThinking();
 
         const { r1, c1, r2, c2 } = move;
         const tmp = board[r1][c1];

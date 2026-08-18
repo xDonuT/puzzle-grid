@@ -17,7 +17,7 @@
       --shadow: 0 6px 18px rgba(60, 50, 40, 0.09);
 
       /* Bright, airy candy colors */
-      --sword: #b6cfe8;
+      --sword: #a8bce6;
       --sword-icon: #46535f;
       --shield: #63c6ea;
       --shield-icon: #2c6090;
@@ -27,6 +27,12 @@
       --star-icon: #9a7412;
       --question: #c4a6f0;
       --question-icon: #593c94;
+
+      /* Class accents = each hero's SIGNATURE TILE color
+         ninja→sword(steel)  wizard→shield(teal)  knight→hp(rose) */
+      --ninja: #4f6f9e;
+      --wizard: #2f8d7e;
+      --knight: #c2506a;
 
       /* Shared 3D bevel: light lip on top, shadowed under-edge, thin darker rim */
       --bevel:
@@ -644,9 +650,9 @@
       0%, 100% { transform: translateY(0) scale(1); }
       50% { transform: translateY(-1.5px) scale(1.015); }
     }
-    .portrait.ninja { --tile-base: #f0c4b4; --tile-light: #f7e6e0; --tile-dark: #e69171; }
-    .portrait.wizard { --tile-base: #d8ccec; --tile-light: #f5f2f9; --tile-dark: #ad93d9; }
-    .portrait.knight { --tile-base: #cfe0f0; --tile-light: #f6f9fc; --tile-dark: #93bae0; }
+    .portrait.ninja { --tile-base: #8fb0db; --tile-light: #d3e4f6; --tile-dark: #4f6f9e; }
+    .portrait.wizard { --tile-base: #7fd0c4; --tile-light: #d2f2ec; --tile-dark: #2f8d7e; }
+    .portrait.knight { --tile-base: #f0a6b4; --tile-light: #f9d4db; --tile-dark: #c2506a; }
     .portrait.enemy { --tile-base: #e0d0f0; --tile-light: #faf7fc; --tile-dark: #ba94df; }
     .portrait.eslime { --tile-base: #ddefd3; --tile-light: #fafcf9; --tile-dark: #b1dc99; color: #7dbf6e; }
     .portrait.ebat { --tile-base: #e7dcf0; --tile-light: #ffffff; --tile-dark: #c2a5da; color: #8a6bb8; }
@@ -665,10 +671,11 @@
     .portrait.c-lastrival { --tile-base: #ddd8ea; --tile-light: #faf9fc; --tile-dark: #b1a5d0; color: #5a4a7a; }
 
      /* Portrait wrapper: holds HP badge overlapping top of portrait */
-     .portrait-wrap {
-       display: flex;
-       justify-content: center;
-     }
+      .portrait-wrap {
+        display: flex;
+        justify-content: center;
+        position: relative;
+      }
 
      /* HP info: heart icon + count — centered above portrait */
      .heart-hp {
@@ -1306,6 +1313,13 @@
       0%, 100% { transform: scale(1); }
       50% { transform: scale(1.06); }
     }
+    /* ULT READY ring + badge tinted to each class's signature color */
+    .portrait.ninja.ult-ready  { box-shadow: 0 0 0 3px var(--ninja), 0 0 18px 6px rgba(79,111,158,0.5), 0 0 36px 10px rgba(79,111,158,0.2); }
+    .portrait.wizard.ult-ready { box-shadow: 0 0 0 3px var(--wizard), 0 0 18px 6px rgba(47,141,126,0.5), 0 0 36px 10px rgba(47,141,126,0.2); }
+    .portrait.knight.ult-ready { box-shadow: 0 0 0 3px var(--knight), 0 0 18px 6px rgba(194,80,106,0.5), 0 0 36px 10px rgba(194,80,106,0.2); }
+    .portrait.ninja.ult-ready::after  { background: linear-gradient(135deg, #6f93c4, #4f6f9e); }
+    .portrait.wizard.ult-ready::after { background: linear-gradient(135deg, #5bb6a8, #2f8d7e); }
+    .portrait.knight.ult-ready::after { background: linear-gradient(135deg, #db7e92, #c2506a); }
 
     /* Ultimate impact juice */
     .portrait.ult-cast {
@@ -1385,9 +1399,9 @@
       z-index: 25;
       opacity: 0;
     }
-    .ult-flash.ninja { background: radial-gradient(circle, rgba(201, 107, 82, 0.55), transparent 70%); }
-    .ult-flash.wizard { background: radial-gradient(circle, rgba(155, 126, 200, 0.6), transparent 70%); }
-    .ult-flash.knight { background: radial-gradient(circle, rgba(159, 180, 204, 0.55), transparent 70%); }
+    .ult-flash.ninja { background: radial-gradient(circle, rgba(79, 111, 158, 0.55), transparent 70%); }
+    .ult-flash.wizard { background: radial-gradient(circle, rgba(47, 141, 126, 0.6), transparent 70%); }
+    .ult-flash.knight { background: radial-gradient(circle, rgba(194, 80, 106, 0.55), transparent 70%); }
     .ult-flash.go {
       animation: ultFlashAnim 0.55s cubic-bezier(0.22, 0.9, 0.3, 1) forwards;
     }
@@ -1421,9 +1435,9 @@
         0 0 60px rgba(255, 255, 255, 0.4);
       animation: ultPop 1.1s cubic-bezier(0.22, 0.9, 0.3, 1) forwards;
     }
-    .score-popup.ult-pop.ninja { color: #ff6644; }
-    .score-popup.ult-pop.wizard { color: #bb88ff; }
-    .score-popup.ult-pop.knight { color: #55bbff; }
+    .score-popup.ult-pop.ninja { color: #4f6f9e; }
+    .score-popup.ult-pop.wizard { color: #2f8d7e; }
+    .score-popup.ult-pop.knight { color: #c2506a; }
     @keyframes ultPop {
       0%   { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
       15%  { transform: translate(-50%, -50%) scale(1.6); opacity: 1; }
@@ -1541,6 +1555,50 @@
       margin-top: 2px;
       padding: 0 12px 4px;
     }
+
+    /* ─── Enemy Thinking Indicator ─── */
+    .enemy-thinking {
+      position: absolute;
+      bottom: -16px;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      font-size: 0.56rem;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      color: #fff;
+      background: linear-gradient(135deg, #6a3a2c, #8a5040);
+      padding: 2px 8px;
+      border-radius: 999px;
+      box-shadow: 0 2px 6px rgba(100, 50, 30, 0.3);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 6;
+    }
+    .enemy-thinking.show {
+      opacity: 1;
+      animation: thinkPulse 0.6s ease-in-out infinite;
+    }
+    @keyframes thinkPulse {
+      0%, 100% { transform: translateX(-50%) scale(1); }
+      50%      { transform: translateX(-50%) scale(1.04); }
+    }
+
+    /* ─── Upgrade Card Synergy Tag ─── */
+    .up-card-synergy-tag {
+      font-size: 0.5rem;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      padding: 2px 7px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      margin-left: auto;
+      white-space: nowrap;
+    }
+    .up-card-synergy-tag.best   { background: rgba(60,180,80,0.2);  color: #2a7a2a; }
+    .up-card-synergy-tag.ok     { background: rgba(200,180,60,0.18); color: #8a7a1a; }
+    .up-card-synergy-tag.none   { background: rgba(122,110,100,0.1); color: #a89a8c; }
 
     /* Card title */
     .up-card-title {
@@ -1984,12 +2042,8 @@
   <!-- GAME -->
   <div class="screen" id="screen-game">
   <div class="combat">
-    <div class="top-game-bar" style="justify-content:space-between;align-items:center">
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <div class="turn-pill" id="floorPill" style="margin:0">Floor <span id="floorNum">1</span>/<span id="floorTotal">20</span></div>
-        <div class="phase-pill" id="phasePill"></div>
-      </div>
-      <button type="button" class="icon-btn" id="btnGameSettings" title="Settings">⚙</button>
+    <div class="top-game-bar" style="justify-content:center;align-items:center">
+      <div class="phase-pill" id="phasePill"></div>
     </div>
 
     <!-- Duel arena: enemy ← center → player -->
@@ -1999,6 +2053,7 @@
           <div class="portrait-wrap">
             <div class="portrait enemy" id="enemyPortrait" aria-hidden="true" data-tut-target="enemyPortrait">
             </div>
+            <div class="enemy-thinking" id="enemyThinking"></div>
           </div>
           <div class="hp-shield-row">
             <div class="heart-hp" id="enemyHeartHp">
@@ -2068,10 +2123,33 @@
       </div>
     </div>
 
-    <!-- Action history bar (tap to expand) -->
-    <div class="action-log-bar" id="actionLogBar" role="button" tabindex="0" aria-label="Open action log">
-      <span class="log-bar-text" id="logBarText">Your turn</span>
-      <span class="log-bar-chevron">›</span>
+    <!-- Actions (between portraits and board) -->
+    <div class="action-bar">
+      <div class="turn-indicator" id="turnNum" data-tut-target="turnNum">Turn 1</div>
+      <div class="action-bar-btns">
+        <button type="button" class="action-btn" id="btnShuffle" title="Shuffle board" data-tut-target="btnShuffle">Shuffle</button>
+        <div class="end-wrap" id="endWrap" data-tut-target="endWrap">
+          <button type="button" class="action-btn end-btn" id="btnEnd" title="End turn">End</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden for JS refs (score/combo theater still tracks internally) -->
+    <span id="score" hidden>0</span>
+    <span id="combo" hidden>0</span>
+    <!-- Board -->
+    <div class="board-wrap">
+      <div class="combo-display" id="comboText"></div>
+      <div class="grid" id="grid" aria-label="5 by 5 puzzle grid"></div>
+    </div>
+
+    <!-- Action history bar + settings (below board) -->
+    <div style="display:flex;gap:6px;align-items:center;width:100%">
+      <div class="action-log-bar" id="actionLogBar" role="button" tabindex="0" aria-label="Open action log" style="flex:1">
+        <span class="log-bar-text" id="logBarText">Your turn</span>
+        <span class="log-bar-chevron">›</span>
+      </div>
+      <button type="button" class="icon-btn" id="btnGameSettings" title="Settings" style="flex-shrink:0">⚙</button>
     </div>
 
     <!-- Action history modal -->
@@ -2085,30 +2163,10 @@
       </div>
     </div>
 
-    <!-- Hidden for JS refs (score/combo theater still tracks internally) -->
-    <span id="score" hidden>0</span>
-    <span id="combo" hidden>0</span>
-    <!-- Board -->
-    <div class="board-wrap">
-      <div class="combo-display" id="comboText"></div>
-      <div class="grid" id="grid" aria-label="5 by 5 puzzle grid"></div>
-    </div>
-
-    <!-- Tutorial narration card (in flow, above the action bar so it can't block End) -->
+    <!-- Tutorial narration card (at the very bottom) -->
     <div class="tut-card hidden" id="tutCard">
       <div id="tutText" style="flex:1"></div>
       <button type="button" class="tut-skip" id="tutSkip">Skip</button>
-    </div>
-
-    <!-- Actions -->
-    <div class="action-bar">
-      <div class="turn-indicator" id="turnNum" data-tut-target="turnNum">Turn 1</div>
-      <div class="action-bar-btns">
-        <button type="button" class="action-btn" id="btnShuffle" title="Shuffle board" data-tut-target="btnShuffle">Shuffle</button>
-        <div class="end-wrap" id="endWrap" data-tut-target="endWrap">
-          <button type="button" class="action-btn end-btn" id="btnEnd" title="End turn">End</button>
-        </div>
-      </div>
     </div>
 
     <!-- Contextual tip toast -->

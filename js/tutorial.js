@@ -1,6 +1,7 @@
     // ---- Tutorial + contextual tips ----
-    // Guided, non-blocking tutorial for the first run (floor 1). Narration fires
-    // on observed actions; the player is free to play however they like.
+    // Short, non-blocking guided tour for the first run (floor 1). Each tip is a
+    // one-shot milestone that fires on its real event regardless of order, so the
+    // tutorial can never get "stuck" showing stale text.
     const TUTORIAL_KEY = "puzzleGridTutorialSeen_v1";
     const TIPS_KEY = "puzzleGridSeenTips_v1";
 
@@ -24,10 +25,10 @@
       step: 0,
       tutCard: null,
       tutText: null,
-      sigTimer: null
+      sigTimer: null,
+      seen: {} // one-shot flags per milestone
     };
 
-    // Signature tile display name per class
     const TUT_SIG = { ninja: "⚔️", wizard: "🛡️", knight: "❤️" };
 
     function ensureCard() {
@@ -64,11 +65,11 @@
       if (getTutorialSeen()) return;
       tut.active = true;
       tut.step = 0;
-      // Difficulty is set by the picker and locked for the run — don't override
-      // Step 0: Welcome — point at the board
+      tut.seen = {};
+      // Step 0: Welcome — point at the BOARD, not the shuffle button
       tutShow(
-        "Welcome to Puzzle Grid! 👋 Swap adjacent tiles to match 3+. ⚔️=Damage, ❤️=Heal, 🛡️=Shield, ⭐=Damage (x2 during Meteor!), 🎲=Mystery!",
-        "btnShuffle", "top"
+        "Swap adjacent tiles to match 3+. ⚔️ Damage · ❤️ Heal · 🛡️ Shield · ⭐ Damage (x2 in Meteor!) · 🎲 Mystery!",
+        "grid", "bottom"
       );
     }
 
@@ -80,10 +81,8 @@
     function tutorialOnFloorAdvance() {
       if (!tut.active) return;
       tutComplete();
-      setTutorialSeen(true);
     }
 
-    // Brief highlight pulse on matching tiles to point at something
     function tutHighlight(r, c) {
       clearTutHighlight();
       const el = getCell(r, c);
@@ -113,7 +112,7 @@
     function positionArrow(target, pos) {
       if (!target || !tutArrowEl) return;
       const r = target.getBoundingClientRect();
-      const ax = 14, ay = 32; // arrow SVG center-x, height
+      const ax = 14, ay = 32;
       let left, top;
       switch (pos) {
         case "top":
@@ -151,7 +150,6 @@
       else if (anim === "pulse") el.classList.add("pulse");
       else el.classList.add("bounce");
       positionArrow(targetEl, tut._arrowPos);
-      // force reflow then show
       void tutArrowEl.offsetWidth;
       el.classList.add("show");
       if (tutArrowRaf) cancelAnimationFrame(tutArrowRaf);
@@ -191,7 +189,7 @@
     function tutorialOnPlayerMatch(matchedList, shape) {
       // Contextual tips (any run): mystery tiles + seal shapes
       if (matchedList.some(t => t.type === "question")) {
-        maybeTip("mystery", "🎲 Mystery! It's a random buff or debuff — during Star Impact it's always a buff.");
+        maybeTip("mystery", "🎲 Mystery! A random buff or debuff — during Star Impact it's always a buff.");
       }
       if (shape.isCross) {
         if (shape.crossKind === "l") {
@@ -203,27 +201,32 @@
 
       if (!tut.active) return;
 
-      if (tut.step === 0) {
-        // Step 1: First match — AP + shuffle intro + carryover
+      // 1) First match — teach AP + End Turn (always shows first)
+      if (!tut.seen.match) {
+        tut.seen.match = true;
         tut.step = 1;
-        tutShow(
-          "Good! Each swap costs 1 of your 3 AP. Ending your turn with AP leftover carries +1 into next turn. When you're done, press End Turn!",
-          "endWrap", "top"
-        );
-      } else if (tut.step === 3 && (shape.charged || (shape.tags && shape.tags.includes("star")))) {
-        // Step 8: Charged match
-        tut.step = 4;
-        tutShow("⚡ Charged! Matching 4+ in a line gives double power!", "btnShuffle", "top");
-      } else if (tut.step === 4) {
-        // Step 9: Signature tile
+        tutShow("Nice! Each swap costs 1 of your 3 AP. When you're done, press End Turn.", "endWrap", "top");
+        return;
+      }
+
+      // 2) Charged clear (4+ in a line) — one-shot, any time after first match
+      const charged = shape.charged || (shape.tags && shape.tags.includes("star"));
+      if (!tut.seen.charged && charged) {
+        tut.seen.charged = true;
+        tutShow("⚡ Charged! Matching 4+ in a line doubles the power!", "btnShuffle", "top");
+        return;
+      }
+
+      // 3) Signature tile — one-shot, any time after first match
+      if (!tut.seen.sig) {
         const sig = (typeof playerSignature === "function" && playerSignature()) || "sword";
         if (matchedList.some(t => t.type === sig)) {
-          tut.step = 5;
+          tut.seen.sig = true;
+          tut.step = 4;
           tutShow(
-            `That's your signature tile (${TUT_SIG[combat.playerClass] || "⭐"}) — class-specific! Matching it charges your ultimate. Tap your portrait when it's ready!`,
+            `That's your signature tile ${TUT_SIG[combat.playerClass] || "⭐"} — matching it charges your ultimate!`,
             "btnShuffle", "top"
           );
-          // Point at a signature tile still on the board, if any
           if (typeof board !== "undefined" && typeof ROWS !== "undefined" && typeof COLS !== "undefined") {
             for (let r = 0; r < ROWS; r++) {
               for (let c = 0; c < COLS; c++) {
@@ -231,59 +234,42 @@
               }
             }
           }
-          // If the ultimate is already full, the banner already passed — finish now
           if (combat.sigBank >= settings.ultNeed) tutorialOnUltReady();
         }
       }
     }
 
     function tutorialOnEndTurn() {
-      if (!tut.active || tut.step !== 1) return;
+      if (!tut.active || tut.seen.endturn) return;
+      tut.seen.endturn = true;
       tut.step = 2;
-      tutShow(
-        "Now the rival matches tiles too — out-damage it before it out-damages you!",
-        "endWrap", "top"
-      );
+      tutShow("Now the rival takes its turn — out-damage it before it does the same to you!", "enemyPortrait", "left");
     }
 
     function tutorialOnEnemyTurn() {
-      if (!tut.active || tut.step !== 2) return;
+      if (!tut.active || tut.seen.enemyturn) return;
+      tut.seen.enemyturn = true;
       tut.step = 3;
-      tutShow(
-        "Watch the rival's moves. You can tap a status chip or the portraits any time to read details.",
-        null
-      );
+      tutShow("Watch its moves. Tap any portrait or status chip to read the details.", null);
     }
 
     function tutorialOnShuffle() {
-      if (!tut.active) return;
-      if (tut.step === 1) {
-        tutShow(
-          "Shuffle rerolls the board. It normally costs 1 AP, but every 3rd turn it's FREE! Use it or lose it!",
-          "btnShuffle", "top"
-        );
-      }
+      if (!tut.active || tut.seen.shuffle) return;
+      tut.seen.shuffle = true;
+      tutShow("Shuffle rerolls the board. Every 3rd turn it's FREE — use it or lose it!", "btnShuffle", "top");
     }
 
     function tutorialOnUltReady() {
       maybeTip("ult", "🔥 Ultimate ready! Tap your portrait to unleash it.");
-      if (!tut.active || tut.step !== 5) return;
-      tut.step = 6;
-      tutShow(
-        "🔥 Your ultimate is ready — tap your portrait to unleash it!",
-        "playerPortrait", "left", "pulse"
-      );
+      if (!tut.active || tut.seen.ult) return;
+      tut.seen.ult = true;
+      tut.step = 5;
+      tutShow("🔥 Ultimate ready — tap your portrait to unleash it!", "playerPortrait", "left", "pulse");
     }
 
     function tutorialOnCombo(level) {
       maybeTip("combo", "🔥 Combo! Chaining clears builds momentum for more damage!");
-      if (!tut.active) return;
-      if (tut.step >= 3) {
-        tutShow(
-          `🔥 Combo ×${level}! Chaining clears builds momentum for more damage!`,
-          null
-        );
-      }
+      // keep the guided card calm — no card spam during the intro
     }
 
     function tutorialOnFreeShuffleTurn() {
@@ -291,20 +277,14 @@
         maybeTip("freeShuffle", "🎉 Free shuffle this turn! Use it or lose it!");
         return;
       }
-      if (tut.step >= 1) {
-        tutShow(
-          "🎉 Free shuffle available! Every 3rd turn you get one. The rival also gets one. If you don't use it now, it's gone!",
-          "btnShuffle", "top", "pulse"
-        );
-      }
+      if (tut.seen.freetip) return;
+      tut.seen.freetip = true;
+      tutShow("🎉 Free shuffle this turn (every 3rd turn)! The rival gets one too — grab yours first.", "btnShuffle", "top", "pulse");
     }
 
     function tutorialOnFloorComplete(floor) {
-      if (!tut.active) return;
-      tutShow(
-        "🎁 Floor Complete! Pick a reward — some grant permanent AP bonuses!",
-        null
-      );
+      // Toast, not a stuck card — the run advances and completes the tutorial next battle
+      showTipToast("🎁 Floor clear! Pick a reward — some grant permanent bonuses.");
     }
 
     function tutorialOnPhase(phase) {

@@ -331,6 +331,7 @@
       pend.reroll = 0;
       const render = () => {
         const choices = pickUpgradeChoices(3 + extra);
+        const hero = (combat.playerClass || "ninja").toUpperCase();
         wrap.innerHTML = "";
         choices.forEach(u => {
           const btn = document.createElement("button");
@@ -338,6 +339,20 @@
           if (u.desc) {
             buildRewardCard(btn, { name: u.name || u.label, desc: u.desc, tier: "uncommon" }, { permanent: true });
             btn.title = u.desc;
+            // Synergy tag: BEST if class-specific for this hero, GOOD if general
+            const topRow = btn.querySelector(".up-card-top");
+            if (topRow) {
+              const tag = document.createElement("span");
+              tag.className = "up-card-synergy-tag";
+              if (u.classRequirement && u.classRequirement !== "ANY") {
+                tag.textContent = "★ BEST";
+                tag.classList.add("best");
+              } else {
+                tag.textContent = "GOOD";
+                tag.classList.add("ok");
+              }
+              topRow.appendChild(tag);
+            }
           } else {
             btn.className = "upgrade-card glow-general";
             btn.textContent = u.name || u.label;
@@ -1259,8 +1274,8 @@
       });
     }
 
-    // Floor pill → floor info
-    const floorPillEl = document.getElementById("floorPill");
+    // Turn pill → floor info + settings
+    const floorPillEl = document.getElementById("turnNum");
     if (floorPillEl) {
       floorPillEl.style.cursor = "pointer";
       floorPillEl.addEventListener("click", () => {

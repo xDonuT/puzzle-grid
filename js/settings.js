@@ -16,7 +16,7 @@
       shieldMax: 18,
       enemyAtk: 5,
       ultDmg: 14,      // fallback; scaled ult still uses 12 + (charge-6)*2
-      ultNeed: 3,
+      ultNeed: 5,
       ultMaxCharge: 10,
       feverTurn: 6,
       impactTurn: 11,

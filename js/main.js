@@ -790,7 +790,7 @@
       settings.shieldMax = +document.getElementById("admShieldMax").value || 0;
       settings.enemyAtk = +document.getElementById("admEnemyAtk").value || 0;
       settings.ultDmg = +document.getElementById("admUlt").value || 0;
-      settings.ultNeed = Math.max(1, +document.getElementById("admUltNeed").value || 3);
+      settings.ultNeed = Math.max(1, +document.getElementById("admUltNeed").value || 5);
       const feverEl = document.getElementById("admFever");
       const impactEl = document.getElementById("admImpact");
       if (feverEl) settings.feverTurn = Math.max(1, +feverEl.value || 6);

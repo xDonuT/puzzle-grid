@@ -870,6 +870,7 @@
     }
     .action-btn.end-btn:active { transform: scale(0.96); background: rgba(255, 255, 255, 0.7); }
     #btnShuffle {
+      position: relative;
       padding: 8px 16px;
       border: 1.5px solid rgba(60, 45, 30, 0.12);
       border-radius: 999px;
@@ -1182,6 +1183,47 @@
     @keyframes tutPulse {
       0%, 100% { outline-color: rgba(255, 190, 60, 0.95); }
       50% { outline-color: rgba(255, 120, 60, 0.45); }
+    }
+
+    /* Tutorial arrow pointer */
+    .tut-arrow {
+      position: fixed;
+      z-index: 1000;
+      pointer-events: none;
+      transition: left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+      opacity: 0;
+    }
+    .tut-arrow.show { opacity: 1; }
+    .tut-arrow svg { display: block; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25)); }
+    .tut-arrow.bounce svg { animation: arrowBounce 0.8s ease-in-out infinite; }
+    .tut-arrow.pulse svg { animation: arrowPulse 1.2s ease-in-out infinite; }
+    @keyframes arrowBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    @keyframes arrowPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.15); }
+    }
+
+    /* Free shuffle badge */
+    .shuffle-badge {
+      position: absolute;
+      top: -8px;
+      right: -6px;
+      background: #e8a030;
+      color: #fff;
+      font-size: 0.6rem;
+      font-weight: 900;
+      padding: 2px 5px;
+      border-radius: 8px;
+      line-height: 1;
+      white-space: nowrap;
+      pointer-events: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .shuffle-badge.free {
+      background: #4eaa4e;
     }
 
     /* One-time contextual tip toast */
@@ -1824,7 +1866,7 @@
       <div class="combatant enemy">
            <div class="fighter-name" id="enemyName">Rival</div>
           <div class="portrait-wrap">
-            <div class="portrait enemy" id="enemyPortrait" aria-hidden="true">
+            <div class="portrait enemy" id="enemyPortrait" aria-hidden="true" data-tut-target="enemyPortrait">
             </div>
           </div>
           <div class="hp-shield-row">
@@ -1860,7 +1902,7 @@
       <div class="combatant player">
            <div class="fighter-name" id="playerName">Ninja</div>
           <div class="portrait-wrap">
-            <div class="portrait ninja" id="playerPortrait" aria-hidden="true">
+            <div class="portrait ninja" id="playerPortrait" aria-hidden="true" data-tut-target="playerPortrait">
             </div>
           </div>
           <div class="hp-shield-row">
@@ -1929,10 +1971,10 @@
 
     <!-- Actions -->
     <div class="action-bar">
-      <div class="turn-indicator" id="turnNum">Turn 1</div>
+      <div class="turn-indicator" id="turnNum" data-tut-target="turnNum">Turn 1</div>
       <div class="action-bar-btns">
-        <button type="button" class="action-btn" id="btnShuffle" title="Shuffle board">Shuffle</button>
-        <div class="end-wrap" id="endWrap">
+        <button type="button" class="action-btn" id="btnShuffle" title="Shuffle board" data-tut-target="btnShuffle">Shuffle</button>
+        <div class="end-wrap" id="endWrap" data-tut-target="endWrap">
           <button type="button" class="action-btn end-btn" id="btnEnd" title="End turn">End</button>
         </div>
       </div>
@@ -1953,15 +1995,6 @@
       </div>
 
       <div id="tabGame">
-        <h3>Difficulty</h3>
-        <div class="row">
-          <label>Mode</label>
-          <div class="seg" id="diffSeg">
-            <button type="button" data-diff="easy">Easy</button>
-            <button type="button" data-diff="normal" class="on">Normal</button>
-            <button type="button" data-diff="hard">Hard</button>
-          </div>
-        </div>
         <h3>Audio</h3>
         <div class="row">
           <label>Mute</label>
@@ -2078,6 +2111,16 @@
         <button type="button" class="action-btn primary" id="btnGoRetry">Next Floor</button>
       </div>
     </div>
+   </div>
+
+   <!-- DIFFICULTY PICKER -->
+   <div class="overlay" id="diffPickerOverlay">
+     <div class="panel" style="margin:auto;text-align:center">
+       <h2>Choose Difficulty</h2>
+       <p style="color:#7a6e64;font-size:0.85rem;margin:6px 0 12px;font-weight:600">Pick how hard the rival fights</p>
+       <div class="upgrade-cards" id="diffPickerCards"></div>
+       <button type="button" class="tut-skip" id="btnDiffCancel" style="margin-top:12px">✕ Cancel</button>
+     </div>
    </div>
 
    <!-- CHARACTER / ENEMY INFO (hold portrait) -->

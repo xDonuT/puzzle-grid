@@ -390,8 +390,20 @@
       }
       if (btnShuffle) {
         const free = (combat.freeShuffles || 0) > 0;
-        btnShuffle.title = free ? `Shuffle board (${combat.freeShuffles} free)` : "Shuffle board";
+        btnShuffle.title = free ? "Shuffle board (free)" : "Shuffle board (1 AP)";
         btnShuffle.classList.toggle("free", free);
+        // Build label + badge together so textContent doesn't wipe children
+        let badgeHtml = "";
+        if (combat.playerTurn && !busy) {
+          if (free) {
+            badgeHtml = '<span class="shuffle-badge free">FREE</span>';
+          } else {
+            const turnsUntilFree = 3 - ((combat.turn - 1) % 3);
+            const bc = turnsUntilFree <= 1 ? "" : "";
+            badgeHtml = `<span class="shuffle-badge">${turnsUntilFree <= 1 ? "Next!" : turnsUntilFree}</span>`;
+          }
+        }
+        btnShuffle.innerHTML = (free ? "Shuffle FREE" : "Shuffle (1AP)") + badgeHtml;
       }
       // End button: AP ring shows the active side's AP for the current turn
       if (endWrap) {
@@ -1143,6 +1155,13 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       combat.playerTurn = true;
       combat.cascadeApRefunded = false; // Cascade Refund: once per turn
       combat._bulwarkUsed = false; // Bulwark: once per turn
+      // Free shuffle every 3rd turn (use it or lose it)
+      if (combat.turn % 3 === 0) {
+        combat.freeShuffles = 1;
+        if (typeof tutorialOnFreeShuffleTurn === "function") tutorialOnFreeShuffleTurn();
+      } else {
+        combat.freeShuffles = 0;
+      }
       if (typeof tutorialOnPhase === "function") tutorialOnPhase(getPhase());
 
       // Decay timed statuses
@@ -1562,6 +1581,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       shuffleBoard();
       playGooeyPlop(0.9, 0.5);
       refreshCombatUI();
+      if (typeof tutorialOnShuffle === "function") tutorialOnShuffle();
     });
 
     playerPortraitEl.addEventListener("click", () => {

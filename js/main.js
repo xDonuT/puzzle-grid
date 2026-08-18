@@ -321,6 +321,7 @@
       if (combat.enemyHp <= 0) {
         gameOver = true;
         busy = true;
+        if (typeof tutorialOnFloorComplete === "function") tutorialOnFloorComplete(run.floor);
         if (isBossFloor(run.floor)) {
           openUpgradePicker(rewardLabel => showVictoryOverlay(rewardLabel));
         } else if (isEliteFloor(run.floor)) {
@@ -548,7 +549,6 @@
       combat.feverBoost = (run.pending && run.pending.feverBoost) || 0;
       combat.critChance = (run.pending && run.pending.critChance) || 0;
       combat.shieldConvertPct = (run.pending && run.pending.shieldConvert) || 0;
-      combat.freeShuffles = run.boardWhisper ? 1 : 0;
       combat.cascadeApRefunded = false;
       combat.reflectPct = (hero.reflectPct || 0) * (run.arcaneMirror ? 1.5 : 1);
       combat.turn = 1;
@@ -761,9 +761,6 @@
         volSlider.value = Math.round(settings.volume * 100);
         if (volLabel) volLabel.textContent = String(volSlider.value);
       }
-      document.querySelectorAll("#diffSeg button").forEach(b => {
-        b.classList.toggle("on", b.dataset.diff === settings.difficulty);
-      });
       const tutToggle = document.getElementById("tutToggle");
       if (tutToggle) {
         const seen = typeof getTutorialSeen === "function" && getTutorialSeen();
@@ -863,13 +860,6 @@
         persistSettings();
       });
     }
-    document.querySelectorAll("#diffSeg button").forEach(b => {
-      b.addEventListener("click", () => {
-        settings.difficulty = b.dataset.diff;
-        document.querySelectorAll("#diffSeg button").forEach(x => x.classList.toggle("on", x === b));
-        persistSettings();
-      });
-    });
     document.querySelectorAll("#settingsTabs button").forEach(b => {
       b.addEventListener("click", () => {
         const tab = b.dataset.tab;
@@ -879,10 +869,60 @@
       });
     });
 
+    const DIFFICULTY_OPTIONS = [
+      { id: "easy", icon: "🌱", name: "Easy", desc: "Enemy deals 25% less damage. AI makes random moves — perfect for learning the ropes." },
+      { id: "normal", icon: "⚔️", name: "Normal", desc: "Balanced challenge. AI searches for good matches and plays strategically." },
+      { id: "hard", icon: "💀", name: "Hard", desc: "Enemy deals 25% more damage. AI uses lookahead, chases charged clears, and plays aggressively." }
+    ];
+
+    function openDiffPicker() {
+      const ov = document.getElementById("diffPickerOverlay");
+      const wrap = document.getElementById("diffPickerCards");
+      if (!ov || !wrap) { resetRun(); startBattle(); return; }
+      wrap.innerHTML = "";
+      DIFFICULTY_OPTIONS.forEach(d => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "upgrade-card";
+        const row = document.createElement("span");
+        row.className = "up-card-head";
+        const n = document.createElement("span");
+        n.className = "up-card-name";
+        n.textContent = d.icon + " " + d.name;
+        if (settings.difficulty === d.id) {
+          const badge = document.createElement("span");
+          badge.className = "reward-dur permanent";
+          badge.textContent = "Current";
+          row.append(n, badge);
+        } else {
+          row.append(n);
+        }
+        const desc = document.createElement("span");
+        desc.className = "up-card-desc";
+        desc.textContent = d.desc;
+        btn.append(row, desc);
+        btn.addEventListener("click", () => {
+          settings.difficulty = d.id;
+          persistSettings();
+          ov.classList.remove("open");
+          resetRun();
+          startBattle();
+          refreshContinueBtn();
+        });
+        wrap.appendChild(btn);
+      });
+      ov.classList.add("open");
+    }
+
     document.getElementById("btnStart").addEventListener("click", () => {
-      resetRun();
-      startBattle();
-      refreshContinueBtn();
+      openDiffPicker();
+    });
+
+    document.getElementById("btnDiffCancel").addEventListener("click", () => {
+      document.getElementById("diffPickerOverlay").classList.remove("open");
+    });
+    document.getElementById("diffPickerOverlay").addEventListener("click", e => {
+      if (e.target.id === "diffPickerOverlay") e.target.classList.remove("open");
     });
 
     document.getElementById("btnContinue").addEventListener("click", () => {
@@ -1149,6 +1189,66 @@
         playUiClick("tap");
         showPhaseInfo();
       });
+    }
+
+    // Floor pill → floor info
+    const floorPillEl = document.getElementById("floorPill");
+    if (floorPillEl) {
+      floorPillEl.style.cursor = "pointer";
+      floorPillEl.addEventListener("click", () => {
+        openFloorInfo();
+      });
+    }
+
+    function openFloorInfo() {
+      const infoTitle = document.getElementById("infoTitle");
+      const infoBody = document.getElementById("infoBody");
+      if (!infoTitle || !infoBody) return;
+      infoTitle.textContent = `Floor ${run.floor}`;
+      const parts = [];
+      // Floor type
+      if (isBossFloor(run.floor)) {
+        const kit = BOSS_KITS[run.floor];
+        parts.push(`<div class="info-section">Boss Floor</div>`);
+        if (kit) parts.push(`<div class="info-body">${kit.icon || "💀"} ${kit.name} — a unique boss with special abilities.</div>`);
+      } else if (isEliteFloor(run.floor)) {
+        const kit = ELITE_KITS[run.floor];
+        parts.push(`<div class="info-section">Elite Floor</div>`);
+        if (kit) parts.push(`<div class="info-body">${kit.icon || "⚡"} ${kit.name} — a tough foe with a permanent reward.</div>`);
+        else parts.push(`<div class="info-body">A powerful elite enemy. Defeat grants a permanent upgrade.</div>`);
+      } else {
+        parts.push(`<div class="info-section">Normal Floor</div>`);
+        parts.push(`<div class="info-body">Standard floor — beat the rival to earn a reward and modifier.</div>`);
+      }
+      // Difficulty
+      const diffLabel = { easy: "🌱 Easy", normal: "⚔️ Normal", hard: "💀 Hard" };
+      const diffDesc = {
+        easy: "Enemy deals 25% less damage. AI makes random moves.",
+        normal: "Balanced challenge. AI searches for good matches.",
+        hard: "Enemy deals 25% more damage. AI uses lookahead and plays aggressively."
+      };
+      const d = settings.difficulty || "normal";
+      parts.push(`<div class="info-section">Difficulty</div>`);
+      parts.push(`<div class="info-body">${diffLabel[d] || "⚔️ Normal"} — ${diffDesc[d] || diffDesc.normal}</div>`);
+      // Floor modifier
+      if (combat.floorModifier) {
+        parts.push(`<div class="info-section">Active Modifier</div>`);
+        parts.push(`<div class="info-body">${combat.floorModifier.icon} <strong>${combat.floorModifier.name}</strong> — ${combat.floorModifier.desc}</div>`);
+      }
+      // Phase
+      const phase = typeof getPhase === "function" ? getPhase() : "normal";
+      if (phase === "fever") {
+        parts.push(`<div class="info-section">Star Fever</div>`);
+        parts.push(`<div class="info-body">⭐ Star tiles deal x2 damage. Push for big clears!</div>`);
+      } else if (phase === "impact") {
+        parts.push(`<div class="info-section">Star Impact</div>`);
+        parts.push(`<div class="info-body">☄️ ⭐ tiles deal x2 AND 🎲 mystery tiles are always buffs!</div>`);
+      }
+      // Progress
+      parts.push(`<div class="info-section">Progress</div>`);
+      parts.push(`<div class="info-body">Floor ${run.floor} of 20. ${isBossFloor(run.floor) ? "Final boss!" : isEliteFloor(run.floor) ? "Elite challenge ahead." : `${20 - run.floor} floors remaining.`}</div>`);
+      infoBody.innerHTML = parts.join("");
+      infoOverlay.classList.add("open");
     }
 
     // UI click SFX + haptic for every button

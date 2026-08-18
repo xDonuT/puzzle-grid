@@ -511,6 +511,7 @@
         if (combo >= 2) {
           setComboTheater(combo);
           playCombo(combo);
+          if (typeof tutorialOnCombo === "function") tutorialOnCombo(combo);
         } else {
           playMatch(count);
         }

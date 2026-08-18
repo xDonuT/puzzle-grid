@@ -265,7 +265,7 @@
     function showUltReadyBanner() {
       if (combat.ultAnnounced) return;
       combat.ultAnnounced = true;
-      if (typeof tutorialOnUltReady === "function") tutorialOnUltReady();
+      if (combat.tutorial && typeof markTutorialObjective === "function") markTutorialObjective("ult");
       const ov = document.getElementById("ultReadyOverlay");
       if (!ov) return;
       ov.classList.add("open");
@@ -387,7 +387,6 @@
       if (combat.enemyHp <= 0) {
         gameOver = true;
         busy = true;
-        if (typeof tutorialOnFloorComplete === "function") tutorialOnFloorComplete(run.floor);
         if (isBossFloor(run.floor)) {
           openUpgradePicker(rewardLabel => showVictoryOverlay(rewardLabel));
         } else if (isEliteFloor(run.floor)) {
@@ -507,9 +506,8 @@
     }
 
     function resetRun() {
-      // Abandoning a run mid-tutorial means it won't replay on the next run
-      if (typeof skipTutorial === "function") skipTutorial();
       run.floor = 1;
+      combat.tutorial = false;
       run.bonusMaxHp = 0;
       run.bonusShieldMax = 0;
       run.bonusApMax = 0;
@@ -598,12 +596,8 @@
           return;
         }
         run.floor += 1;
-        if (typeof tutorialOnFloorAdvance === "function") tutorialOnFloorAdvance();
       }
-      // defeat retry keeps same floor; fresh start from menu resets via resetRun
-      if (run.floor === 1 && !opts.retry && !opts.fromVictory && typeof startTutorialIfNeeded === "function") {
-        startTutorialIfNeeded();
-      }
+      // defeat retry keeps same floor; fresh start from the menu resets via resetRun
 
       const hero = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
       const maxHp = hero.hp + run.bonusMaxHp;
@@ -627,6 +621,7 @@
       combat.reflectPct = (hero.reflectPct || 0) * (run.arcaneMirror ? 1.5 : 1);
       combat.turn = 1;
       combat.playerTurn = true;
+      combat.tutorial = !!opts.tutorial;
       combat.empowerNext = !!((run.pending && run.pending.empower) || 0);
       combat.blindNext = false;
       combat.weakenNextSword = false;
@@ -706,6 +701,21 @@
       combat.enemyHp = unitHp;
       combat.enemyShield = arch && arch.startShield ? arch.startShield : 0;
 
+      if (opts.tutorial) {
+        // Training Grounds: a passive dummy that can't be killed and deals no damage.
+        combat.bossKit = null;
+        combat.eliteKit = null;
+        combat.enemyArchetype = null;
+        combat.enemyClass = "slime";
+        combat.enemyFullName = "Training Dummy";
+        combat.enemyName = "Training Dummy";
+        combat.enemyMaxHp = 100000;
+        combat.enemyHp = 100000;
+        combat.enemyShield = 0;
+        combat.enemyUltCharge = 0;
+        combat.enemySpecialCharge = 0;
+      }
+
       const floorEl = document.getElementById("floorNum");
       if (floorEl) floorEl.textContent = String(run.floor);
       const floorTotalEl = document.getElementById("floorTotal");
@@ -720,10 +730,29 @@
         : elite
           ? " · ELITE"
           : "";
-      setLog(`Floor ${run.floor}${floorNote} · ${combat.enemyName}`);
-      saveRun();
+      if (opts.tutorial) {
+        setLog("Training Grounds · " + combat.enemyName);
+      } else {
+        setLog(`Floor ${run.floor}${floorNote} · ${combat.enemyName}`);
+        saveRun();
+      }
       showScreen("game");
-      showFloorBanner();
+      if (opts.tutorial) {
+        // Custom intro banner rather than "Floor 1"
+        const ov = document.getElementById("floorBannerOverlay");
+        const k = document.getElementById("floorBannerKicker");
+        const t = document.getElementById("floorBannerTitle");
+        const s = document.getElementById("floorBannerSub");
+        if (ov && k && t) {
+          k.textContent = "Training";
+          t.textContent = "Grounds";
+          if (s) s.textContent = combat.enemyName;
+          ov.classList.add("open");
+          setTimeout(() => ov.classList.remove("open"), 1600);
+        }
+      } else {
+        showFloorBanner();
+      }
       // Trash talk after floor banner settles
       setTimeout(() => {
         if (!gameOver && combat.playerTurn) {
@@ -760,6 +789,21 @@
         // defeat — retry same floor
         startBattle({ retry: true });
       }
+    });
+
+    // Tutorial overlay
+    const tutOverlay = document.getElementById("tutorialOverlay");
+    if (tutOverlay) {
+      document.getElementById("tutContinue").addEventListener("click", () => {
+        if (typeof finishTutorialProceed === "function") finishTutorialProceed();
+      });
+      document.getElementById("tutExit").addEventListener("click", () => {
+        if (typeof exitTutorial === "function") exitTutorial();
+      });
+    }
+    const tutSkipBtn = document.getElementById("tutSkip");
+    if (tutSkipBtn) tutSkipBtn.addEventListener("click", () => {
+      if (typeof exitTutorial === "function") exitTutorial();
     });
 
     function buildCharPick() {
@@ -837,15 +881,6 @@
         volSlider.value = Math.round(settings.volume * 100);
         if (volLabel) volLabel.textContent = String(volSlider.value);
       }
-      const tutToggle = document.getElementById("tutToggle");
-      if (tutToggle) {
-        const seen = typeof getTutorialSeen === "function" && getTutorialSeen();
-        tutToggle.classList.toggle("on", !seen);
-        const note = document.getElementById("tutNote");
-        if (note) note.textContent = seen
-          ? "Tutorial already completed — turning this on replays it on your next new run."
-          : "The tutorial will play on your next new run.";
-      }
       document.getElementById("tabGame").style.display = "";
       document.getElementById("tabAdmin").style.display = "none";
       document.querySelectorAll("#settingsTabs button").forEach(b => {
@@ -899,29 +934,6 @@
       if (e.target === helpOverlay) closeHelp();
     });
 
-    // Replay tutorial toggle
-    const tutToggleEl = document.getElementById("tutToggle");
-    if (tutToggleEl) {
-      tutToggleEl.addEventListener("click", () => {
-        const newOn = !tutToggleEl.classList.contains("on");
-        tutToggleEl.classList.toggle("on", newOn);
-        if (typeof setTutorialSeen === "function") setTutorialSeen(!newOn);
-        if (newOn) {
-          // Reset one-time tip flags so contextual tips replay too
-          try { localStorage.removeItem("puzzleGridSeenTips_v1"); } catch (_) {}
-        }
-        const note = document.getElementById("tutNote");
-        if (note) note.textContent = newOn
-          ? "The tutorial will play on your next new run."
-          : "Tutorial will not replay.";
-      });
-    }
-
-    // Tutorial narration card + skip
-    const tutSkipBtn = document.getElementById("tutSkip");
-    if (tutSkipBtn) tutSkipBtn.addEventListener("click", () => {
-      if (typeof skipTutorial === "function") skipTutorial();
-    });
     document.getElementById("muteToggle").addEventListener("click", function () {
       settings.muted = !settings.muted;
       this.classList.toggle("on", settings.muted);
@@ -989,7 +1001,11 @@
           persistSettings();
           ov.classList.remove("open");
           resetRun();
-          startBattle();
+          if (typeof maybeAutoTutorial === "function" && maybeAutoTutorial()) {
+            startTutorial({ then: "run" });
+          } else {
+            startBattle();
+          }
           refreshContinueBtn();
         });
         wrap.appendChild(btn);
@@ -999,6 +1015,10 @@
 
     document.getElementById("btnStart").addEventListener("click", () => {
       openDiffPicker();
+    });
+
+    document.getElementById("btnTutorial").addEventListener("click", () => {
+      if (typeof startTutorial === "function") startTutorial();
     });
 
     document.getElementById("btnDiffCancel").addEventListener("click", () => {

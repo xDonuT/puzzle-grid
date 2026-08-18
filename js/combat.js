@@ -607,6 +607,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
     // Shield active: half damage to shield stacks, half to HP
     // Ninja dodge / afterglow, Wizard reflect
     function dealDamageToPlayer(raw, opts = {}) {
+      // Tutorial: the Training Dummy never harms the player.
+      if (combat.tutorial) return;
       let dmg = Math.max(0, raw | 0);
       if (dmg <= 0) return;
 
@@ -1085,7 +1087,6 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       busy = true;
       combat.playerTurn = false;
       combat.enemyAp = AP_MAX;
-      if (typeof tutorialOnEnemyTurn === "function") tutorialOnEnemyTurn();
 
       // Boss turn-start passive (e.g. Last Rival regeneration)
       if (combat.bossKit && typeof combat.bossKit.turnStart === "function") {
@@ -1156,6 +1157,10 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         }
       }
 
+      if (combat.tutorial) {
+        hideEnemyThinking();
+        setLog("Training Dummy · watching…");
+      } else {
       setLog(`${combat.enemyName} is thinking…`);
       const archAtk = (combat.enemyArchetype && combat.enemyArchetype.atkMul) || 1;
       const eliteAtk = (combat.eliteKit && combat.eliteKit.atkMul) || 1;
@@ -1222,6 +1227,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         }
         refreshCombatUI();
       }
+      } // end tutorial else
 
       if (gameOver) {
         busy = true;
@@ -1238,11 +1244,9 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       // Free shuffle every 3rd turn (use it or lose it)
       if (combat.turn % 3 === 0) {
         combat.freeShuffles = 1;
-        if (typeof tutorialOnFreeShuffleTurn === "function") tutorialOnFreeShuffleTurn();
       } else {
         combat.freeShuffles = 0;
       }
-      if (typeof tutorialOnPhase === "function") tutorialOnPhase(getPhase());
 
       // Decay timed statuses
       if (combat.afterglowTurns > 0) combat.afterglowTurns--;
@@ -1664,7 +1668,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
 
     btnEnd.addEventListener("click", () => {
   if (busy || !combat.playerTurn) return;
-  if (typeof tutorialOnEndTurn === "function") tutorialOnEndTurn();
+  if (combat.tutorial && typeof markTutorialObjective === "function") markTutorialObjective("endTurn");
+  if (combat.tutorial && typeof isTutorialComplete === "function" && isTutorialComplete()) return;
   // Track unused AP for next turn bonus – always +1 if any AP is left (Momentum: up to +2)
   const leftover = combat.ap;
   if (combat.ap > 0) {
@@ -1689,9 +1694,9 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         combat.ap -= 1;
       }
       shuffleBoard();
+      if (combat.tutorial && typeof markTutorialObjective === "function") markTutorialObjective("shuffle");
       playGooeyPlop(0.9, 0.5);
       refreshCombatUI();
-      if (typeof tutorialOnShuffle === "function") tutorialOnShuffle();
     });
 
     playerPortraitEl.addEventListener("click", () => {

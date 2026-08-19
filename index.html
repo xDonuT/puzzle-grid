@@ -839,46 +839,6 @@
       padding: 4px 0;
     }
 
-    /* Tutorial objective bar */
-    .tutorial-bar {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      justify-content: center;
-      flex-wrap: wrap;
-      width: 100%;
-      padding: 6px 10px;
-      background: rgba(243, 239, 232, 0.93);
-      border: 1px solid rgba(255, 255, 255, 0.7);
-      border-radius: 14px;
-    }
-    .tutorial-bar.hidden { display: none; }
-    .tutorial-bar .tut-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      align-items: center;
-    }
-    .tutorial-bar .tut-step {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 0.76rem;
-      font-weight: 650;
-      color: #5a5048;
-      opacity: 0.75;
-    }
-    .tutorial-bar .tut-step.done { opacity: 1; color: #1b873f; }
-    .tutorial-bar .tut-step-icon { font-size: 0.9rem; }
-    .tutorial-bar .tut-skip {
-      margin-left: auto;
-      font-size: 0.7rem;
-      font-weight: 700;
-    }
-
     /* Neutral small "× / ✕" action button (tutorial skip, diff cancel) */
     .tut-skip {
       appearance: none;
@@ -2000,7 +1960,6 @@
     <div class="cosmetic-bar" id="cosmeticBar"></div>
     <div class="menu-actions">
       <button type="button" class="action-btn primary" id="btnStart">New Run</button>
-      <button type="button" class="action-btn" id="btnTutorial">Tutorial</button>
       <button type="button" class="action-btn" id="btnContinue" style="display:none">Continue Floor <span id="continueFloor">1</span></button>
       <button type="button" class="action-btn" id="btnMenuSettings">Settings</button>
       <button type="button" class="action-btn" id="btnMenuHelp">How to Play</button>
@@ -2017,7 +1976,6 @@
      <!-- Tutorial objective bar (Training Grounds) -->
     <div class="tutorial-bar hidden" id="tutBar">
       <ul class="tut-list" id="tutList"></ul>
-      <button type="button" class="tut-skip" id="tutSkip">Skip</button>
     </div>
 
     <!-- Duel arena: enemy ← center → player -->
@@ -2262,29 +2220,17 @@
    </div>
    </div>
 
-   <!-- TUTORIAL VICTORY -->
-   <div class="overlay" id="tutorialOverlay">
-     <div class="panel" style="margin:auto;text-align:center">
-       <h2>Training Complete</h2>
-       <p style="color:#7a6e64;font-size:0.9rem;margin:8px 0 12px;font-weight:600">You've cleared every objective. Ready for the real run?</p>
-       <div class="panel-actions">
-         <button type="button" class="action-btn primary" id="tutContinue">Continue to Campaign</button>
-         <button type="button" class="action-btn" id="tutExit">Exit to Menu</button>
-       </div>
-     </div>
-   </div>
+  <!-- DIFFICULTY PICKER -->
+  <div class="overlay" id="diffPickerOverlay">
+    <div class="panel" style="margin:auto;text-align:center">
+      <h2>Choose Difficulty</h2>
+      <p style="color:#7a6e64;font-size:0.85rem;margin:6px 0 12px;font-weight:600">Pick how hard the rival fights</p>
+      <div class="upgrade-cards" id="diffPickerCards"></div>
+      <button type="button" class="tut-skip" id="btnDiffCancel" style="margin-top:12px">✕ Cancel</button>
+    </div>
+  </div>
 
-   <!-- DIFFICULTY PICKER -->
-   <div class="overlay" id="diffPickerOverlay">
-     <div class="panel" style="margin:auto;text-align:center">
-       <h2>Choose Difficulty</h2>
-       <p style="color:#7a6e64;font-size:0.85rem;margin:6px 0 12px;font-weight:600">Pick how hard the rival fights</p>
-       <div class="upgrade-cards" id="diffPickerCards"></div>
-       <button type="button" class="tut-skip" id="btnDiffCancel" style="margin-top:12px">✕ Cancel</button>
-     </div>
-   </div>
-
-   <!-- CHARACTER / ENEMY INFO (hold portrait) -->
+  <!-- CHARACTER / ENEMY INFO (hold portrait) -->
   <div class="overlay" id="infoOverlay">
     <div class="panel">
       <h2 id="infoTitle">Fighter</h2>
@@ -2302,6 +2248,5 @@
   <script src="js/ai.js"></script>
   <script src="js/combat.js"></script>
   <script src="js/main.js"></script>
-  <script src="js/tutorial.js"></script>
 </body>
 </html>

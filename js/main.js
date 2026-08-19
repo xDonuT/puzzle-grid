@@ -1017,10 +1017,6 @@
       openDiffPicker();
     });
 
-    document.getElementById("btnTutorial").addEventListener("click", () => {
-      if (typeof startTutorial === "function") startTutorial();
-    });
-
     document.getElementById("btnDiffCancel").addEventListener("click", () => {
       document.getElementById("diffPickerOverlay").classList.remove("open");
     });

@@ -301,6 +301,7 @@
       if (!a) return;
       if (a.id === "viper" && Math.random() < 0.45) {
         combat.poisonTurns = Math.max(combat.poisonTurns || 0, 2);
+        flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "poison");
         setLog(`${combat.enemyName} · venom`);
       }
       if (a.id === "hexer" && Math.random() < 0.4) {
@@ -337,6 +338,7 @@
       14: { name: "Nightcoil", persona: "bruiser", bias: { sword: 1.6 }, hpMul: 1.5, atkMul: 1.25, passive: "Applies poison + weaken",
             onHit: () => {
               combat.poisonTurns = Math.max(combat.poisonTurns || 0, 2);
+              flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "poison");
               if (Math.random() < 0.5) combat.weakenNextSword = true;
             } },
       19: { name: "Ashcrown", persona: "mender", bias: { shield: 2.0 }, hpMul: 1.65, atkMul: 1.5, passive: "Gains shield when struck",
@@ -559,7 +561,7 @@
       5:  { id: "bracken", name: "Bracken the Rootbound", persona: "bruiser", bias: { sword: 1.5 }, ultName: "Root Snare", ultTurns: 4,
             ultFn: () => { combat.blindNext = true; dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.4)); setLog("Root Snare · blind + heavy hit"); } },
       10: { id: "cinder", name: "Cinder Queen", persona: "viper", bias: { star: 1.5, sword: 1.2 }, ultName: "Ashstorm", ultTurns: 4,
-            ultFn: () => { combat.poisonTurns = Math.max(combat.poisonTurns, 3); dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.5)); setLog("Ashstorm · poison 3t + burst"); } },
+            ultFn: () => { combat.poisonTurns = Math.max(combat.poisonTurns, 3); flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "poison"); dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.5)); setLog("Ashstorm · poison 3t + burst"); } },
       15: { id: "ironjaw", name: "Ironjaw the Unbroken", persona: "mender", bias: { shield: 2.0 }, ultName: "Shield Wall", ultTurns: 5,
             ultFn: () => { combat.enemyShield = Math.min(30, combat.enemyShield + 12); dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.2)); setLog("Shield Wall · +12 shield + strike"); } },
       // The Last Rival = dark Knight kit: Regen 3/turn + Fracture on hit + Earthshatter ult

@@ -19,6 +19,70 @@
       if (logBarText) logBarText.textContent = msg || full;
     }
 
+    // ─── Combat FX: projectile flight ───
+    // Flies a small orb from `fromEl` to `toEl` (both elements). `kind` picks the
+    // visual: sword | star | shield | hp | poison | enemy. On impact, shakes the
+    // target, flashes it, then calls handleDamage(kind) for your real logic.
+    function flyEffect(fromEl, toEl, kind) {
+      if (!fromEl || !toEl) return;
+      const fr = fromEl.getBoundingClientRect();
+      const tr = toEl.getBoundingClientRect();
+      if (fr.width === 0 || tr.width === 0) return; // off-screen / hidden
+
+      const sx = fr.left + fr.width / 2;
+      const sy = fr.top + fr.height / 2;
+      const ex = tr.left + tr.width / 2;
+      const ey = tr.top + tr.height / 2;
+      const dx = ex - sx;
+      const dy = ey - sy;
+      const dist = Math.hypot(dx, dy);
+
+      // Zero-distance (self-buff) → just pulse the target, no flight.
+      if (dist < 8) {
+        triggerHit(toEl, kind);
+        return;
+      }
+
+      const proj = document.createElement("div");
+      proj.className = "fx-proj fx-" + kind;
+      proj.style.left = sx + "px";
+      proj.style.top = sy + "px";
+      document.body.appendChild(proj);
+
+      // Duration scales with distance but stays in a snappy 0.4–0.6s window.
+      const duration = Math.min(600, Math.max(400, dist / 1.5));
+      const anim = proj.animate(
+        [
+          { transform: "translate(-50%, -50%) scale(1)", offset: 0 },
+          { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1.5)`, offset: 1 }
+        ],
+        {
+          duration: duration,
+          easing: "cubic-bezier(0.25, 0.8, 0.35, 1)",
+          fill: "forwards"
+        }
+      );
+
+      anim.onfinish = () => {
+        proj.remove();
+        triggerHit(toEl, kind);
+      };
+    }
+
+    function triggerHit(el, kind) {
+      if (!el) return;
+      el.classList.remove("fx-shake", "fx-flash");
+      void el.offsetWidth; // restart animation
+      el.classList.add("fx-shake", "fx-flash");
+      setTimeout(() => el.classList.remove("fx-shake", "fx-flash"), 450);
+      handleDamage(kind);
+    }
+
+    function handleDamage(kind) {
+      // Placeholder — put your real damage/heal/shield logic here.
+      void kind;
+    }
+
     function refreshLogModal() {
       if (!actionLogScroll) return;
       actionLogScroll.innerHTML = "";
@@ -272,6 +336,7 @@
         combat.poisonTurns = Math.max(combat.poisonTurns || 0, 2);
         combat.enemyPoisonTurns = Math.max(combat.enemyPoisonTurns || 0, 2);
         dmgPop("player", "Poison!", "dmg");
+        flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "poison");
         return `poison 2 turns`;
       }},
       { id: "blind", label: "Blind", apply: () => {
@@ -795,7 +860,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
     }
 
     function applyMatchCombat(matchedList, forEnemy = false, shape = { mult: 1, charged: false, apRefund: false, tags: ["normal"] }) {
-      let dmg = 0, heal = 0, shieldTiles = 0, questionCount = 0, swordCount = 0, healCount = 0, shieldCount = 0;
+      let dmg = 0, heal = 0, shieldTiles = 0, questionCount = 0, swordCount = 0, healCount = 0, shieldCount = 0, starCount = 0;
       const sigType = playerSignature();
       let hasSigMatch = false;
       let sigSwordCount = 0, sigShieldCount = 0, sigHpCount = 0;
@@ -814,6 +879,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           if (!forEnemy && sigType === "sword") { hasSigMatch = true; sigSwordCount++; }
         } else if (type === "star") {
           dmg += settings.starDmg + (run.bonusStarDmg || 0) + (combat.tempStarDmg || 0);
+          starCount++;
         } else if (type === "hp") {
           healCount++;
           // Knight signature: +6 per potion tile
@@ -845,6 +911,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       // Venomous: sword clears can poison the enemy
       if (!forEnemy && run.venomous && swordCount > 0 && Math.random() < 0.3) {
         combat.enemyPoisonTurns = Math.max(combat.enemyPoisonTurns || 0, 2);
+        flyEffect(matchedList[0] ? getCell(matchedList[0].r, matchedList[0].c) : document.getElementById("playerPortrait"),
+                  document.getElementById("enemyPortrait"), "poison");
         bitsExtra.push("Poison 2t");
       }
 
@@ -852,6 +920,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (!forEnemy && run.venomousBlade && combat.playerClass === "ninja") {
         if (swordCount >= 4 || (shape.comboLevel || 0) >= 2) {
           combat.poisonStacks += 2;
+          flyEffect(matchedList[0] ? getCell(matchedList[0].r, matchedList[0].c) : document.getElementById("playerPortrait"),
+                    document.getElementById("enemyPortrait"), "poison");
           bitsExtra.push(`Venom Blade +2 ☠`);
         }
       }
@@ -1004,12 +1074,19 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       const maxSh = settings.shieldMax + run.bonusShieldMax;
 
       if (forEnemy) {
-        if (dmg > 0) dealDamageToPlayer(dmg);
-        if (heal > 0) healEnemy(heal);
+        if (dmg > 0) {
+          dealDamageToPlayer(dmg);
+          flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "enemy");
+        }
+        if (heal > 0) {
+          healEnemy(heal);
+          flyEffect(document.getElementById("enemyPortrait"), document.getElementById("enemyPortrait"), "hp");
+        }
         // Mana Lock: enemy cannot gain shield
         if (sh > 0 && combat.manaLockTurns <= 0) {
           combat.enemyShield = Math.min(maxSh, combat.enemyShield + sh);
           playShield();
+          flyEffect(document.getElementById("enemyPortrait"), document.getElementById("enemyPortrait"), "shield");
         }
         const bits = [label];
         if (shapeTag) bits.push(shapeTag);
@@ -1022,9 +1099,20 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         setLog(live, full);
       } else {
         if (dmg > 0) dealDamageToEnemy(dmg);
+        // FX: damage → enemy portrait; heal/shield → player portrait
+        if (dmg > 0) {
+          const kind = swordCount >= starCount ? "sword" : "star";
+          flyEffect(matchedList[0] ? getCell(matchedList[0].r, matchedList[0].c) : document.getElementById("playerPortrait"),
+                    document.getElementById("enemyPortrait"), kind);
+        }
         let healApplied = 0, shieldApplied = 0;
         if (heal > 0) healApplied = applyHealing(heal, healCount);
         if (sh > 0) shieldApplied = applyShielding(sh, shieldCount);
+        if (healApplied > 0 || shieldApplied > 0) {
+          const kind = shieldCount > healCount ? "shield" : "hp";
+          flyEffect(matchedList[0] ? getCell(matchedList[0].r, matchedList[0].c) : document.getElementById("enemyPortrait"),
+                    document.getElementById("playerPortrait"), kind);
+        }
         // Runic Shield (Wizard): shield matches deal damage equal to shield gained
         if (!forEnemy && shieldApplied > 0 && run.runicShield && Math.random() < 0.25) {
           dealDamageToEnemy(shieldApplied);

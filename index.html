@@ -1931,6 +1931,73 @@
 }
 .overlay.active { display: flex; }
 
+/* ===== Combat FX: projectiles & impact ===== */
+.fx-proj {
+  position: fixed;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  z-index: 9999;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+.fx-proj.fx-sword {
+  width: 30px;
+  height: 30px;
+  background: radial-gradient(circle, #ffffff 0%, #dde8f4 30%, #76a6d7 70%, rgba(118,166,215,0) 100%);
+  box-shadow: 0 0 12px 3px rgba(169,188,230,0.9), 0 0 28px 8px rgba(118,166,215,0.5);
+}
+.fx-proj.fx-star {
+  width: 30px;
+  height: 30px;
+  background: radial-gradient(circle, #fff8d6 0%, #f6db98 35%, #f5b514 75%, rgba(245,181,20,0) 100%);
+  box-shadow: 0 0 14px 4px rgba(245,204,102,0.95), 0 0 32px 10px rgba(245,181,20,0.55);
+}
+.fx-proj.fx-shield {
+  width: 30px;
+  height: 30px;
+  background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(99,198,234,0.7) 45%, rgba(99,198,234,0) 100%);
+  box-shadow: 0 0 12px 3px rgba(99,198,234,0.7);
+  opacity: 0.85;
+}
+.fx-proj.fx-hp {
+  width: 30px;
+  height: 30px;
+  background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(247,143,163,0.75) 45%, rgba(247,143,163,0) 100%);
+  box-shadow: 0 0 12px 3px rgba(247,143,163,0.75);
+  opacity: 0.9;
+}
+.fx-proj.fx-poison {
+  width: 24px;
+  height: 24px;
+  background: radial-gradient(circle, rgba(190,235,160,0.9) 0%, rgba(96,168,80,0.65) 50%, rgba(96,168,80,0) 100%);
+  box-shadow: 0 0 10px 2px rgba(120,200,90,0.6);
+  opacity: 0.75;
+}
+.fx-proj.fx-enemy {
+  width: 28px;
+  height: 28px;
+  background: radial-gradient(circle, #ffe0cc 0%, #e5734a 40%, #c0392b 80%, rgba(192,57,43,0) 100%);
+  box-shadow: 0 0 12px 3px rgba(229,115,74,0.85), 0 0 26px 8px rgba(192,57,43,0.5);
+}
+.fx-shake {
+  animation: fxShake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+.fx-flash {
+  animation: fxFlash 0.4s ease-out both;
+}
+@keyframes fxShake {
+  10%, 90% { transform: translate3d(-2px, 0, 0); }
+  20%, 80% { transform: translate3d(4px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+  40%, 60% { transform: translate3d(6px, 0, 0); }
+}
+@keyframes fxFlash {
+  0% { filter: brightness(1); }
+  30% { filter: brightness(2.2); }
+  100% { filter: brightness(1); }
+}
+
 /* Mobile responsiveness */
 @media (max-width: 480px) {
   .heart-hp { font-size: 0.65rem; }

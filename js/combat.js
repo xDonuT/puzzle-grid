@@ -41,7 +41,7 @@
 
       // Zero-distance (self-buff) → just pulse the target, no flight.
       if (dist < 8) {
-        triggerHit(toEl, kind);
+        triggerHit(toEl);
         return;
       }
 
@@ -96,7 +96,7 @@
           { duration: 400, easing: "ease-out", fill: "forwards" }
         ).onfinish = () => iconEl.remove();
         spawnImpactBurst(ex, ey, kind);
-        triggerHit(toEl, kind);
+        triggerHit(toEl);
       }, T);
     }
 
@@ -136,18 +136,12 @@
       }
     }
 
-    function triggerHit(el, kind) {
+    function triggerHit(el) {
       if (!el) return;
       el.classList.remove("fx-shake", "fx-flash");
       void el.offsetWidth; // restart animation
       el.classList.add("fx-shake", "fx-flash");
       setTimeout(() => el.classList.remove("fx-shake", "fx-flash"), 450);
-      handleDamage(kind);
-    }
-
-    function handleDamage(kind) {
-      // Placeholder — put your real damage/heal/shield logic here.
-      void kind;
     }
 
     function classifyLog(text) {

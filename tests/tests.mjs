@@ -156,5 +156,17 @@ try {
 assert(!fxThrew, "flyEffect + impact burst run without errors (icon + trail + particles)");
 assert(typeof ICONS.sword === "string" && ICONS.sword.includes("<svg"), "ICONS tile SVG available for projectile embedding");
 
+// ---------- FX budget caps concurrent elements ----------
+activeFx = 0;
+const b0 = activeFx;
+assert(fxSpawn() !== null && fxSpawn() !== null, "fxSpawn creates elements while under budget");
+assertEq(activeFx, b0 + 2, "fxSpawn reserves budget slots");
+fxFree(); fxFree();
+assertEq(activeFx, b0, "fxFree releases budget slots");
+for (let i = 0; i < MAX_FX + 5; i++) fxSpawn();
+assert(activeFx <= MAX_FX, "fxSpawn never exceeds the cap");
+flyEffect(fakeFrom, fakeTo, "sword");
+assert(activeFx <= MAX_FX, "flyEffect respects the FX budget under load");
+
 if (failures) { console.error(`\n${failures} FAILURE(S)`); Deno.exit(1); }
 console.log("\nALL CHECKS PASSED");

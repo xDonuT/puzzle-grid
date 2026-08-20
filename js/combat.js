@@ -20,6 +20,18 @@
       if (logBarText) logBarText.textContent = msg || full;
     }
 
+    // Cap concurrent FX elements so big cascades stay cheap on mobile.
+    // When the budget is exhausted, new elements are skipped (the stream thins
+    // out) instead of piling up DOM nodes + animations.
+    let activeFx = 0;
+    const MAX_FX = 90;
+    function fxSpawn() {
+      if (activeFx >= MAX_FX) return null;
+      activeFx++;
+      return document.createElement("div");
+    }
+    function fxFree() { if (activeFx > 0) activeFx--; }
+
     // ─── Combat FX: particle-stream flight ───
     // Streams a swarm of small particles from `fromEl` to `toEl` (`kind` picks the
     // color: sword | star | shield | hp | poison | enemy | fracture). As they
@@ -56,7 +68,8 @@
       // the impact point, and shrink to nothing right as they converge.
       const N = 16;
       for (let i = 0; i < N; i++) {
-        const p = document.createElement("div");
+        const p = fxSpawn();
+        if (!p) break;
         p.className = "fx-particle fx-particle-" + kind;
         p.style.left = sx + "px";
         p.style.top = sy + "px";
@@ -74,27 +87,29 @@
           ],
           { duration: dur, delay, easing: "cubic-bezier(0.3, 0.6, 0.4, 1)", fill: "forwards" }
         );
-        anim.onfinish = () => p.remove();
+        anim.onfinish = () => { p.remove(); fxFree(); };
       }
 
       // The motes converge into the tile's icon: it pops in at the impact point,
       // holds a blink, then scatters outward.
       setTimeout(() => {
-        const iconEl = document.createElement("div");
-        iconEl.className = "fx-proj fx-" + kind;
-        iconEl.style.left = ex + "px";
-        iconEl.style.top = ey + "px";
-        if (ICONS[kind]) iconEl.innerHTML = ICONS[kind];
-        document.body.appendChild(iconEl);
-        iconEl.animate(
-          [
-            { transform: "translate(-50%,-50%) scale(0.2)", opacity: 0, offset: 0 },
-            { transform: "translate(-50%,-50%) scale(1.6)", opacity: 1, offset: 0.5 },
-            { transform: "translate(-50%,-50%) scale(1.2)", opacity: 1, offset: 0.72 },
-            { transform: "translate(-50%,-50%) scale(1.8)", opacity: 0, offset: 1 }
-          ],
-          { duration: 400, easing: "ease-out", fill: "forwards" }
-        ).onfinish = () => iconEl.remove();
+        const iconEl = fxSpawn();
+        if (iconEl) {
+          iconEl.className = "fx-proj fx-" + kind;
+          iconEl.style.left = ex + "px";
+          iconEl.style.top = ey + "px";
+          if (ICONS[kind]) iconEl.innerHTML = ICONS[kind];
+          document.body.appendChild(iconEl);
+          iconEl.animate(
+            [
+              { transform: "translate(-50%,-50%) scale(0.2)", opacity: 0, offset: 0 },
+              { transform: "translate(-50%,-50%) scale(1.6)", opacity: 1, offset: 0.5 },
+              { transform: "translate(-50%,-50%) scale(1.2)", opacity: 1, offset: 0.72 },
+              { transform: "translate(-50%,-50%) scale(1.8)", opacity: 0, offset: 1 }
+            ],
+            { duration: 400, easing: "ease-out", fill: "forwards" }
+          ).onfinish = () => { iconEl.remove(); fxFree(); };
+        }
         spawnImpactBurst(ex, ey, kind);
         triggerHit(toEl);
       }, T);
@@ -102,25 +117,28 @@
 
     // Small radial ring + sparks at the impact point
     function spawnImpactBurst(x, y, kind) {
-      const ring = document.createElement("div");
-      ring.className = "fx-burst fx-burst-" + kind;
-      ring.style.left = x + "px";
-      ring.style.top = y + "px";
-      document.body.appendChild(ring);
-      const ringAnim = ring.animate(
-        [
-          { transform: "translate(-50%, -50%) scale(0.4)", opacity: 0.5, offset: 0 },
-          { transform: "translate(-50%, -50%) scale(2.1)", opacity: 0, offset: 1 }
-        ],
-        { duration: 320, easing: "cubic-bezier(0.2, 0.6, 0.35, 1)", fill: "forwards" }
-      );
-      ringAnim.onfinish = () => ring.remove();
+      const ring = fxSpawn();
+      if (ring) {
+        ring.className = "fx-burst fx-burst-" + kind;
+        ring.style.left = x + "px";
+        ring.style.top = y + "px";
+        document.body.appendChild(ring);
+        const ringAnim = ring.animate(
+          [
+            { transform: "translate(-50%, -50%) scale(0.4)", opacity: 0.5, offset: 0 },
+            { transform: "translate(-50%, -50%) scale(2.1)", opacity: 0, offset: 1 }
+          ],
+          { duration: 320, easing: "cubic-bezier(0.2, 0.6, 0.35, 1)", fill: "forwards" }
+        );
+        ringAnim.onfinish = () => { ring.remove(); fxFree(); };
+      }
 
       const N = 4;
       for (let i = 0; i < N; i++) {
         const a = (Math.PI * 2 * i) / N + Math.random() * 0.6;
         const d = 18 + Math.random() * 16;
-        const p = document.createElement("div");
+        const p = fxSpawn();
+        if (!p) break;
         p.className = "fx-particle fx-particle-" + kind;
         p.style.left = x + "px";
         p.style.top = y + "px";
@@ -132,7 +150,7 @@
           ],
           { duration: 260 + Math.random() * 140, easing: "ease-out", fill: "forwards" }
         );
-        pAnim.onfinish = () => p.remove();
+        pAnim.onfinish = () => { p.remove(); fxFree(); };
       }
     }
 

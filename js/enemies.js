@@ -356,7 +356,7 @@
     // Hero base stats & signature extras
     const HERO_STATS = {
       ninja:  { hp: 85,  startShield: 15, maxShieldCap: 15, name: "Ninja" },
-      wizard: { hp: 100, startShield: 20, maxShieldCap: 20, name: "Wizard" },
+      wizard: { hp: 100, startShield: 20, maxShieldCap: 20, name: "Wizard", reflectPct: 0.3 },
       knight: { hp: 120, startShield: 10, maxShieldCap: 10, name: "Knight" }
     };
 
@@ -411,15 +411,15 @@
       { id: "boardWhisper", name: "🔄 Board Whisper", desc: "1 free Shuffle each floor", classRequirement: "ANY", apply: () => { run.boardWhisper = true; } },
       { id: "phasePower", name: "🌠 Phase Attunement", desc: "Signature effects stronger in Fever; Mystery +1 charge in Impact", classRequirement: "ANY", apply: () => { run.phasePower = true; } },
       { id: "startShield", name: "🛡️ Fortified Start", desc: "Begin every floor with +4–6 extra Shield", classRequirement: "ANY", apply: () => { run.fortifiedStart = true; } },
-      { id: "poisonMaster", name: "☠️ Venomous", desc: "Sword matches can poison the enemy (30%)", classRequirement: "ANY", apply: () => { run.venomous = true; } },
-      { id: "fractureBoost", name: "💥 Deep Fracture", desc: "Fracture deals +1 true damage per stack", classRequirement: "ANY", apply: () => { run.deepFracture = true; } },
-      { id: "reflectBoost", name: "🪞 Arcane Mirror", desc: "Wizard reflection 30% → 45%", classRequirement: "ANY", apply: () => { run.arcaneMirror = true; } },
-      { id: "afterglowPlus", name: "🌑 Lingering Shadow", desc: "Ninja Afterglow lasts 2 turns", classRequirement: "ANY", apply: () => { run.lingeringShadow = true; } },
+      { id: "poisonMaster", name: "☠️ Venomous", desc: "Sword matches can poison the enemy (30%)", classRequirement: "NINJA", apply: () => { run.venomous = true; } },
+      { id: "fractureBoost", name: "💥 Deep Fracture", desc: "Fracture deals +1 true damage per stack", classRequirement: "KNIGHT", apply: () => { run.deepFracture = true; } },
+      { id: "reflectBoost", name: "🪞 Arcane Mirror", desc: "Wizard reflection +10% (scales with floor)", classRequirement: "WIZARD", apply: () => { run.arcaneMirror = true; } },
+      { id: "afterglowPlus", name: "🌑 Lingering Shadow", desc: "Ninja Afterglow lasts 2 turns", classRequirement: "NINJA", apply: () => { run.lingeringShadow = true; } },
       { id: "enemySlow2", name: "⛓️ Heavy Chains", desc: "Enemy specials/ults +1 additional turn", classRequirement: "ANY", apply: () => { run.heavyChains = true; } },
       { id: "apCarry", name: "⚡ Momentum", desc: "Unused AP carries over up to +2 next turn", classRequirement: "ANY", apply: () => { run.momentum = true; } },
       { id: "mysteryBias", name: "🎲 Lucky Dice", desc: "Mystery tiles are 70% buffs before Star Impact", classRequirement: "ANY", apply: () => { run.luckyDice = true; } },
       // ---- Wizard-specific ----
-      { id: "runicShield", name: "🔮 Runic Shield", desc: "Wizard: Shield matches deal damage equal to shield gained", classRequirement: "WIZARD", apply: () => { run.runicShield = true; } },
+      { id: "runicShield", name: "🔮 Runic Shield", desc: "Wizard: Shield matches deal double Runic damage", classRequirement: "WIZARD", apply: () => { run.runicShield = true; } },
       { id: "manaSurge", name: "⚡ Mana Surge", desc: "Wizard: Full charge — signature matches refund 1 AP", classRequirement: "WIZARD", apply: () => { run.manaSurge = true; } },
       // ---- Knight-specific ----
       { id: "mortalStrike", name: "⚔️ Mortal Strike", desc: "Knight: Ultimate also reduces enemy damage by 25% for 2 turns", classRequirement: "KNIGHT", apply: () => { run.mortalStrike = true; } },

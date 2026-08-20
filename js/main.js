@@ -274,6 +274,37 @@
     }
 
     function showVictoryOverlay(reward) {
+      // Context line + damage breakdown for the floor just cleared
+      const s = combat.stats || {};
+      const sub = document.getElementById("gameOverSubtitle");
+      if (sub) {
+        const diff = String(settings.difficulty || "normal");
+        sub.textContent = `Floor ${run.floor} · ${combat.enemyName || "Rival"} · ${diff[0].toUpperCase() + diff.slice(1)}`;
+      }
+      const sum = document.getElementById("victorySummary");
+      if (sum) {
+        const totalDealt = (s.sword || 0) + (s.star || 0) + (s.runic || 0) + (s.poison || 0) + (s.fracture || 0) + (s.ult || 0) + (s.reflect || 0);
+        sum.innerHTML =
+          `<div class="victory-stat damage"><span>⚔️ Damage dealt</span><b>${totalDealt}</b></div>` +
+          `<div class="victory-stat"><span>💔 Damage taken</span><b>${s.taken || 0}</b></div>` +
+          `<div class="victory-stat heal"><span>💚 Healed</span><b>${s.healed || 0}</b></div>` +
+          `<div class="victory-stat shield"><span>🛡️ Shield gained</span><b>${s.shield || 0}</b></div>` +
+          `<div class="victory-stat"><span>🔁 Turns</span><b>${combat.turn || 0}</b></div>` +
+          `<div class="victory-stat"><span>⭐ Charge</span><b>${combat.sigBank}/${settings.ultMaxCharge}</b></div>`;
+      }
+      const vs = document.getElementById("victoryStats");
+      if (vs) {
+        const chips = [];
+        const add = (emoji, label, val) => { if (val > 0) chips.push(`<span class="victory-chip">${emoji} ${label} <b>${val}</b></span>`); };
+        add("⚔️", "Sword", s.sword);
+        add("⭐", "Star", s.star);
+        add("🔮", "Runic", s.runic);
+        add("☠️", "Poison", s.poison);
+        add("🦴", "Fracture", s.fracture);
+        add("💥", "Ult", s.ult);
+        add("↩️", "Reflect", s.reflect);
+        vs.innerHTML = chips.join("") || '<span class="victory-chip">No actions</span>';
+      }
       // reward may be a string (picker pick) or { label, permanent, tempLabel }
       const label = typeof reward === "string" ? reward : reward && reward.label;
       const permanent = typeof reward === "string" ? true : reward && reward.permanent !== false;
@@ -437,6 +468,9 @@
         document.getElementById("gameOverTitle").textContent = "Defeat";
         document.getElementById("gameOverMsg").textContent = `Fell on floor ${run.floor}.`;
         document.getElementById("rewardMsg").textContent = "";
+        document.getElementById("victoryStats").innerHTML = "";
+        document.getElementById("victorySummary").innerHTML = "";
+        document.getElementById("gameOverSubtitle").textContent = "";
         document.getElementById("btnGoRetry").textContent = "Retry Floor";
         saveRun(); // resume same floor
         sayVoice("defeat", { force: true });
@@ -618,7 +652,7 @@
       combat.critChance = (run.pending && run.pending.critChance) || 0;
       combat.shieldConvertPct = (run.pending && run.pending.shieldConvert) || 0;
       combat.cascadeApRefunded = false;
-      combat.reflectPct = (hero.reflectPct || 0) * (run.arcaneMirror ? 1.5 : 1);
+      combat.reflectPct = Math.min(0.65, (hero.reflectPct || 0) + 0.02 * (run.floor - 1) + (run.arcaneMirror ? 0.1 : 0));
       combat.turn = 1;
       combat.playerTurn = true;
       combat.tutorial = !!opts.tutorial;
@@ -643,6 +677,7 @@
       combat.playerFractureTurns = 0;
       combat.playerMortalWoundTurns = 0;
       combat.logHistory = [];
+      combat.stats = { sword: 0, star: 0, runic: 0, poison: 0, fracture: 0, ult: 0, reflect: 0, taken: 0, healed: 0, shield: 0 };
       combat.ultAnnounced = false;
       combat.enemyUltCharge = 0;
       combat.bossKit = BOSS_KITS[run.floor] || null;
@@ -1060,11 +1095,11 @@
         ult = "Assassinate: 12–24 true dmg, −3 self HP, Afterglow (50% less dmg 1 turn).";
         shapes = "⭐ +2 AP + 3→Sword · 💥 Mark (+15% dmg taken) · ⚡ +4 HP";
       } else if (cls === "wizard") {
-        passive = "Arcane Reflection: 30% of damage taken is reflected as true damage.";
+        passive = "Arcane Reflection: 30%+ of damage taken reflected as true dmg (scales with floor). Shield matches deal Runic damage equal to shield gained.";
         ult = "Meteor: 12–24 true dmg (scales with charge).";
         shapes = "⭐ +12 Shield + 3→Shield · 💥 Mana Lock 2t · ⚡ Steal up to 3 Shield";
       } else {
-        passive = "Regen +3 HP each turn. Fracture: 2 true dmg/stack at enemy turn start (max 5).";
+        passive = "Regen +3 HP each turn. Fracture: scaled true dmg/stack at enemy turn start (max 5).";
         ult = "Earthshatter: 12–24 true +2 Fracture + Mortal Wound (enemy heals −50% 2t).";
         shapes = "⭐ Fracture×5 true + 3→Potion · 💥 +2 Fracture · ⚡ +1 Fracture";
       }

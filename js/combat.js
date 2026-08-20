@@ -14,15 +14,17 @@
 
     function pushLog(msg, detail) {
       const full = String(detail != null ? detail : msg);
-      combat.logHistory.push(full);
-      if (combat.logHistory.length > 5) combat.logHistory.shift();
+      const entry = `[T${combat.turn}] ${full}`;
+      combat.logHistory.push(entry);
+      if (combat.logHistory.length > 400) combat.logHistory.shift();
       if (logBarText) logBarText.textContent = msg || full;
     }
 
-    // ─── Combat FX: projectile flight ───
-    // Flies a small orb from `fromEl` to `toEl` (both elements). `kind` picks the
-    // visual: sword | star | shield | hp | poison | enemy. On impact, shakes the
-    // target, flashes it, then calls handleDamage(kind) for your real logic.
+    // ─── Combat FX: particle-stream flight ───
+    // Streams a swarm of small particles from `fromEl` to `toEl` (`kind` picks the
+    // color: sword | star | shield | hp | poison | enemy | fracture). As they
+    // converge on the target they assemble into the tile's icon, which flashes
+    // briefly and then scatters (ring + sparks). Subtle by design.
     function flyEffect(fromEl, toEl, kind) {
       if (!fromEl || !toEl) return;
       const fr = fromEl.getBoundingClientRect();
@@ -43,30 +45,95 @@
         return;
       }
 
-      const proj = document.createElement("div");
-      proj.className = "fx-proj fx-" + kind;
-      proj.style.left = sx + "px";
-      proj.style.top = sy + "px";
-      document.body.appendChild(proj);
+      // Perpendicular unit vector → gives the stream its converging spread
+      const px = -dy / dist;
+      const py = dx / dist;
 
-      // Duration scales with distance but stays in a snappy 0.4–0.6s window.
-      const duration = Math.min(600, Math.max(400, dist / 1.5));
-      const anim = proj.animate(
-        [
-          { transform: "translate(-50%, -50%) scale(1)", offset: 0 },
-          { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1.5)`, offset: 1 }
-        ],
-        {
-          duration: duration,
-          easing: "cubic-bezier(0.25, 0.8, 0.35, 1)",
-          fill: "forwards"
-        }
-      );
+      // Total timeline stays snappy (≈0.45–0.6s).
+      const T = Math.min(600, Math.max(440, dist / 1.6));
 
-      anim.onfinish = () => {
-        proj.remove();
+      // Stream: ~16 colored motes leave the source staggered, drift toward
+      // the impact point, and shrink to nothing right as they converge.
+      const N = 16;
+      for (let i = 0; i < N; i++) {
+        const p = document.createElement("div");
+        p.className = "fx-particle fx-particle-" + kind;
+        p.style.left = sx + "px";
+        p.style.top = sy + "px";
+        p.style.width = "12px";
+        p.style.height = "12px";
+        document.body.appendChild(p);
+        const jit = (Math.random() * 2 - 1) * 16;
+        const dur = T * (0.6 + Math.random() * 0.3);
+        const delay = (i / N) * T * 0.4;
+        const anim = p.animate(
+          [
+            { transform: `translate(-50%,-50%) translate(${px * jit}px, ${py * jit}px) scale(1)`, opacity: 1, offset: 0 },
+            { transform: `translate(-50%,-50%) translate(${dx * 0.6 + px * jit * 0.2}px, ${dy * 0.6 + py * jit * 0.2}px)`, opacity: 1, offset: 0.6 },
+            { transform: `translate(-50%,-50%) translate(${dx}px, ${dy}px) scale(0.5)`, opacity: 0, offset: 1 }
+          ],
+          { duration: dur, delay, easing: "cubic-bezier(0.3, 0.6, 0.4, 1)", fill: "forwards" }
+        );
+        anim.onfinish = () => p.remove();
+      }
+
+      // The motes converge into the tile's icon: it pops in at the impact point,
+      // holds a blink, then scatters outward.
+      setTimeout(() => {
+        const iconEl = document.createElement("div");
+        iconEl.className = "fx-proj fx-" + kind;
+        iconEl.style.left = ex + "px";
+        iconEl.style.top = ey + "px";
+        if (ICONS[kind]) iconEl.innerHTML = ICONS[kind];
+        document.body.appendChild(iconEl);
+        iconEl.animate(
+          [
+            { transform: "translate(-50%,-50%) scale(0.2)", opacity: 0, offset: 0 },
+            { transform: "translate(-50%,-50%) scale(1.6)", opacity: 1, offset: 0.5 },
+            { transform: "translate(-50%,-50%) scale(1.2)", opacity: 1, offset: 0.72 },
+            { transform: "translate(-50%,-50%) scale(1.8)", opacity: 0, offset: 1 }
+          ],
+          { duration: 400, easing: "ease-out", fill: "forwards" }
+        ).onfinish = () => iconEl.remove();
+        spawnImpactBurst(ex, ey, kind);
         triggerHit(toEl, kind);
-      };
+      }, T);
+    }
+
+    // Small radial ring + sparks at the impact point
+    function spawnImpactBurst(x, y, kind) {
+      const ring = document.createElement("div");
+      ring.className = "fx-burst fx-burst-" + kind;
+      ring.style.left = x + "px";
+      ring.style.top = y + "px";
+      document.body.appendChild(ring);
+      const ringAnim = ring.animate(
+        [
+          { transform: "translate(-50%, -50%) scale(0.4)", opacity: 0.5, offset: 0 },
+          { transform: "translate(-50%, -50%) scale(2.1)", opacity: 0, offset: 1 }
+        ],
+        { duration: 320, easing: "cubic-bezier(0.2, 0.6, 0.35, 1)", fill: "forwards" }
+      );
+      ringAnim.onfinish = () => ring.remove();
+
+      const N = 4;
+      for (let i = 0; i < N; i++) {
+        const a = (Math.PI * 2 * i) / N + Math.random() * 0.6;
+        const d = 18 + Math.random() * 16;
+        const p = document.createElement("div");
+        p.className = "fx-particle fx-particle-" + kind;
+        p.style.left = x + "px";
+        p.style.top = y + "px";
+        document.body.appendChild(p);
+        const pAnim = p.animate(
+          [
+            { transform: `translate(-50%, -50%) translate(${Math.cos(a) * 3}px, ${Math.sin(a) * 3}px)`, opacity: 0.8, offset: 0 },
+            { transform: `translate(-50%, -50%) translate(${Math.cos(a) * d}px, ${Math.sin(a) * d}px)`, opacity: 0, offset: 1 }
+          ],
+          { duration: 260 + Math.random() * 140, easing: "ease-out", fill: "forwards" }
+        );
+        pAnim.onfinish = () => p.remove();
+      }
     }
 
     function triggerHit(el, kind) {
@@ -83,17 +150,40 @@
       void kind;
     }
 
+    function classifyLog(text) {
+      if (/Ultimate|Meteor|Earthshatter|Starfall/i.test(text)) return "ult";
+      if (/Fracture|Sunder|Earthquake|Bulwark/i.test(text)) return "fracture";
+      if (/Poison|☠|Miasma|Venom|Acid|Corrosive|Toxic/i.test(text)) return "poison";
+      if (/to you|on you|Void Reflection/i.test(text)) return "taken";
+      if (/Heal|\+\d+ HP|Shadow Strike/i.test(text)) return "heal";
+      if (/shield|Shield|Arcane Nova|Mana Steal/i.test(text)) return "shield";
+      if (/dmg|CRIT|\d+ true/i.test(text)) return "dmg";
+      return "voice";
+    }
+
     function refreshLogModal() {
       if (!actionLogScroll) return;
+      const title = document.querySelector(".action-log-modal-title");
+      if (title) title.textContent = `Action Log · Floor ${run.floor} · ${combat.logHistory.length} entries`;
       actionLogScroll.innerHTML = "";
-      const entries = combat.logHistory.slice(-5);
-      for (const text of entries) {
+      let currentTurn = null;
+      for (const text of [...combat.logHistory].reverse()) {
+        const m = text.match(/^\[T(\d+)\]\s*/);
+        const turn = m ? Number(m[1]) : null;
+        const body = m ? text.slice(m[0].length) : text;
+        if (turn !== null && turn !== currentTurn) {
+          currentTurn = turn;
+          const head = document.createElement("div");
+          head.className = "log-turn-head";
+          head.textContent = `Turn ${turn}`;
+          actionLogScroll.appendChild(head);
+        }
         const el = document.createElement("div");
-        el.className = "log-entry";
-        el.textContent = text;
+        el.className = "log-entry type-" + classifyLog(body);
+        el.textContent = body;
         actionLogScroll.appendChild(el);
       }
-      actionLogScroll.scrollTop = actionLogScroll.scrollHeight;
+      actionLogScroll.scrollTop = 0;
     }
 
     if (actionLogBar) {
@@ -180,6 +270,30 @@
 
     let voiceCooldown = 0; // skip voice for a few log pushes after a mechanical line if needed
 
+    // Centered chat-style popup for trash-talk (temporary, auto-fades)
+    let _bubble = null;
+    function showSpeechBubble(line) {
+      if (!line || typeof document === "undefined") return;
+      if (_bubble) { _bubble.remove(); _bubble = null; }
+      const b = document.createElement("div");
+      b.className = "speech-bubble";
+      b.textContent = line;
+      b.style.left = "50%";
+      b.style.top = "16%";
+      document.body.appendChild(b);
+      _bubble = b;
+      const anim = b.animate(
+        [
+          { transform: "translate(-50%, -50%) scale(0.85)", opacity: 0, offset: 0 },
+          { transform: "translate(-50%, -50%) scale(1)", opacity: 1, offset: 0.15 },
+          { transform: "translate(-50%, -50%) scale(1)", opacity: 1, offset: 0.82 },
+          { transform: "translate(-50%, -50%) scale(0.95)", opacity: 0, offset: 1 }
+        ],
+        { duration: 3000, easing: "ease-out", fill: "forwards" }
+      );
+      anim.onfinish = () => { b.remove(); if (_bubble === b) _bubble = null; };
+    }
+
     function pickVoice(arr) {
       if (!arr || !arr.length) return null;
       return arr[Math.floor(Math.random() * arr.length)];
@@ -199,9 +313,10 @@
         line = pickVoice(VOICE[category]);
       }
       if (!line) return null;
+      showSpeechBubble(line);
       if (asLog) {
         combat.logHistory.push(line);
-        if (combat.logHistory.length > 5) combat.logHistory.shift();
+        if (combat.logHistory.length > 400) combat.logHistory.shift();
       }
       return line;
     }
@@ -687,6 +802,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
             const miasmaDmg = combat.poisonStacks;
             combat.enemyHp = Math.max(0, combat.enemyHp - miasmaDmg);
             dmgPop("enemy", `☠${miasmaDmg}`, "true");
+            if (combat.stats) combat.stats.poison += miasmaDmg;
             setLog("Miasma Reflex", `Miasma Reflex · ${miasmaDmg} Poison dmg`);
             if (combat.enemyHp <= 0) checkGameOver();
           }
@@ -699,6 +815,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
             const miasmaDmg = combat.poisonStacks;
             combat.enemyHp = Math.max(0, combat.enemyHp - miasmaDmg);
             dmgPop("enemy", `☠${miasmaDmg}`, "true");
+            if (combat.stats) combat.stats.poison += miasmaDmg;
             setLog("Miasma Reflex", `Miasma Reflex · ${miasmaDmg} Poison dmg`);
             if (combat.enemyHp <= 0) checkGameOver();
           }
@@ -721,6 +838,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         // True damage — ignore enemy shield
         combat.enemyHp = Math.max(0, combat.enemyHp - reflected);
         dmgPop("enemy", `↩${reflected}`, "true");
+        if (combat.stats) combat.stats.reflect += reflected;
         // Reflect can kill the enemy mid-enemy-turn; register the kill now
         if (combat.enemyHp <= 0) checkGameOver();
       }
@@ -742,6 +860,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         combat.playerHp = Math.max(0, combat.playerHp - dmg);
       }
       const lost = before - combat.playerHp;
+      if (combat.stats) combat.stats.taken += lost;
       if (lost > 0) {
         dmgPop("player", `-${lost}`, "dmg");
         hpFlash("player", "down");
@@ -760,6 +879,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
     function dealDamageToEnemy(raw, opts = {}) {
       let dmg = Math.max(0, raw | 0);
       if (dmg <= 0) return;
+      const src = opts.source || "sword";
 
       // Critical Edge (temp reward): 1.5× on normal damage; true damage never crits
       const isCrit = !opts.trueDmg && (combat.critChance || 0) > 0 && Math.random() * 100 < combat.critChance;
@@ -807,6 +927,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         if (toHp > 0) combat.enemyHp = Math.max(0, combat.enemyHp - toHp);
       }
       const lost = before - combat.enemyHp;
+      if (combat.stats && combat.stats[src] != null) combat.stats[src] += lost + toShield;
       if (lost > 0) {
         if (isCrit) dmgPop("enemy", "CRIT!", "crit");
         dmgPop("enemy", `-${lost}`, trueDmg ? "true" : "dmg");
@@ -972,6 +1093,9 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         combat.fractureStacks = Math.min(5, combat.fractureStacks + 1);
         combat.fractureTurns = Math.max(combat.fractureTurns, 2);
         bitsExtra.push(`Fracture ${combat.fractureStacks}`);
+        // Dual orb: heart flies to you (heal), a fracture orb lands on the enemy
+        flyEffect(matchedList[0] ? getCell(matchedList[0].r, matchedList[0].c) : document.getElementById("playerPortrait"),
+                  document.getElementById("enemyPortrait"), "fracture");
       }
 
       // ---- Hero shape bonuses (player only) ----
@@ -1016,7 +1140,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           if (isStar) {
             const bonus = combat.fractureStacks * 5;
             if (bonus > 0) {
-              dealDamageToEnemy(bonus, { trueDmg: true });
+              dealDamageToEnemy(bonus, { trueDmg: true, source: "fracture" });
               bitsExtra.push(`Earthquake ${bonus}`);
             }
             const n = convertRandomTiles(2, "hp");
@@ -1076,7 +1200,9 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (forEnemy) {
         if (dmg > 0) {
           dealDamageToPlayer(dmg);
-          flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "enemy");
+          // Enemy fires from the tile it just matched, like the player's projectiles
+          flyEffect(matchedList[0] ? getCell(matchedList[0].r, matchedList[0].c) : document.getElementById("enemyPortrait"),
+                    document.getElementById("playerPortrait"), "enemy");
         }
         if (heal > 0) {
           healEnemy(heal);
@@ -1098,7 +1224,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         const live = `Rival: ${bits.filter((b) => !skipNumericBit(b)).join(" · ")}`;
         setLog(live, full);
       } else {
-        if (dmg > 0) dealDamageToEnemy(dmg);
+        if (dmg > 0) dealDamageToEnemy(dmg, { source: swordCount >= starCount ? "sword" : "star" });
         // FX: damage → enemy portrait; heal/shield → player portrait
         if (dmg > 0) {
           const kind = swordCount >= starCount ? "sword" : "star";
@@ -1113,17 +1239,22 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           flyEffect(matchedList[0] ? getCell(matchedList[0].r, matchedList[0].c) : document.getElementById("enemyPortrait"),
                     document.getElementById("playerPortrait"), kind);
         }
-        // Runic Shield (Wizard): shield matches deal damage equal to shield gained
-        if (!forEnemy && shieldApplied > 0 && run.runicShield && Math.random() < 0.25) {
-          dealDamageToEnemy(shieldApplied);
-          dmgPop("enemy", `🔮${shieldApplied}`, "true");
-          bitsExtra.push(`Runic ${shieldApplied}`);
+        // Runic Shield (Wizard baseline): shield matches deal Runic damage equal to
+        // the shield gained (×2 with the Runic Shield upgrade). Uses raw sh so it
+        // still hits at the shield cap.
+        if (!forEnemy && combat.playerClass === "wizard" && sh > 0 && hasSigMatch) {
+          const runic = sh * (run.runicShield ? 2 : 1);
+          dealDamageToEnemy(runic, { trueDmg: true, source: "runic" });
+          dmgPop("enemy", `🔮${runic}`, "true");
+          bitsExtra.push(`Runic ${runic}`);
         }
         // Bulwark (Knight): shield matches apply 1 Fracture stack (once per turn)
         if (!forEnemy && shieldApplied > 0 && run.bulwark && !combat._bulwarkUsed) {
           combat._bulwarkUsed = true;
           combat.fractureStacks = Math.min(5, combat.fractureStacks + 1);
           combat.fractureTurns = Math.max(combat.fractureTurns, 2);
+          flyEffect(matchedList[0] ? getCell(matchedList[0].r, matchedList[0].c) : document.getElementById("playerPortrait"),
+                    document.getElementById("enemyPortrait"), "fracture");
           bitsExtra.push(`Bulwark Fracture ${combat.fractureStacks}`);
         }
         if (hasSigMatch) {
@@ -1183,8 +1314,9 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
 
       // Knight Fracture: true dmg at start of enemy turn
       if (combat.fractureStacks > 0 && combat.fractureTurns > 0) {
-        const fDmg = combat.fractureStacks * (run.deepFracture ? 3 : 2);
-        dealDamageToEnemy(fDmg, { trueDmg: true });
+        const fBase = 2 + Math.floor(run.floor * 0.3);
+        const fDmg = combat.fractureStacks * (run.deepFracture ? fBase + 1 : fBase);
+        dealDamageToEnemy(fDmg, { trueDmg: true, source: "fracture" });
         setLog("Fracture", `Fracture · ${fDmg} true dmg`);
         refreshCombatUI();
         await sleep(350);
@@ -1368,7 +1500,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         combat.poisonTurns--;
       }
       if (combat.enemyPoisonTurns > 0) {
-        dealDamageToEnemy(3, { trueDmg: true });
+        dealDamageToEnemy(3, { trueDmg: true, source: "poison" });
         combat.enemyPoisonTurns--;
       }
 
@@ -1376,7 +1508,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       // Poison DoT: stacks × (3 + floorLevel × 0.5), then decay 1 stack
       if (combat.poisonStacks > 0) {
         const poisonDmg = Math.round(combat.poisonStacks * (3 + run.floor * 0.5));
-        dealDamageToEnemy(poisonDmg, { trueDmg: true });
+        dealDamageToEnemy(poisonDmg, { trueDmg: true, source: "poison" });
         dmgPop("enemy", `☠${poisonDmg}`, "poison");
         combat.poisonStacks = Math.max(0, combat.poisonStacks - 1);
       }
@@ -1496,6 +1628,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       }
       const healed = Math.min(amount, combat.playerMaxHp - combat.playerHp);
       combat.playerHp += healed;
+      if (combat.stats) combat.stats.healed += healed;
       if (healed > 0) {
         dmgPop("player", `+${healed}`, "heal");
         hpFlash("player", "up");
@@ -1521,6 +1654,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       const maxSh = combat.shieldCapOverride || (hero.maxShieldCap + run.bonusShieldMax);
       const shielded = Math.min(amt, maxSh - combat.shield);
       combat.shield += shielded;
+      if (combat.stats) combat.stats.shield += shielded;
       if (shielded > 0) {
         dmgPop("player", `+${shielded}`, "shield");
         playShield();
@@ -1703,7 +1837,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         void enemyPort.offsetWidth;
         enemyPort.classList.add("ult-flinch");
       }
-      dealDamageToEnemy(dmg, { trueDmg: true });
+      dealDamageToEnemy(dmg, { trueDmg: true, source: "ult" });
       showUltDamagePop(dmg, cls);
       combat.sigBank = 0;
       combat.ultAnnounced = false;

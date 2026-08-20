@@ -8,10 +8,16 @@
     let audioCtx = null;
 
     function ensureAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+        return !!audioCtx;
+      } catch (_) {
+        audioCtx = null;
+        return false;
       }
-      if (audioCtx.state === "suspended") audioCtx.resume();
     }
 
     // ---------- Haptics (Vibration API) ----------
@@ -37,7 +43,7 @@
     function playPop(pitch = 1, volume = 0.55) {
       volume = sfxVol(volume);
       if (volume <= 0) return;
-      ensureAudio();
+      if (!ensureAudio()) return;
       const t = audioCtx.currentTime;
 
       // Main soft tone
@@ -74,7 +80,7 @@
       // Short soft tick for buttons
       const vol = sfxVol(kind === "end" ? 0.55 : 0.42);
       if (vol <= 0) return;
-      ensureAudio();
+      if (!ensureAudio()) return;
       const t = audioCtx.currentTime;
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
@@ -103,7 +109,7 @@
     function playGooeyPlop(pitch = 1, volume = 0.65) {
       volume = sfxVol(volume);
       if (volume <= 0) return;
-      ensureAudio();
+      if (!ensureAudio()) return;
       const t = audioCtx.currentTime;
 
       const osc = audioCtx.createOscillator();
@@ -141,7 +147,7 @@
     function playCorrect(pitch = 1) {
       const volume = sfxVol(0.5);
       if (volume <= 0) return;
-      ensureAudio();
+      if (!ensureAudio()) return;
       const t = audioCtx.currentTime;
       [784, 1046.5].forEach((f, i) => {
         const at = t + i * 0.08;
@@ -185,7 +191,7 @@
     function playSparkle(ratio = 3, vol = 0.3) {
       const volume = sfxVol(vol);
       if (volume <= 0) return;
-      ensureAudio();
+      if (!ensureAudio()) return;
       const t = audioCtx.currentTime;
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
@@ -229,7 +235,7 @@
     function playHit(strength = 1, opts = {}) {
       const volume = sfxVol(0.6);
       if (volume <= 0) return;
-      ensureAudio();
+      if (!ensureAudio()) return;
       const t = audioCtx.currentTime;
       const s = Math.max(0.35, Math.min(1.5, strength));
 
@@ -267,7 +273,7 @@
     function playHeal() {
       const volume = sfxVol(0.5);
       if (volume <= 0) return;
-      ensureAudio();
+      if (!ensureAudio()) return;
       const t = audioCtx.currentTime;
       [523, 784].forEach((f, i) => {
         const o = audioCtx.createOscillator();
@@ -288,7 +294,7 @@
     function playShield() {
       const volume = sfxVol(0.45);
       if (volume <= 0) return;
-      ensureAudio();
+      if (!ensureAudio()) return;
       const t = audioCtx.currentTime;
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
@@ -319,7 +325,7 @@
     function playEnemyCharge() {
       const volume = sfxVol(0.5);
       if (volume <= 0) return;
-      ensureAudio();
+      if (!ensureAudio()) return;
       const t = audioCtx.currentTime;
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
@@ -344,7 +350,7 @@
     function playVictory() {
       const volume = sfxVol(0.6);
       if (volume <= 0) return;
-      ensureAudio();
+      if (!ensureAudio()) return;
       const t = audioCtx.currentTime;
       [523, 659, 784, 1047].forEach((f, i) => {
         const o = audioCtx.createOscillator();
@@ -366,7 +372,7 @@
     function playDefeat() {
       const volume = sfxVol(0.5);
       if (volume <= 0) return;
-      ensureAudio();
+      if (!ensureAudio()) return;
       const t = audioCtx.currentTime;
       [392, 311, 233].forEach((f, i) => {
         const o = audioCtx.createOscillator();
@@ -388,7 +394,7 @@
     function playDice() {
       const volume = sfxVol(0.45);
       if (volume <= 0) return;
-      ensureAudio();
+      if (!ensureAudio()) return;
       const t = audioCtx.currentTime;
       for (let i = 0; i < 3; i++) {
         const o = audioCtx.createOscillator();
@@ -418,7 +424,7 @@
         hapticUlt();
         return;
       }
-      ensureAudio();
+      if (!ensureAudio()) return;
       const t = audioCtx.currentTime;
       const base = cls === "wizard" ? 520 : cls === "knight" ? 280 : 400;
 

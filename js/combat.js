@@ -2000,7 +2000,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
     }, 200);
   }
   // Ninja Shadow Step: prompt if 4+ swords cleared this turn and not used yet
-  if (combat.heroClass === "ninja" && combat.swordsClearedThisTurn >= 4 && !combat.shadowStepUsed) {
+  if (combat.playerClass === "ninja" && combat.swordsClearedThisTurn >= 4 && !combat.shadowStepUsed) {
     (async () => {
       const use = await showShadowStepPrompt();
       if (use && combat.playerHp > 3) {

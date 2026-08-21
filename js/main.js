@@ -943,18 +943,38 @@
       if (!el) return;
       const list = loadHistory();
       if (!list.length) { el.innerHTML = ""; return; }
-      let html = '<div class="run-history-title">Run History</div>';
-      const shown = list.slice(0, 8);
-      shown.forEach(r => {
-        const won = r.won;
-        const cls = won ? "win" : "loss";
-        html += `<div class="run-entry ${cls}">
-          <span class="run-hero">${r.heroName || r.hero}</span>
-          <span class="run-floor">F${r.floor}</span>
-          <span class="run-result ${cls}">${won ? "W" : "L"}</span>
+      const last = list[0];
+      const won = last.won;
+      const hero = last.heroName || last.hero || "???";
+      const result = won ? "Victory" : "Defeat";
+      const cls = won ? "win" : "loss";
+      el.innerHTML = `
+        <div class="last-run-card ${cls}" id="lastRunCard">
+          <div class="last-run-label">${result}</div>
+          <div class="last-run-info">${hero} · Floor ${last.floor}</div>
         </div>`;
+      el.querySelector(".last-run-card").addEventListener("click", () => {
+        showLastRunOverlay(last);
       });
-      el.innerHTML = html;
+    }
+
+    function showLastRunOverlay(run) {
+      const won = run.won;
+      const hero = run.heroName || run.hero || "???";
+      const result = won ? "Victory" : "Defeat";
+      const diff = (run.diff || "normal").charAt(0).toUpperCase() + (run.diff || "normal").slice(1);
+      const ov = document.createElement("div");
+      ov.className = "overlay open";
+      ov.innerHTML = `
+        <div class="overlay-panel" style="max-width:220px;text-align:center">
+          <div class="last-run-ov-result ${won ? 'win' : 'loss'}">${result}</div>
+          <div class="last-run-ov-hero">${hero}</div>
+          <div class="last-run-ov-detail">Floor ${run.floor} · ${diff}</div>
+          <button type="button" class="action-btn" id="lastRunClose" style="margin-top:12px;min-height:44px">Close</button>
+        </div>`;
+      document.body.appendChild(ov);
+      ov.querySelector("#lastRunClose").addEventListener("click", () => ov.remove());
+      ov.addEventListener("click", e => { if (e.target === ov) ov.remove(); });
     }
 
     function openSettings() {

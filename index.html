@@ -1238,64 +1238,48 @@
       max-width: 260px;
       margin-top: 10px;
     }
-    .run-history-title {
-      font-size: 0.65rem;
-      font-weight: 700;
-      color: #8a7e74;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 5px;
+    .last-run-card {
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(60, 50, 40, 0.12);
+      cursor: pointer;
+      transition: transform 0.12s;
     }
-    .run-history-empty {
+    .last-run-card:active { transform: scale(0.97); }
+    .last-run-card.win { border-left: 3px solid #2e8b57; }
+    .last-run-card.loss { border-left: 3px solid #c23b2f; }
+    .last-run-label {
       font-size: 0.62rem;
-      color: #b0a89e;
-      text-align: center;
-      padding: 6px 0;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 2px;
     }
-    .run-entry {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      padding: 4px 6px;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.45);
-      border: 1px solid rgba(60, 50, 40, 0.1);
-      margin-bottom: 4px;
-      font-size: 0.58rem;
+    .last-run-card.win .last-run-label { color: #2e8b57; }
+    .last-run-card.loss .last-run-label { color: #c23b2f; }
+    .last-run-info {
+      font-size: 0.7rem;
       color: #6a6055;
     }
-    .run-entry.win { border-left: 3px solid #2e8b57; }
-    .run-entry.loss { border-left: 3px solid #c23b2f; }
-    .run-hero {
-      font-weight: 700;
-      min-width: 38px;
+    .last-run-ov-result {
+      font-size: 1rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
     }
-    .run-floor {
+    .last-run-ov-result.win { color: #2e8b57; }
+    .last-run-ov-result.loss { color: #c23b2f; }
+    .last-run-ov-hero {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #4a4035;
+      margin-bottom: 2px;
+    }
+    .last-run-ov-detail {
+      font-size: 0.68rem;
       color: #8a7e74;
-      min-width: 24px;
-    }
-    .run-result {
-      font-weight: 700;
-      margin-left: auto;
-    }
-    .run-result.win { color: #2e8b57; }
-    .run-result.loss { color: #c23b2f; }
-    .run-picks {
-      display: flex;
-      gap: 2px;
-      flex-wrap: wrap;
-      flex: 1;
-      min-width: 0;
-    }
-    .run-pick-chip {
-      font-size: 0.5rem;
-      background: rgba(60, 45, 30, 0.08);
-      border-radius: 4px;
-      padding: 1px 3px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 72px;
     }
 
     .top-game-bar {

@@ -963,14 +963,20 @@
       const hero = run.heroName || run.hero || "???";
       const result = won ? "Victory" : "Defeat";
       const diff = (run.diff || "normal").charAt(0).toUpperCase() + (run.diff || "normal").slice(1);
+      const picks = (run.picks || []).filter(Boolean);
+      const picksHtml = picks.length
+        ? `<div class="last-run-ov-picks">${picks.map(p => `<span class="last-run-ov-chip">${p}</span>`).join("")}</div>`
+        : `<div class="last-run-ov-picks" style="color:#b0a89e;font-size:0.65rem">No upgrades picked</div>`;
       const ov = document.createElement("div");
       ov.className = "overlay open";
       ov.innerHTML = `
-        <div class="overlay-panel" style="max-width:220px;text-align:center">
+        <div class="overlay-panel" style="max-width:260px;text-align:center;padding:20px">
           <div class="last-run-ov-result ${won ? 'win' : 'loss'}">${result}</div>
           <div class="last-run-ov-hero">${hero}</div>
           <div class="last-run-ov-detail">Floor ${run.floor} · ${diff}</div>
-          <button type="button" class="action-btn" id="lastRunClose" style="margin-top:12px;min-height:44px">Close</button>
+          <div class="last-run-ov-section">Upgrades</div>
+          ${picksHtml}
+          <button type="button" class="action-btn primary" id="lastRunClose" style="margin-top:14px;min-height:48px;font-size:0.85rem">Close</button>
         </div>`;
       document.body.appendChild(ov);
       ov.querySelector("#lastRunClose").addEventListener("click", () => ov.remove());

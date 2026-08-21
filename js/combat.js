@@ -1185,7 +1185,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           if (isCharged) {
             const swords = combat.swordsClearedThisTurn;
             const execDmg = Math.max(8, Math.min(24, swords * 4));
-            dealDamageToEnemy(execDmg, { trueDmg: true, source: "fracture" });
+            dealDamageToEnemy(execDmg, { trueDmg: true, source: "sword" });
             bitsExtra.push(`Shadow Strike ${execDmg}!`);
           }
         } else if (cls === "knight") {

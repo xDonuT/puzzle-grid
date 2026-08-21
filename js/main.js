@@ -1,4 +1,4 @@
-    const screenMenu = document.getElementById("screen-menu");
+const screenMenu = document.getElementById("screen-menu");
     const screenGame = document.getElementById("screen-game");
     const settingsOverlay = document.getElementById("settingsOverlay");
     const gameOverOverlay = document.getElementById("gameOverOverlay");
@@ -13,50 +13,145 @@
       }
     }
 
-// ─── Tutorial system (single-floor intro + smart hints) ───
-    function maybeAutoTutorial() { return !settings.tutorialCompleted; }
+    // ─── Interactive click-through tutorial ───
+    let tutorialStep = 0;
+    const tutorialTotalSteps = 7;
 
-    // Track which tutorial tips have been shown this floor
-    let tutorialTipsShown = {};
-
-    function showTutorialPopup() {
-      return new Promise(resolve => {
-        const ov = document.createElement("div");
-        ov.className = "overlay open";
-        ov.style.zIndex = "10001";
-        ov.innerHTML = `
-          <div class="overlay-panel" style="max-width:320px;padding:20px">
-            <div style="font-size:1.1rem;font-weight:800;color:#4a4035;margin-bottom:12px">How to Play</div>
-            <div style="font-size:0.78rem;color:#5a5048;margin-bottom:10px;line-height:1.5">
-              <div style="margin-bottom:6px"><b>⚔️ Sword</b> — Deal damage to enemy</div>
-              <div style="margin-bottom:6px"><b>❤️ Heart</b> — Heal your HP</div>
-              <div style="margin-bottom:6px"><b>🛡️ Shield</b> — Block incoming damage</div>
-              <div style="margin-bottom:6px"><b>⭐ Star</b> — Deal big damage (4+ in a row = Charged!)</div>
-              <div style="margin-bottom:6px;color:#8a6a48"><b>🎲 Question</b> — Mystery tile: random effect (buff or debuff)</div>
-              <div style="margin-bottom:4px">Buffs: <b>Heal</b>, <b>Shield</b>, <b>Charge</b> (+2 ult), <b>Empower</b> (next atk +50%)</div>
-              <div style="margin-bottom:4px;color:#c44; ">Debuffs: <b>Damage</b> (self 3–6 dmg), <b>Poison</b> (2 turns), <b>Blind</b> (next atk -50%), <b>Weaken</b> (next sword -2)</div>
-            </div>
-            <div style="margin-top:10px">
-              <div style="font-size:0.72rem;color:#7a6e64;margin-bottom:4px">UI Buttons</div>
-              <div style="display:flex;gap:8px;justify-content:center:flex-wrap">
-                <button type="button" class="action-btn" style="min-width:96px;font-size:0.72rem">Shuffle</button>
-                <button type="button" class="action-btn end-btn" style="min-width:96px;font-size:0.72rem">End Turn</button>
-              </div>
-            </div>
-            <button type="button" class="action-btn primary" id="tutPopupOk" style="min-height:46px;width:100%;font-size:0.85rem;font-weight:700;margin-top:12px">Got it!</button>
-          </div>`;
-        document.body.appendChild(ov);
-        ov.querySelector("#tutPopupOk").addEventListener("click", () => { ov.remove(); resolve(); });
-      });
+    function tutorialNextStep() {
+      tutorialStep++;
+      if (tutorialStep >= tutorialTotalSteps) {
+        // All done — mark complete and start battle
+        settings.tutorialCompleted = true;
+        persistSettings();
+        combat.tutorial = false;
+        startBattle();
+        refreshContinueBtn();
+        return;
+      }
+      showTutorialStep(tutorialStep);
     }
 
-    // ─── Smart tutorial hints — show first-time tips during floor 1 ───
-    function maybeShowTutorialTip(key, condition, text) {
-      if (combat.tutorial && run.floor === 1 && !tutorialTipsShown[key] && condition) {
-        setLog(`[Tutorial] ${text}`);
-        tutorialTipsShown[key] = true;
+    function showTutorialStep(step) {
+      // Remove any existing tutorial overlay
+      const existing = document.getElementById("tutorialOverlay");
+      if (existing) existing.remove();
+
+      const ov = document.createElement("div");
+      ov.id = "tutorialOverlay";
+      ov.className = "overlay open";
+      ov.style.zIndex = "10000";
+
+      const steps = [
+        // Step 1: Character portrait
+        {
+          title: "Your Character",
+          hotspot: "#playerPortrait",
+          text: "This is your hero! Each class (Ninja, Wizard, Knight) has unique abilities. \n\nNinja: Shadow Step (4+ swords → -3 HP, +1 extra swap), Charged swords ×4 true damage, Ult doubles below 30% HP.\n\nWizard: Reflect damage back to enemy, shield absorption.\n\nKnight: Fracture (heart tiles → 1 stack each), Shatter (full HP tiles → massive damage), Iron Will (auto-save at 0 HP)."
+        },
+        // Step 2: Floor number
+        {
+          title: "Floor & Enemy",
+          hotspot: "#floorNum",
+          text: "Current floor number. Enemies get stronger each floor! \n\nHP formula: 45 + 14×floor + 0.45×(floor-1)²\n\nATK formula: max(3, enemyAtk + (floor-1)×0.9 + 0.04×(floor-1)²)"
+        },
+        // Step 3: Ultimate charge
+        {
+          title: "Ultimate Charge",
+          hotspot: ".ult-pip",
+          text: "Charge your ultimate! Fill the charge bar (5/10 by default). \n\nEach question tile (🎲) can give +2 charge (buff) or other effects. \n\nUltimate deals massive damage — need 1 AP to use."
+        },
+        // Step 4: AP & turn
+        {
+          title: "AP & Turn",
+          hotspot: "#apPips",
+          text: "Action Points (AP) — your resource for actions. \n\nStart each turn with 3 AP + bonuses. \n\nShuffle costs 1 AP (free at start of battle). \n\nUltimate costs 1 AP. \n\nPress <b>End Turn</b> to end your turn and let the enemy act."
+        },
+        // Step 5: Tile types
+        {
+          title: "Tile Types",
+          hotspot: ".tile",
+          text: "Match tiles to damage your opponent or heal yourself: \n\n⚔️ <b>Sword</b> — Deal damage\n❤️ <b>Heart</b> — Heal HP\n🛡️ <b>Shield</b> — Block damage\n⭐ <b>Star</b> — Big damage (4+ in a row = <b>Charged</b>!)\n🎲 <b>Question</b> — Mystery tile: random buff OR debuff"
+        },
+        // Step 6: Action buttons
+        {
+          title: "UI Buttons",
+          hotspot: "#btnShuffle",
+          text: "Shuffle — Press to reshuffle the board when you have no good matches. \n\nCosts 1 AP (free at the start of battle). \n\nEnd Turn — Press to end your turn and let the enemy act."
+        },
+        // Step 7: Start battle
+        {
+          title: "Let's Go!",
+          hotspot: "body",
+          text: "You've learned the basics! The battle begins now. \n\nMatch tiles, manage your AP, use your ultimate at the right time, and survive each floor. \n\nGood luck, hero! 🎮",
+          finish: true
+        }
+      ];
+
+      const stepData = steps[step];
+      ov.innerHTML = `
+        <div class="overlay-panel" style="max-width:300px;padding:20px;background:#efe0c7">
+          <div style="font-size:1.2rem;font-weight:800;color:#4a4035;margin-bottom:12px">${stepData.title}</div>
+          <div style="font-size:0.78rem;color:#5a5048;margin-bottom:10px;line-height:1.5">
+            ${stepData.text}
+          </div>
+          ${stepData.finish ? '' : `<button type="button" class="action-btn primary" style="width:100%;min-height:44px;font-size:0.85rem;font-weight:700;margin-top:10px">Next</button>`}
+        </div>`;
+
+      document.body.appendChild(ov);
+
+      // If has hotspot, make it clickable
+      if (stepData.hotspot && !stepData.finish) {
+        const hotspot = document.querySelector(stepData.hotspot);
+        if (hotspot) {
+          hotspot.style.position = "relative";
+          hotspot.style.cursor = "pointer";
+          hotspot.style.userSelect = "none";
+          hotsetp = hotspot;
+          // Highlight the hotspot with a pulse animation
+          hotspot.style.setProperty('--highlight', '0');
+          setTimeout(() => hotspot.style.setProperty('--highlight', '1'), 50);
+          
+          hotspot.addEventListener("click", (e) => {
+            e.stopPropagation();
+            // Remove highlight pulse
+            if (hotspot.style.getPropertyValue('--highlight') === '1') {
+              hotspot.style.setProperty('--highlight', '0');
+            }
+            // Advance to next step
+            document.getElementById("tutorialOverlay").remove();
+            tutorialNextStep();
+          });
+        }
+      }
+
+      // Finish button or auto-advance
+      const btn = ov.querySelector("button");
+      if (btn) {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          document.getElementById("tutorialOverlay").remove();
+          tutorialNextStep();
+        });
+      }
+
+      // Auto-advance for finish step (after 3s)
+      if (stepData.finish) {
+        setTimeout(() => {
+          document.getElementById("tutorialOverlay").remove();
+          tutorialNextStep();
+        }, 3000);
       }
     }
+
+    // Initialize tutorial on first run
+    function initTutorial() {
+      if (settings.tutorialCompleted) return;
+      tutorialStep = 0;
+      showTutorialStep(tutorialStep);
+    }
+
+    // Call initTutorial after char pick + before startBattle
+    // Will be called from the difficulty picker flow
 
     // ─── Card builder helpers ───
     function detectArchetype(name, desc, icon) {
@@ -1162,8 +1257,7 @@
           ov.classList.remove("open");
           resetRun();
           if (maybeAutoTutorial()) {
-            combat.tutorial = true;
-            startBattle({ tutorial: true });
+            initTutorial();
           } else {
             startBattle();
           }

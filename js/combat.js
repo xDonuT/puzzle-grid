@@ -1080,12 +1080,6 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         } else if (type === "question") {
           questionCount++;
         }
-
-      // Smart tutorial tip: first heart match
-      if (!forEnemy && !tutorialSeenHeart && healCount >= 1 && run.floor === 1) {
-        tutorialSeenHeart = true;
-        setLog(`[Tutorial] Match ❤️ Heart to heal HP. ${healCount} healed this turn.`);
-      }
       }
 
       // Star Fever: signature damage/shield boosted; heals only +50% (not full double)
@@ -1121,31 +1115,9 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         if (sigN > 0) dmg += (settings.starDmg + (run.bonusStarDmg || 0)) * sigN;
       }
 
-      // Smart tutorial tip: first sword match
-      if (!forEnemy && !tutorialSeenSword && swordCount >= 1) {
-        tutorialSeenSword = true;
-        setLog(`[Tutorial] Match ⚔️ Sword to deal damage. ${swordCount} dealt this turn.`);
-      }
-
       // Damage gets full shape mult; heals only partial (prevents 60+ HP clears)
       dmg = Math.round(dmg * mult);
       const healMult = mult > 1 ? Math.min(1.25, 1 + (mult - 1) * 0.5) : 1;
-
-      // Smart tutorial tip: first star match or charged
-      if (!forEnemy && !tutorialSeenStar && starCount >= 1 && run.floor === 1) {
-        tutorialSeenStar = true;
-        if (shape.charged) {
-          setLog(`[Tutorial] ⭐ Star + Charged! 4+ in a row doubles power. ${dmg} dmg dealt.`);
-        } else {
-          setLog(`[Tutorial] Match ⭐ Star for big damage. ${dmg} dmg dealt.`);
-        }
-      }
-
-      // Smart tutorial tip: first question tile effect
-      if (!forEnemy && !tutorialSeenQuestion && questionCount >= 1 && run.floor === 1) {
-        tutorialSeenQuestion = true;
-        setLog(`[Tutorial] Match 🎲 Question for a random effect — could be good (heal/shield/charge) or bad (damage/poison).`);
-      }
       heal = Math.round(heal * healMult);
 
       // Base shield from tiles
@@ -1882,11 +1854,6 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         setLog("Need 1 AP for ultimate");
         return;
       }
-      // Smart tutorial tip: first ultimate
-      if (!tutorialSeenUltimate && run.floor === 1 && combat.sigBank >= settings.ultNeed) {
-        tutorialSeenUltimate = true;
-        setLog(`[Tutorial] Ultimate (⚡) deals massive damage. Need ${settings.ultNeed} charge. Costs 1 AP.`);
-      }
       busy = true;
       combat.ap -= 1;
       const charge = combat.sigBank;
@@ -2033,11 +2000,6 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
     unusedApBonus = run.momentum ? Math.min(2, combat.ap) : 1;
     setLog(`Unused AP → +${unusedApBonus} AP next turn`);
   }
-  // Smart tutorial tip: first end turn
-  if (!tutorialSeenEndTurn && run.floor === 1) {
-    tutorialSeenEndTurn = true;
-    setLog(`[Tutorial] Press <b>End Turn</b> to end your turn and let the enemy act.`);
-  }
   // Trash talk if turn looked passive (most AP left unused)
   if (leftover >= Math.max(2, AP_MAX - 1)) {
     setTimeout(() => {
@@ -2070,11 +2032,6 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       } else {
         if (combat.ap <= 0) return;
         combat.ap -= 1;
-      }
-      // Smart tutorial tip: first shuffle
-      if (!tutorialSeenShuffle && run.floor === 1) {
-        tutorialSeenShuffle = true;
-        setLog(`[Tutorial] Press <b>Shuffle</b> to reshuffle the board when stuck. Costs 1 AP (free at start).`);
       }
       shuffleBoard();
       playGooeyPlop(0.9, 0.5);

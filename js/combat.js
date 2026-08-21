@@ -315,12 +315,12 @@
         ov.className = "overlay open";
         ov.style.zIndex = "10001";
         ov.innerHTML = `
-          <div class="overlay-panel" style="max-width:240px;text-align:center">
-            <div style="font-size:1.1rem;font-weight:800;color:#4f6f9e;margin-bottom:8px">Shadow Step</div>
-            <div style="font-size:0.72rem;color:#6a6055;margin-bottom:14px">−3 HP · +1 extra swap<br><span style="font-size:0.62rem;color:#9a8e84">(once per turn)</span></div>
-            <div style="display:flex;gap:8px;justify-content:center">
-              <button type="button" class="action-btn primary" id="shadowStepYes" style="min-height:44px;min-width:80px;font-size:0.72rem">Use it</button>
-              <button type="button" class="action-btn" id="shadowStepNo" style="min-height:44px;min-width:80px;font-size:0.72rem">Skip</button>
+          <div class="overlay-panel" style="max-width:280px;text-align:center;padding:20px">
+            <div style="font-size:1.4rem;font-weight:800;color:#2a3a5c;margin-bottom:10px">⚡ Shadow Step</div>
+            <div style="font-size:0.9rem;color:#5a5048;margin-bottom:16px;line-height:1.5">Clear 4+ Swords this turn!<br><b>−3 HP</b> · <b>+1 extra swap</b><br><span style="font-size:0.72rem;color:#8a7e74">(once per turn)</span></div>
+            <div style="display:flex;gap:10px;justify-content:center">
+              <button type="button" class="action-btn primary" id="shadowStepYes" style="min-height:48px;min-width:100px;font-size:0.85rem;font-weight:700">Use it</button>
+              <button type="button" class="action-btn" id="shadowStepNo" style="min-height:48px;min-width:100px;font-size:0.85rem;font-weight:700">Skip</button>
             </div>
           </div>`;
         document.body.appendChild(ov);

@@ -282,6 +282,29 @@
       rebuildVisual();
     }
 
+    // ---------- valid move check ----------
+    // Tests every adjacent swap to see if any would create a match.
+    // Called after cascades settle to detect deadlock.
+    function hasValidMove() {
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          // Try swap right
+          if (c + 1 < COLS) {
+            const tmp = board[r][c]; board[r][c] = board[r][c+1]; board[r][c+1] = tmp;
+            if (findMatches().any) { board[r][c+1] = board[r][c]; board[r][c] = tmp; return true; }
+            board[r][c+1] = board[r][c]; board[r][c] = tmp;
+          }
+          // Try swap down
+          if (r + 1 < ROWS) {
+            const tmp = board[r][c]; board[r][c] = board[r+1][c]; board[r+1][c] = tmp;
+            if (findMatches().any) { board[r+1][c] = board[r][c]; board[r][c] = tmp; return true; }
+            board[r+1][c] = board[r][c]; board[r][c] = tmp;
+          }
+        }
+      }
+      return false;
+    }
+
     // ---------- match detection ----------
     // Also collects runs of length >= 4 so we can spawn bloom specials
     function findMatches() {
@@ -587,6 +610,10 @@
 
         await applyGravityAndFill();
       }
+      // Deadlock: no existing matches and no valid swaps → auto-reshuffle
+      if (!hasValidMove()) {
+        shuffleBoard();
+      }
     }
 
     async function applyGravityAndFill() {
@@ -686,6 +713,7 @@
       if (Math.abs(r1 - r2) + Math.abs(c1 - c2) !== 1) return;
 
       busy = true;
+      try {
       playSwap();
 
       const el1 = getCell(r1, c1);
@@ -745,9 +773,10 @@
         setSpecialClass(el1, specials[r1][c1]);
         setSpecialClass(el2, specials[r2][c2]);
       }
-
-      busy = false;
-      refreshCombatUI();
+      } finally {
+        busy = false;
+        refreshCombatUI();
+      }
     }
 
     // ---------- gestures + drag visual ----------

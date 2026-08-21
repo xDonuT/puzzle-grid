@@ -22,18 +22,25 @@
         ov.className = "overlay open";
         ov.style.zIndex = "10001";
         ov.innerHTML = `
-          <div class="overlay-panel" style="max-width:300px;text-align:center;padding:20px">
-            <div style="font-size:1.1rem;font-weight:800;color:#4a4035;margin-bottom:10px">How to Play</div>
-            <div style="font-size:0.82rem;color:#5a5048;margin-bottom:14px;line-height:1.6;text-align:left">
-              ⚔️ <b>Sword</b> — Deal damage<br>
-              ❤️ <b>Heart</b> — Heal HP<br>
-              🛡️ <b>Shield</b> — Block damage<br>
-              ⭐ <b>Star</b> — Deal big damage<br>
-              ❓ <b>Question</b> — Wildcard<br><br>
-              Match 3+ in a row to trigger effects.
-              Match 4+ for a <b>Charged</b> bonus!
+          <div class="overlay-panel" style="max-width:320px;padding:20px">
+            <div style="font-size:1.1rem;font-weight:800;color:#4a4035;margin-bottom:12px">How to Play</div>
+            <div style="font-size:0.78rem;color:#5a5048;margin-bottom:10px;line-height:1.5">
+              <div style="margin-bottom:6px"><b>⚔️ Sword</b> — Deal damage to enemy</div>
+              <div style="margin-bottom:6px"><b>❤️ Heart</b> — Heal your HP</div>
+              <div style="margin-bottom:6px"><b>🛡️ Shield</b> — Block incoming damage</div>
+              <div style="margin-bottom:6px"><b>⭐ Star</b> — Deal big damage (charged: 4+ in a row)</div>
+              <div style="margin-bottom:6px;color:#8a6a48"><b>🎲 Question</b> — Mystery tile: random effect (buff or debuff)</div>
+              <div style="margin-bottom:4px">Buffs: <b>Heal</b>, <b>Shield</b>, <b>Charge</b> (+2 ult), <b>Empower</b> (next atk +50%)</div>
+              <div style="margin-bottom:4px;color:#c44; ">Debuffs: <b>Damage</b> (self 3–6 dmg), <b>Poison</b> (2 turns), <b>Blind</b> (next atk -50%), <b>Weaken</b> (next sword -2)</div>
             </div>
-            <button type="button" class="action-btn primary" id="tutPopupOk" style="min-height:48px;min-width:120px;font-size:0.85rem;font-weight:700">Let's Go!</button>
+            <div style="margin-top:10px">
+              <div style="font-size:0.72rem;color:#7a6e64;margin-bottom:4px">UI Buttons</div>
+              <div style="display:flex;gap:8px;justify-content:center:flex-wrap">
+                <button type="button" class="action-btn" style="min-width:96px;font-size:0.72rem">Shuffle</button>
+                <button type="button" class="action-btn end-btn" style="min-width:96px;font-size:0.72rem">End Turn</button>
+              </div>
+            </div>
+            <button type="button" class="action-btn primary" id="tutPopupOk" style="min-height:46px;width:100%;font-size:0.85rem;font-weight:700;margin-top:12px">Got it!</button>
           </div>`;
         document.body.appendChild(ov);
         ov.querySelector("#tutPopupOk").addEventListener("click", () => { ov.remove(); resolve(); });

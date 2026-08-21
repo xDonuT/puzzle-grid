@@ -83,8 +83,8 @@ try {
   ]);
 } catch (e) { heartThrew = true; console.error("knight heart match threw:", e); }
 assert(!heartThrew, "knight heart match applies fracture orb without errors");
-assertEq(combat.fractureStacks, 1, "knight heart match granted 1 fracture stack");
-assert(combat.logHistory.some(l => /Fracture 1/.test(l)), "heart match logged Fracture");
+assertEq(combat.fractureStacks, 3, "knight heart match granted 3 fracture stacks (1 per tile)");
+assert(combat.logHistory.some(l => /Fracture 3/.test(l)), "heart match logged Fracture");
 assertEq(combat.stats.healed, 5, "heart match healing tracked in combat.stats.healed");
 
 // ---------- Battle log: full history + turn prefixes ----------

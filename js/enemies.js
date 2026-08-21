@@ -617,6 +617,7 @@
       fractureStacks: 0,       // knight
       fractureTurns: 0,
       mortalWoundTurns: 0,     // knight ult
+      knightDeathSaveUsed: false, // knight passive: Iron Will
       manaLockTurns: 0,        // wizard cross
       reflectPct: 0.3,         // wizard passive
       // mirrored-kit enemy statuses

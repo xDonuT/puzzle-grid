@@ -549,6 +549,8 @@
 
     const enemyHpText = document.getElementById("enemyHpText");
     const playerHpText = document.getElementById("playerHpText");
+    const playerHpFill = document.getElementById("playerHpFill");
+    const enemyHpFill = document.getElementById("enemyHpFill");
     const playerHeartHp = document.getElementById("playerHeartHp");
     const enemyHeartHp = document.getElementById("enemyHeartHp");
     const turnNumEl = document.getElementById("turnNum");
@@ -607,6 +609,8 @@
       const eHp = `${combat.enemyHp}/${combat.enemyMaxHp}`;
       if (playerHpText) playerHpText.textContent = pHp;
       if (enemyHpText) enemyHpText.textContent = eHp;
+      if (playerHpFill) { playerHpFill.style.width = pPct + "%"; playerHpFill.classList.toggle("low", pPct < 30); }
+      if (enemyHpFill) { enemyHpFill.style.width = ePct + "%"; enemyHpFill.classList.toggle("low", ePct < 30); }
       if (playerHeartHp) playerHeartHp.classList.toggle("low", pPct < 30);
       if (enemyHeartHp) enemyHeartHp.classList.toggle("low", ePct < 30);
       if (turnNumEl) {
@@ -871,6 +875,15 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       } else {
         combat.playerHp = Math.max(0, combat.playerHp - dmg);
       }
+      // Knight passive — Iron Will: survive a lethal hit once per battle
+      if (combat.playerHp <= 0 && combat.playerClass === "knight" && !combat.knightDeathSaveUsed) {
+        combat.playerHp = 1;
+        combat.knightDeathSaveUsed = true;
+        combat.fractureStacks = Math.min(5, combat.fractureStacks + 5);
+        combat.fractureTurns = Math.max(combat.fractureTurns, 3);
+        setLog("Iron Will", "Survived with 1 HP! +5 Fracture");
+        dmgPop("player", "Iron Will!", "heal");
+      }
       const lost = before - combat.playerHp;
       if (combat.stats) combat.stats.taken += lost;
       if (lost > 0) {
@@ -1015,11 +1028,14 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           starCount++;
         } else if (type === "hp") {
           healCount++;
-          // Knight signature: +6 per potion tile
+          // Knight signature: +6 per potion tile + Fracture per tile
           if (!forEnemy && sigType === "hp") {
             heal += 6;
             hasSigMatch = true;
             sigHpCount++;
+            combat.fractureStacks = Math.min(5, combat.fractureStacks + 1);
+            combat.fractureTurns = Math.max(combat.fractureTurns, 2);
+            bitsExtra.push(`Fracture ${combat.fractureStacks}`);
           } else {
             heal += settings.healAmt + (run.bonusHeal || 0);
           }
@@ -1100,12 +1116,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         heal += lifeSteal;
       }
 
-      // Knight signature: +1 Fracture once per clear (not per tile)
+      // Knight signature: fracture orb flies to enemy on heart match
       if (!forEnemy && combat.playerClass === "knight" && hasSigMatch && sigHpCount > 0) {
-        combat.fractureStacks = Math.min(5, combat.fractureStacks + 1);
-        combat.fractureTurns = Math.max(combat.fractureTurns, 2);
-        bitsExtra.push(`Fracture ${combat.fractureStacks}`);
-        // Dual orb: heart flies to you (heal), a fracture orb lands on the enemy
         flyEffect(matchedList[0] ? getCell(matchedList[0].r, matchedList[0].c) : document.getElementById("playerPortrait"),
                   document.getElementById("enemyPortrait"), "fracture");
       }
@@ -1150,23 +1162,23 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           }
         } else if (cls === "knight") {
           if (isStar) {
-            const bonus = combat.fractureStacks * 5;
-            if (bonus > 0) {
-              dealDamageToEnemy(bonus, { trueDmg: true, source: "fracture" });
-              bitsExtra.push(`Earthquake ${bonus}`);
-            }
-            const n = convertRandomTiles(2, "hp");
-            bitsExtra.push(`${n}→❤️`);
+            combat.fractureStacks = Math.min(5, combat.fractureStacks + 2);
+            combat.fractureTurns = Math.max(combat.fractureTurns, 2);
+            const n = convertRandomTiles(3, "hp");
+            bitsExtra.push(`Earthquake +2 Fracture · ${n}→❤️`);
           }
           if (isCross) {
-            combat.fractureStacks = Math.min(5, combat.fractureStacks + 2);
+            combat.fractureStacks = Math.min(5, combat.fractureStacks + 3);
             combat.fractureTurns = Math.max(combat.fractureTurns, 2);
-            bitsExtra.push(`Sunder Fracture ${combat.fractureStacks}`);
+            combat.ap = Math.min(AP_MAX, combat.ap + 1);
+            bitsExtra.push(`Sunder +3 Fracture · +1 AP`);
           }
-          if (isCharged) {
-            combat.fractureStacks = Math.min(5, combat.fractureStacks + 2);
-            combat.fractureTurns = Math.max(combat.fractureTurns, 2);
-            bitsExtra.push("Shattering Blow +2 Fracture");
+          if (isCharged && combat.fractureStacks > 0) {
+            const shatterDmg = combat.fractureStacks * 3;
+            combat.fractureStacks = 0;
+            combat.fractureTurns = 0;
+            dealDamageToEnemy(shatterDmg, { trueDmg: true, source: "fracture" });
+            bitsExtra.push(`Shatter ${shatterDmg}!`);
           }
         }
       }
@@ -1317,6 +1329,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (busy) return;
       busy = true;
       combat.playerTurn = false;
+      document.body.classList.remove("your-turn");
       combat.enemyAp = AP_MAX;
 
       // Boss turn-start passive (e.g. Last Rival regeneration)
@@ -1471,6 +1484,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       combat.enemyAp = AP_MAX;
       combat.turn += 1;
       combat.playerTurn = true;
+      document.body.classList.add("your-turn");
       combat.cascadeApRefunded = false; // Cascade Refund: once per turn
       combat._bulwarkUsed = false; // Bulwark: once per turn
       // Free shuffle every 3rd turn (use it or lose it)
@@ -1827,10 +1841,16 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       } else if (cls === "wizard") {
         bits.push("Meteor", `${dmg} true`);
       } else if (cls === "knight") {
-        combat.fractureStacks = Math.min(5, combat.fractureStacks + 2);
-        combat.fractureTurns = Math.max(combat.fractureTurns, 2);
+        const shatterBonus = combat.fractureStacks * 4;
+        combat.fractureStacks = 0;
+        combat.fractureTurns = 0;
         combat.mortalWoundTurns = Math.max(combat.mortalWoundTurns, 2);
-        bits.push("Earthshatter", `${dmg} true`, `Fracture ${combat.fractureStacks}`, "Mortal Wound");
+        bits.push("Earthshatter", `${dmg} true`, shatterBonus > 0 ? `Shatter +${shatterBonus}` : "No Fracture", "Mortal Wound");
+        if (shatterBonus > 0) {
+          await sleep(90);
+          dealDamageToEnemy(shatterBonus, { trueDmg: true, source: "ult" });
+          showUltDamagePop(shatterBonus, cls);
+        }
         // Mortal Strike (Knight): ult also reduces enemy damage by 25% for 2 turns
         if (run.mortalStrike) {
           combat.enemyWeakenTurns = Math.max(combat.enemyWeakenTurns || 0, 2);

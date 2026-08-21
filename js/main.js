@@ -309,6 +309,8 @@
       const label = typeof reward === "string" ? reward : reward && reward.label;
       const permanent = typeof reward === "string" ? true : reward && reward.permanent !== false;
       const temp = reward && reward.tempLabel;
+      if (label) { if (!run.pickLog) run.pickLog = []; run.pickLog.push(label); }
+      if (temp) { if (!run.pickLog) run.pickLog = []; run.pickLog.push(temp); }
       const rewardMsg = document.getElementById("rewardMsg");
       const mod = run.pendingModifier;
       const isFinal = run.floor >= MAX_FLOOR;
@@ -348,6 +350,7 @@
       sayVoice("victory", { force: true });
       playVictory();
       gameOverOverlay.classList.add("open");
+      recordRun(true);
     }
 
     // Boss win → choose 1 of 3 upgrades (4 with a pending extra-pick reward), then show the victory overlay
@@ -415,6 +418,7 @@
 
     function checkGameOver() {
       if (gameOver) return;
+      document.body.classList.remove("your-turn");
       if (combat.enemyHp <= 0) {
         gameOver = true;
         busy = true;
@@ -476,10 +480,46 @@
         sayVoice("defeat", { force: true });
         playDefeat();
         gameOverOverlay.classList.add("open");
+        recordRun(false);
       }
     }
 
     const SAVE_KEY = "puzzleGridRun_v1";
+    const HISTORY_KEY = "puzzleGridHistory_v1";
+    const MAX_HISTORY = 20;
+
+    function loadHistory() {
+      try {
+        const raw = localStorage.getItem(HISTORY_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (_) { return []; }
+    }
+
+    function saveHistory(entry) {
+      try {
+        const list = loadHistory();
+        list.unshift(entry);
+        if (list.length > MAX_HISTORY) list.length = MAX_HISTORY;
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+      } catch (_) {}
+    }
+
+    function recordRun(won) {
+      const s = combat.stats || {};
+      const hero = CHARACTERS[combat.playerClass] || {};
+      saveHistory({
+        ts: Date.now(),
+        hero: combat.playerClass,
+        heroName: hero.name || combat.playerClass,
+        diff: settings.difficulty || "normal",
+        floor: run.floor,
+        won: !!won,
+        hp: combat.playerHp,
+        maxHp: combat.playerMaxHp,
+        picks: run.pickLog || [],
+        dealt: (s.sword || 0) + (s.star || 0) + (s.runic || 0) + (s.poison || 0) + (s.fracture || 0) + (s.ult || 0) + (s.reflect || 0)
+      });
+    }
 
     function saveRun() {
       try {
@@ -554,6 +594,7 @@
       run.floorShieldBonus = 0;
       run.feverEarly = 0;
       run.enemyUltSlow = 0;
+      run.pickLog = [];
       run.cascadeAp = false; run.crossAp = false; run.overflowBoost = false;
       run.bloomCharge = false; run.sigDouble = false; run.boardWhisper = false;
       run.phasePower = false; run.fortifiedStart = false; run.venomous = false;
@@ -858,6 +899,7 @@
         charPick.appendChild(card);
       });
       buildCosmeticBar();
+      renderRunHistory();
     }
 
     // Costume / weapon picker for the currently selected hero.
@@ -894,6 +936,28 @@
         persistSettings();
         buildCharPick();
       }));
+    }
+
+    function renderRunHistory() {
+      const el = document.getElementById("runHistory");
+      if (!el) return;
+      const list = loadHistory();
+      if (!list.length) { el.innerHTML = ""; return; }
+      let html = '<div class="run-history-title">Run History</div>';
+      const shown = list.slice(0, 8);
+      shown.forEach(r => {
+        const won = r.won;
+        const cls = won ? "win" : "loss";
+        const picks = (r.picks || []).slice(-3);
+        const picksHtml = picks.map(p => `<span class="run-pick-chip" title="${p}">${p}</span>`).join("");
+        html += `<div class="run-entry ${cls}">
+          <span class="run-hero">${r.heroName || r.hero}</span>
+          <span class="run-floor">F${r.floor}</span>
+          <span class="run-picks">${picksHtml}</span>
+          <span class="run-result ${cls}">${won ? "W" : "L"}</span>
+        </div>`;
+      });
+      el.innerHTML = html;
     }
 
     function openSettings() {
@@ -1099,9 +1163,9 @@
         ult = "Meteor: 12–24 true dmg (scales with charge).";
         shapes = "⭐ +12 Shield + 3→Shield · 💥 Mana Lock 2t · ⚡ Steal up to 3 Shield";
       } else {
-        passive = "Regen +3 HP each turn. Fracture: scaled true dmg/stack at enemy turn start (max 5).";
-        ult = "Earthshatter: 12–24 true +2 Fracture + Mortal Wound (enemy heals −50% 2t).";
-        shapes = "⭐ Fracture×5 true + 3→Potion · 💥 +2 Fracture · ⚡ +1 Fracture";
+        passive = "Regen +3 HP each turn. Iron Will: survive a lethal hit once per battle at 1 HP, gain +5 Fracture. Fracture stacks deal true dmg at enemy turn start — or cash them in early with a Charged match (Shatter: stacks×3).";
+        ult = "Earthshatter: 12–24 true dmg + Shatter all Fracture stacks (stacks×4 bonus) + Mortal Wound 2t.";
+        shapes = "⭐ +2 Fracture + 3→Potion · 💥 +3 Fracture + 1 AP · ⚡ Shatter (stacks×3)";
       }
       return `
         <div class="info-row"><span>Class</span><span>${s.name}</span></div>

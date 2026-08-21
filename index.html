@@ -691,7 +691,7 @@
        pointer-events: none;
      }
 
-     .hp-shield-row {
+     .hp-row {
        display: flex;
        align-items: center;
        justify-content: center;
@@ -707,13 +707,30 @@
      }
      .heart-hp.hp-hit .heart-icon { color: #c23b2f; }
      .heart-hp.hp-heal .heart-icon { color: #2e8b57; }
-     .heart-icon {
+.heart-icon {
        color: #d4785c;
        font-size: 0.8rem;
        line-height: 1;
      }
 
-    .fighter-name {
+     .hp-bar {
+       width: 48px;
+       height: 6px;
+       background: rgba(60, 45, 30, 0.15);
+       border-radius: 3px;
+       overflow: hidden;
+     }
+     .hp-fill {
+       height: 100%;
+       width: 100%;
+       background: #d4785c;
+       border-radius: 3px;
+       transition: width 0.3s ease, background-color 0.3s ease;
+     }
+     .hp-fill.low { background: #c23b2f; }
+     .hp-fill.heal { background: #2e8b57; }
+
+     .fighter-name {
       font-size: 0.72rem;
       font-weight: 750;
       color: #5a5048;
@@ -724,25 +741,26 @@
       text-align: center;
     }
 
-    .hp-num {
-      font-size: 0.62rem;
-      font-weight: 700;
-      color: #8a7e74;
-      font-variant-numeric: tabular-nums;
-      text-align: center;
-    }
+.hp-num {
+       font-size: 0.55rem;
+       font-weight: 600;
+       color: #a09588;
+       font-variant-numeric: tabular-nums;
+       text-align: center;
+       min-width: 28px;
+     }
 
     .ap-row {
       display: flex;
       align-items: center;
       gap: 5px;
     }
-    .ap-label {
-      font-size: 0.6rem;
-      font-weight: 800;
-      color: #9a8e84;
-      letter-spacing: 0.04em;
-    }
+.ap-label {
+       font-size: 0.6rem;
+       font-weight: 800;
+       color: #e8a020;
+       letter-spacing: 0.04em;
+     }
     .ap-pips {
       display: flex;
       gap: 4px;
@@ -755,17 +773,26 @@
       border: 1px solid rgba(255,255,255,0.5);
       transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
     }
-    .ap-pip.filled {
-      background: #9fc4e0;
-      box-shadow: 0 0 6px rgba(100, 150, 190, 0.4);
-      border-color: rgba(255,255,255,0.85);
-    }
-    .ap-pip.empty {
-      transform: scale(0.9);
-      opacity: 0.55;
-    }
+.ap-pip.filled {
+       background: #f5c542;
+       box-shadow: 0 0 8px rgba(245, 197, 66, 0.5);
+       border-color: rgba(255, 255, 255, 0.9);
+     }
+.ap-pip.empty {
+       transform: scale(0.9);
+       opacity: 0.55;
+     }
 
-    .ult-pips {
+     /* Player turn: bright yellow + gentle pulse on the player AP row */
+     @keyframes apPulse {
+       0%, 100% { opacity: 1; filter: brightness(1); }
+       50% { opacity: 0.75; filter: brightness(1.35); }
+     }
+     .your-turn .combatant.player .ap-row {
+       animation: apPulse 1.6s ease-in-out infinite;
+     }
+
+     .ult-pips {
       display: flex;
       gap: 4px;
       justify-content: center;
@@ -1205,6 +1232,71 @@
       max-width: 260px;
     }
     .menu-actions .action-btn { width: 100%; padding: 12px; }
+
+    .run-history {
+      width: 100%;
+      max-width: 260px;
+      margin-top: 10px;
+    }
+    .run-history-title {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #8a7e74;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 5px;
+    }
+    .run-history-empty {
+      font-size: 0.62rem;
+      color: #b0a89e;
+      text-align: center;
+      padding: 6px 0;
+    }
+    .run-entry {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 6px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.45);
+      border: 1px solid rgba(60, 50, 40, 0.1);
+      margin-bottom: 4px;
+      font-size: 0.58rem;
+      color: #6a6055;
+    }
+    .run-entry.win { border-left: 3px solid #2e8b57; }
+    .run-entry.loss { border-left: 3px solid #c23b2f; }
+    .run-hero {
+      font-weight: 700;
+      min-width: 38px;
+    }
+    .run-floor {
+      color: #8a7e74;
+      min-width: 24px;
+    }
+    .run-result {
+      font-weight: 700;
+      margin-left: auto;
+    }
+    .run-result.win { color: #2e8b57; }
+    .run-result.loss { color: #c23b2f; }
+    .run-picks {
+      display: flex;
+      gap: 2px;
+      flex-wrap: wrap;
+      flex: 1;
+      min-width: 0;
+    }
+    .run-pick-chip {
+      font-size: 0.5rem;
+      background: rgba(60, 45, 30, 0.08);
+      border-radius: 4px;
+      padding: 1px 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 72px;
+    }
 
     .top-game-bar {
       width: 100%;
@@ -2165,6 +2257,7 @@
 /* Mobile responsiveness */
 @media (max-width: 480px) {
   .heart-hp { font-size: 0.65rem; }
+  .hp-bar { width: 36px; height: 5px; }
   .action-bar { gap: 6px; }
    .action-btn.end-btn { width: 88px; height: 64px; font-size: 0.75rem; }
 }
@@ -2195,6 +2288,7 @@
       <button type="button" class="action-btn" id="btnMenuSettings">Settings</button>
       <button type="button" class="action-btn" id="btnMenuHelp">How to Play</button>
     </div>
+    <div class="run-history" id="runHistory"></div>
   </div>
 
   <!-- GAME -->
@@ -2213,14 +2307,11 @@
             </div>
             <div class="enemy-thinking" id="enemyThinking"></div>
           </div>
-          <div class="hp-shield-row">
+          <div class="hp-row">
             <div class="heart-hp" id="enemyHeartHp">
               <span class="heart-icon">♥</span>
+              <div class="hp-bar"><div class="hp-fill" id="enemyHpFill"></div></div>
               <span class="hp-num" id="enemyHpText">30/30</span>
-            </div>
-            <div class="shield-badge" id="enemyShieldBadge" title="Enemy Shield">
-              <svg viewBox="0 0 24 24"><path d="M12 2.8L5.5 5.7v5.6c0 4.7 3.2 8.2 6.5 9.6 3.3-1.4 6.5-4.9 6.5-9.6V5.7L12 2.8z"/></svg>
-              <span class="sh-num" id="enemyShieldNum">0</span>
             </div>
           </div>
           <div class="status-row" id="enemyStatusRow"></div>
@@ -2230,6 +2321,10 @@
               <div class="ap-pip" data-pip="1"></div>
               <div class="ap-pip" data-pip="2"></div>
               <div class="ap-pip" data-pip="3"></div>
+            </div>
+            <div class="shield-badge" id="enemyShieldBadge" title="Enemy Shield">
+              <svg viewBox="0 0 24 24"><path d="M12 2.8L5.5 5.7v5.6c0 4.7 3.2 8.2 6.5 9.6 3.3-1.4 6.5-4.9 6.5-9.6V5.7L12 2.8z"/></svg>
+              <span class="sh-num" id="enemyShieldNum">0</span>
             </div>
           </div>
           <div class="enemy-charge-row" id="enemyChargeRow" title="Enemy charge">
@@ -2249,14 +2344,11 @@
             <div class="portrait ninja" id="playerPortrait" aria-hidden="true" data-tut-target="playerPortrait">
             </div>
           </div>
-          <div class="hp-shield-row">
+          <div class="hp-row">
             <div class="heart-hp" id="playerHeartHp">
               <span class="heart-icon">♥</span>
+              <div class="hp-bar"><div class="hp-fill" id="playerHpFill"></div></div>
               <span class="hp-num" id="playerHpText">30/30</span>
-            </div>
-            <div class="shield-badge" id="shieldBadge" title="Shield">
-              <svg viewBox="0 0 24 24"><path d="M12 2.8L5.5 5.7v5.6c0 4.7 3.2 8.2 6.5 9.6 3.3-1.4 6.5-4.9 6.5-9.6V5.7L12 2.8z"/></svg>
-              <span class="sh-num" id="shieldNum">0</span>
             </div>
           </div>
           <div class="status-row" id="playerStatusRow"></div>
@@ -2266,6 +2358,10 @@
               <div class="ap-pip" data-pip="1"></div>
               <div class="ap-pip" data-pip="2"></div>
               <div class="ap-pip" data-pip="3"></div>
+            </div>
+            <div class="shield-badge" id="shieldBadge" title="Shield">
+              <svg viewBox="0 0 24 24"><path d="M12 2.8L5.5 5.7v5.6c0 4.7 3.2 8.2 6.5 9.6 3.3-1.4 6.5-4.9 6.5-9.6V5.7L12 2.8z"/></svg>
+              <span class="sh-num" id="shieldNum">0</span>
             </div>
           </div>
           <div class="ult-row">

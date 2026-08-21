@@ -260,7 +260,14 @@
     }
 
     // ---------- shuffle (preserves tile types AND specials) ----------
-    function shuffleBoard() {
+    function prefersReducedMotion() {
+      return typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    }
+
+    function shuffleBoard(opts = {}) {
+      const oldFaces = [];
+      for (let i = 0; i < cells.length; i++) oldFaces.push(cells[i].innerHTML);
       const flat = [];
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
@@ -280,6 +287,43 @@
         }
       }
       rebuildVisual();
+      if (opts.animated === false || prefersReducedMotion()) return Promise.resolve();
+      return flipCascade(oldFaces);
+    }
+
+    // Flip cascade: tiles flip like cards along a diagonal wave.
+    // Old face shows until the 90° edge-on point, then swaps to the new face.
+    function flipCascade(oldFaces) {
+      return new Promise(resolve => {
+        if (!cells.length || typeof cells[0].animate !== "function") { resolve(); return; }
+        const DUR = 240, STEP = 18;
+        const anims = [];
+        for (let i = 0; i < cells.length; i++) {
+          const el = cells[i];
+          const delay = ((+el.dataset.row) + (+el.dataset.col)) * STEP;
+          const newFace = el.innerHTML;
+          if (oldFaces[i] === newFace) {
+            // Same tile landed here — small nudge keeps the wave continuous
+            anims.push(el.animate(
+              [{ transform: "scale(1)" }, { transform: "scale(1.07)", offset: 0.5 }, { transform: "scale(1)" }],
+              { duration: DUR, delay, easing: "ease-in-out" }
+            ));
+            continue;
+          }
+          el.innerHTML = oldFaces[i]; // start from the pre-shuffle face
+          anims.push(el.animate(
+            [
+              { transform: "perspective(420px) rotateY(0deg)" },
+              { transform: "perspective(420px) rotateY(90deg)", offset: 0.5 },
+              { transform: "perspective(420px) rotateY(0deg)" }
+            ],
+            { duration: DUR, delay, easing: "ease-in-out" }
+          ));
+          setTimeout(() => { el.innerHTML = newFace; }, delay + DUR / 2);
+        }
+        Promise.all(anims.map(a => a.finished.catch(() => {}))).then(resolve);
+        setTimeout(resolve, DUR + (ROWS + COLS) * STEP + 300); // safety net
+      });
     }
 
     // ---------- valid move check ----------
@@ -611,7 +655,7 @@
       }
       // Deadlock: no existing matches and no valid swaps → auto-reshuffle
       if (!hasValidMove()) {
-        shuffleBoard();
+        shuffleBoard({ animated: false });
       }
     }
 

@@ -2024,9 +2024,12 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         if (combat.ap <= 0) return;
         combat.ap -= 1;
       }
-      shuffleBoard();
+      busy = true;
       playGooeyPlop(0.9, 0.5);
-      refreshCombatUI();
+      shuffleBoard().finally(() => {
+        busy = false;
+        refreshCombatUI();
+      });
     });
 
     playerPortraitEl.addEventListener("click", () => {

@@ -9,8 +9,16 @@ const screenMenu = document.getElementById("screen-menu");
       screenMenu.classList.toggle("active", name === "menu");
       screenGame.classList.toggle("active", name === "game");
       if (name !== "game") {
-        document.body.classList.remove("phase-fever", "phase-impact");
+        document.body.classList.remove("phase-fever", "phase-impact", "tower-1", "tower-2", "tower-3", "tower-4");
       }
+    }
+
+    // Tower ascent: background shifts as floors climb
+    function updateTowerBand() {
+      const b = document.body;
+      b.classList.remove("tower-1", "tower-2", "tower-3", "tower-4");
+      const f = run && typeof run.floor === "number" ? run.floor : 1;
+      b.classList.add(f >= 20 ? "tower-4" : f >= 13 ? "tower-3" : f >= 6 ? "tower-2" : "tower-1");
     }
 
     // ─── Card builder helpers ───
@@ -818,6 +826,7 @@ const screenMenu = document.getElementById("screen-menu");
         setLog(`Floor ${run.floor}${floorNote} · ${combat.enemyName}`);
         saveRun();
       }
+      updateTowerBand();
       showScreen("game");
       if (opts.tutorial) {
         const ov = document.getElementById("floorBannerOverlay");

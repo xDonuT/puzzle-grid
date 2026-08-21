@@ -50,13 +50,36 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(180deg, #f7f0e6 0%, #f2eadf 100%);
+      --bg-base: #f4ecdf;
+      background: var(--bg-base);
+      transition: background-color 1.2s ease;
       font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
       color: #5a5048;
       padding: 16px;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
       overflow: hidden;
+    }
+    /* Atmosphere: paper shade + grain behind everything */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      opacity: 0.05;
+      background-image:
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='0.6'/></svg>"),
+        linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(120,100,70,0.10) 100%);
+    }
+    /* Vignette — focuses the board, sits under modals */
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      pointer-events: none;
+      background: radial-gradient(ellipse at 50% 42%, transparent 58%, rgba(58,44,28,0.16) 100%);
     }
 
     .header { text-align: center; margin-bottom: 14px; }
@@ -153,8 +176,6 @@
       box-shadow: var(--shadow), 0 0 36px rgba(230, 140, 100, 0.48);
       background: #edd4c0;
     }
-    body.phase-fever { background: #f3e9c8; }
-    body.phase-impact { background: #f0dcc8; }
     .board-wrap.shake {
       animation: boardShake 0.45s ease;
     }
@@ -908,14 +929,14 @@
       align-items: center;
       justify-content: center;
       padding: 8px 22px;
-      font-size: 0.78rem;
-      font-weight: 850;
-      letter-spacing: 0.04em;
-      color: #4d4037;
-      border: 2px solid rgba(60, 45, 30, 0.2);
+      font-size: 0.8rem;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      color: #43372c;
+      border: 2px solid rgba(60, 45, 30, 0.3);
       border-radius: 999px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(245,235,220,0.8) 100%);
-      box-shadow: 0 2px 4px rgba(60, 45, 30, 0.1), inset 0 1px 0 rgba(255,255,255,0.5);
+      background: linear-gradient(180deg, #fffef9 0%, #f2e6d2 100%);
+      box-shadow: 0 3px 8px rgba(60, 45, 30, 0.16), inset 0 1px 0 rgba(255,255,255,0.65);
       transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
       cursor: pointer;
       position: relative;
@@ -940,28 +961,52 @@
     }
     #btnShuffle {
       position: relative;
-      padding: 10px 18px;
-      min-height: 44px;
-      border: 1.5px solid rgba(60, 45, 30, 0.12);
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.4);
-      box-shadow: 0 1px 3px rgba(60, 45, 30, 0.06);
-    }
-    #btnShuffle:active { background: rgba(255, 255, 255, 0.6); }
-    .turn-indicator {
-      display: flex;
+      height: 30px;
+      padding: 0 12px;
+      min-height: 0;
+      display: inline-flex;
       align-items: center;
-      justify-content: flex-start;
+      font-size: 0.68rem;
+      font-weight: 750;
+      border: 1.5px solid rgba(60, 45, 30, 0.18);
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(245,235,220,0.65) 100%);
+      box-shadow: 0 1px 2px rgba(60, 45, 30, 0.08), inset 0 1px 0 rgba(255,255,255,0.45);
+    }
+    #btnShuffle:active { background: rgba(220,210,195,0.9); }
+    .turn-indicator {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
       min-width: 66px;
-      color: #5a5048;
-      font-size: 0.75rem;
-      font-weight: 700;
+      height: 30px;
+      color: #6a5f55;
+      font-size: 0.68rem;
+      font-weight: 750;
       letter-spacing: 0.04em;
       white-space: nowrap;
-      padding-left: 4px;
+      padding: 4px 12px;
       font-variant-numeric: tabular-nums;
       text-transform: none;
+      border: 1.5px solid rgba(60, 45, 30, 0.18);
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(245,235,220,0.65) 100%);
+      box-shadow: 0 1px 2px rgba(60, 45, 30, 0.08), inset 0 1px 0 rgba(255,255,255,0.45);
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     }
+    .turn-indicator::after {
+      content: "ⓘ";
+      font-size: 0.58rem;
+      opacity: 0.5;
+    }
+    .turn-indicator:hover {
+      background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(240,230,215,1) 100%);
+      border-color: rgba(60, 45, 30, 0.3);
+      box-shadow: 0 2px 8px rgba(60, 45, 30, 0.15), inset 0 1px 0 rgba(255,255,255,0.6);
+    }
+    .turn-indicator:active { transform: scale(0.94); background: rgba(220,210,195,0.9); box-shadow: inset 0 1px 3px rgba(60,45,30,0.15); }
 
     .action-bar-btns {
       display: flex;
@@ -2420,6 +2465,18 @@ body.ult-hitstop .board-wrap {
     @media (max-width: 540px) {
       .passport-spread { flex-direction: column; }
       .pp-page { max-height: 42vh; }
+    }
+    /* ─── Tower ascent atmosphere ─── */
+    /* Floor bands shift the base parchment; phases override (defined after bands) */
+    body.tower-1 { --bg-base: #f2e8d6; }
+    body.tower-2 { --bg-base: #eddcc4; }
+    body.tower-3 { --bg-base: #e6d7d2; }
+    body.tower-4 { --bg-base: #ddd8e2; }
+    body.phase-fever { --bg-base: #f3e6bd; }
+    body.phase-impact { --bg-base: #eed6c2; }
+
+    @media (prefers-reduced-transparency: reduce) {
+      body::before, body::after { display: none; }
     }
 </style>
 </head>

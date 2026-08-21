@@ -1480,30 +1480,149 @@
       transition: none !important;
       animation-play-state: paused !important;
     }
-    body.ult-hitstop .board-wrap {
-      filter: brightness(1.08);
-    }
-    .score-popup.ult-pop {
-      font-size: 2.2rem;
-      font-weight: 900;
-      background: none;
-      border: none;
-      box-shadow: none;
-      padding: 0;
-      min-height: 0;
-      border-radius: 0;
-      color: #fff;
-      -webkit-text-stroke: 2px rgba(0, 0, 0, 0.8);
-      paint-order: stroke fill;
-      text-shadow:
-        0 0 20px currentColor,
-        0 0 40px currentColor,
-        0 0 60px rgba(255, 255, 255, 0.4);
-      animation: ultPop 1.1s cubic-bezier(0.22, 0.9, 0.3, 1) forwards;
-    }
-    .score-popup.ult-pop.ninja { color: #4f6f9e; }
-    .score-popup.ult-pop.wizard { color: #2f8d7e; }
-    .score-popup.ult-pop.knight { color: #c2506a; }
+body.ult-hitstop .board-wrap {
+       filter: brightness(1.08);
+     }
+     /* Per-class cinematic screen overlays — lightweight filter + overlay */
+     .ult-cinematic {
+       position: fixed;
+       inset: 0;
+       pointer-events: none;
+       z-index: 9999;
+       opacity: 0;
+     }
+     .ult-cinematic.ninja { background: radial-gradient(ellipse at center, rgba(30, 20, 60, 0.7), rgba(10, 5, 30, 0.9) 80%); }
+     .ult-cinematic.wizard { background: radial-gradient(ellipse at center, rgba(245, 166, 35, 0.5), rgba(180, 50, 20, 0.6) 80%); }
+     .ult-cinematic.knight { background: radial-gradient(ellipse at center, rgba(90, 120, 160, 0.4), rgba(30, 50, 80, 0.6) 80%); }
+     .ult-cinematic.go {
+       animation: cinematicFlash 0.5s ease-out forwards;
+     }
+     @keyframes cinematicFlash {
+       0% { opacity: 0; }
+       15% { opacity: 1; }
+       100% { opacity: 0; }
+     }
+     /* Ninja screen goes dark + purple */
+     body.ult-cin-ninja { animation: ninjaDarken 0.45s ease-out; }
+     @keyframes ninjaDarken {
+       0% { filter: brightness(1); }
+       20% { filter: brightness(0.3) saturate(1.4) hue-rotate(10deg); }
+       100% { filter: brightness(1); }
+     }
+     /* Wizard screen flashes warm */
+     body.ult-cin-wizard { animation: wizardBurn 0.4s ease-out; }
+     @keyframes wizardBurn {
+       0% { filter: brightness(1); }
+       15% { filter: brightness(1.6) saturate(1.5); }
+       100% { filter: brightness(1); }
+     }
+     /* Knight gritty contrast */
+     body.ult-cin-knight { animation: knightGrit 0.45s ease-out; }
+     @keyframes knightGrit {
+       0% { filter: brightness(1) contrast(1); }
+       15% { filter: brightness(0.85) contrast(1.3); }
+       100% { filter: brightness(1) contrast(1); }
+     }
+     /* --- Class signature cinematic effects (CSS-only, driven by body.ult-cin-*) --- */
+     /* Ninja: 3 diagonal slash lines */
+     body.ult-cin-ninja .ult-cinematic::before,
+     body.ult-cin-ninja .ult-cinematic::after {
+       content: "";
+       position: fixed;
+       width: 200%;
+       height: 3px;
+       background: linear-gradient(90deg, transparent, rgba(123, 159, 212, 0.9), transparent);
+       transform: rotate(-35deg);
+       pointer-events: none;
+       z-index: 10000;
+       opacity: 0;
+     }
+     body.ult-cin-ninja .ult-cinematic::before {
+       top: 30%;
+       left: -50%;
+       animation: slashLine 0.35s 0.05s ease-out forwards;
+     }
+     body.ult-cin-ninja .ult-cinematic::after {
+       top: 55%;
+       left: -50%;
+       animation: slashLine 0.35s 0.15s ease-out forwards;
+     }
+     @keyframes slashLine {
+       0% { opacity: 0; transform: rotate(-35deg) translateX(-30%); }
+       20% { opacity: 1; }
+       100% { opacity: 0; transform: rotate(-35deg) translateX(30%); }
+     }
+     /* Wizard: expanding shockwave ring */
+     body.ult-cin-wizard .ult-cinematic::before {
+       content: "";
+       position: fixed;
+       top: 50%;
+       left: 50%;
+       width: 20px;
+       height: 20px;
+       border: 3px solid rgba(245, 166, 35, 0.8);
+       border-radius: 50%;
+       transform: translate(-50%, -50%) scale(1);
+       pointer-events: none;
+       z-index: 10000;
+       opacity: 0;
+       animation: shockwaveRing 0.5s 0.05s ease-out forwards;
+     }
+     @keyframes shockwaveRing {
+       0% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+       15% { opacity: 0.9; }
+       100% { opacity: 0; transform: translate(-50%, -50%) scale(25); }
+     }
+     /* Knight: 5 ground crack lines radiating from center */
+     body.ult-cin-knight .ult-cinematic::before,
+     body.ult-cin-knight .ult-cinematic::after {
+       content: "";
+       position: fixed;
+       top: 50%;
+       left: 50%;
+       width: 200px;
+       height: 2px;
+       background: linear-gradient(90deg, rgba(184, 204, 224, 0.9), transparent);
+       transform-origin: left center;
+       pointer-events: none;
+       z-index: 10000;
+       opacity: 0;
+     }
+     body.ult-cin-knight .ult-cinematic::before {
+       transform: translate(-50%, -50%) rotate(0deg);
+       animation: crackLine 0.4s 0.05s ease-out forwards;
+     }
+     body.ult-cin-knight .ult-cinematic::after {
+       transform: translate(-50%, -50%) rotate(72deg);
+       animation: crackLine 0.4s 0.12s ease-out forwards;
+     }
+     @keyframes crackLine {
+       0% { opacity: 0; width: 0; }
+       20% { opacity: 1; }
+       100% { opacity: 0; width: 300px; }
+     }
+.score-popup.ult-pop {
+       font-size: 3.5rem;
+       font-weight: 900;
+       background: none;
+       border: none;
+       box-shadow: none;
+       padding: 0;
+       min-height: 0;
+       border-radius: 0;
+       color: #fff;
+       -webkit-text-stroke: 2px rgba(0, 0, 0, 0.8);
+       paint-order: stroke fill;
+       text-shadow:
+         0 0 20px currentColor,
+         0 0 40px currentColor,
+         0 0 60px currentColor,
+         0 0 80px rgba(255, 255, 255, 0.3);
+       animation: ultPop 1.2s cubic-bezier(0.22, 0.9, 0.3, 1) forwards;
+     }
+     .score-popup.ult-pop.ninja { color: #7b9fd4; text-shadow: 0 0 20px #4f6f9e, 0 0 40px #4f6f9e, 0 0 80px #2a3a5e; }
+     .score-popup.ult-pop.wizard { color: #f5a623; text-shadow: 0 0 20px #e8456b, 0 0 40px #f5a623, 0 0 80px #8a3a10; }
+     .score-popup.ult-pop.knight { color: #b8cce0; text-shadow: 0 0 20px #5a7a9e, 0 0 40px #3a5a7e, 0 0 80px #1a2a3e; }
     @keyframes ultPop {
       0%   { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
       15%  { transform: translate(-50%, -50%) scale(1.6); opacity: 1; }

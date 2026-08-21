@@ -37,7 +37,7 @@
     // color: sword | star | shield | hp | poison | enemy | fracture). As they
     // converge on the target they assemble into the tile's icon, which flashes
     // briefly and then scatters (ring + sparks). Subtle by design.
-    function flyEffect(fromEl, toEl, kind) {
+    function flyEffect(fromEl, toEl, kind, opts) {
       if (!fromEl || !toEl) return;
       const fr = fromEl.getBoundingClientRect();
       const tr = toEl.getBoundingClientRect();
@@ -61,20 +61,22 @@
       const px = -dy / dist;
       const py = dx / dist;
 
-      // Total timeline stays snappy (≈0.45–0.6s).
-      const T = Math.min(600, Math.max(440, dist / 1.6));
+      // Total timeline stays snappy (≈0.45–0.6s); ults are slightly slower for drama.
+      const T = Math.min(600, Math.max(440, dist / 1.6)) * (opts && opts.mega ? 1.15 : 1);
 
-      // Stream: ~16 colored motes leave the source staggered, drift toward
-      // the impact point, and shrink to nothing right as they converge.
-      const N = 16;
+      // Stream: colored motes leave the source staggered, drift toward the
+      // impact point, and shrink to nothing right as they converge.
+      const N = opts && opts.mega ? 40 : 16;
+      const pSize = opts && opts.mega ? 28 : 12;
       for (let i = 0; i < N; i++) {
         const p = fxSpawn();
         if (!p) break;
         p.className = "fx-particle fx-particle-" + kind;
         p.style.left = sx + "px";
         p.style.top = sy + "px";
-        p.style.width = "12px";
-        p.style.height = "12px";
+        p.style.width = pSize + "px";
+        p.style.height = pSize + "px";
+        if (opts && opts.mega) p.style.filter = "brightness(1.4) drop-shadow(0 0 6px rgba(255,255,255,0.5))";
         document.body.appendChild(p);
         const jit = (Math.random() * 2 - 1) * 16;
         const dur = T * (0.6 + Math.random() * 0.3);
@@ -1860,10 +1862,38 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         bits.push("Ultimate", `${dmg} dmg`);
       }
 
-      // --- Hit-stop + flash + flinch ---
+      // --- Hit-stop + flash + flinch + cinematic ---
       document.body.classList.add("ult-hitstop");
       runUltFlash(cls);
       shakeBoard("strong");
+      // Per-class cinematic overlay + screen-wide filter
+      const cinEl = document.createElement("div");
+      cinEl.className = "ult-cinematic " + cls;
+      document.body.appendChild(cinEl);
+      void cinEl.offsetWidth;
+      cinEl.classList.add("go");
+      document.body.classList.add("ult-cin-" + cls);
+      // Extra crack lines for knight (pseudo-elements only give 2)
+      if (cls === "knight") {
+        [144, 216, 288].forEach((deg, i) => {
+          const crack = document.createElement("div");
+          crack.className = "ult-crack";
+          crack.style.cssText = `position:fixed;top:50%;left:50%;width:0;height:2px;background:linear-gradient(90deg,rgba(184,204,224,0.8),transparent);transform-origin:left center;transform:translate(-50%,-50%) rotate(${deg}deg);pointer-events:none;z-index:10000;animation:crackLine 0.4s ${0.06 + i * 0.07}s ease-out forwards;`;
+          cinEl.appendChild(crack);
+        });
+      }
+      // Extra slash line for ninja (pseudo-elements only give 2)
+      if (cls === "ninja") {
+        const extraSlash = document.createElement("div");
+        extraSlash.className = "ult-slash-extra";
+        extraSlash.style.cssText = "position:fixed;width:200%;height:3px;background:linear-gradient(90deg,transparent,rgba(123,159,212,0.9),transparent);transform:rotate(-35deg);top:42%;left:-50%;pointer-events:none;z-index:10000;animation:slashLine 0.35s 0.1s ease-out forwards;opacity:0;";
+        cinEl.appendChild(extraSlash);
+      }
+      // Mega particle burst from player → enemy
+      flyEffect(playerPort || document.getElementById("playerPortrait"),
+                enemyPort || document.getElementById("enemyPortrait"),
+                cls === "ninja" ? "sword" : cls === "wizard" ? "star" : "hp",
+                { mega: true });
       if (enemyPort) {
         enemyPort.classList.remove("ult-flinch");
         void enemyPort.offsetWidth;
@@ -1879,6 +1909,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
 
       await sleep(cls === "knight" ? 240 : 200);
       document.body.classList.remove("ult-hitstop");
+      document.body.classList.remove("ult-cin-ninja", "ult-cin-wizard", "ult-cin-knight");
+      setTimeout(() => cinEl.remove(), 500);
 
       // --- Board residue ---
       let residueNote = "";

@@ -948,12 +948,9 @@
       shown.forEach(r => {
         const won = r.won;
         const cls = won ? "win" : "loss";
-        const picks = (r.picks || []).slice(-3);
-        const picksHtml = picks.map(p => `<span class="run-pick-chip" title="${p}">${p}</span>`).join("");
         html += `<div class="run-entry ${cls}">
           <span class="run-hero">${r.heroName || r.hero}</span>
           <span class="run-floor">F${r.floor}</span>
-          <span class="run-picks">${picksHtml}</span>
           <span class="run-result ${cls}">${won ? "W" : "L"}</span>
         </div>`;
       });

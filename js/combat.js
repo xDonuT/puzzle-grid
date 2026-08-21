@@ -308,6 +308,28 @@
       anim.onfinish = () => { b.remove(); if (_bubble === b) _bubble = null; };
     }
 
+    // Ninja Shadow Step prompt: shown when 4+ swords cleared this turn
+    function showShadowStepPrompt() {
+      return new Promise(resolve => {
+        const ov = document.createElement("div");
+        ov.className = "overlay open";
+        ov.style.zIndex = "10001";
+        ov.innerHTML = `
+          <div class="overlay-panel" style="max-width:240px;text-align:center">
+            <div style="font-size:1.1rem;font-weight:800;color:#4f6f9e;margin-bottom:8px">Shadow Step</div>
+            <div style="font-size:0.72rem;color:#6a6055;margin-bottom:14px">−3 HP · +1 extra swap<br><span style="font-size:0.62rem;color:#9a8e84">(once per turn)</span></div>
+            <div style="display:flex;gap:8px;justify-content:center">
+              <button type="button" class="action-btn primary" id="shadowStepYes" style="min-height:44px;min-width:80px;font-size:0.72rem">Use it</button>
+              <button type="button" class="action-btn" id="shadowStepNo" style="min-height:44px;min-width:80px;font-size:0.72rem">Skip</button>
+            </div>
+          </div>`;
+        document.body.appendChild(ov);
+        const cleanup = (result) => { ov.remove(); resolve(result); };
+        ov.querySelector("#shadowStepYes").addEventListener("click", () => cleanup(true));
+        ov.querySelector("#shadowStepNo").addEventListener("click", () => cleanup(false));
+      });
+    }
+
     function pickVoice(arr) {
       if (!arr || !arr.length) return null;
       return arr[Math.floor(Math.random() * arr.length)];
@@ -1025,6 +1047,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           dmg += settings.swordDmg + (run.bonusSwordDmg || 0) + (combat.tempSwordDmg || 0);
           swordCount++;
           if (!forEnemy && sigType === "sword") { hasSigMatch = true; sigSwordCount++; }
+          if (!forEnemy) combat.swordsClearedThisTurn++;
         } else if (type === "star") {
           dmg += settings.starDmg + (run.bonusStarDmg || 0) + (combat.tempStarDmg || 0);
           starCount++;
@@ -1151,16 +1174,19 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         } else if (cls === "ninja") {
           if (isStar) {
             combat.ap = Math.min(AP_MAX, combat.ap + 2);
-            const n = convertRandomTiles(3, "sword");
+            const n = convertRandomTiles(4, "sword");
             bitsExtra.push(`Shadow Dance +2 AP · ${n}→⚔️`);
           }
           if (isCross) {
-            combat.markStacks = Math.min(3, combat.markStacks + 1);
-            bitsExtra.push(`Mark ${combat.markStacks}`);
+            combat.markStacks = Math.min(3, combat.markStacks + 2);
+            combat.ap = Math.min(AP_MAX, combat.ap + 1);
+            bitsExtra.push(`Marked ${combat.markStacks} · +1 AP`);
           }
           if (isCharged) {
-            heal += 4;
-            bitsExtra.push("Shadow Strike +4 HP");
+            const swords = combat.swordsClearedThisTurn;
+            const execDmg = Math.max(8, Math.min(24, swords * 4));
+            dealDamageToEnemy(execDmg, { trueDmg: true, source: "fracture" });
+            bitsExtra.push(`Shadow Strike ${execDmg}!`);
           }
         } else if (cls === "knight") {
           if (isStar) {
@@ -1489,6 +1515,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       document.body.classList.add("your-turn");
       combat.cascadeApRefunded = false; // Cascade Refund: once per turn
       combat._bulwarkUsed = false; // Bulwark: once per turn
+      combat.swordsClearedThisTurn = 0; // ninja Shadow Step
+      combat.shadowStepUsed = false;     // ninja Shadow Step
       // Free shuffle every 3rd turn (use it or lose it)
       if (combat.turn % 3 === 0) {
         combat.freeShuffles = 1;
@@ -1820,7 +1848,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       busy = true;
       combat.ap -= 1;
       const charge = combat.sigBank;
-      const dmg = 12 + Math.max(0, charge - 6) * 2;
+      const dmg = 15 + Math.max(0, charge - 6) * 2;
       const cls = combat.playerClass;
       const bits = [];
       const playerPort = document.getElementById("playerPortrait");
@@ -1835,10 +1863,13 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       await sleep(cls === "knight" ? 140 : 110);
 
       // Class-specific pre-impact
+      let ultDmg = dmg;
       if (cls === "ninja") {
         combat.playerHp = Math.max(1, combat.playerHp - 3);
         combat.afterglowTurns = run.lingeringShadow ? 2 : 1;
-        bits.push("Assassinate", `${dmg} true`, "Afterglow", "-3 HP");
+        const enemyPct = combat.enemyHp / Math.max(1, combat.enemyMaxHp);
+        if (enemyPct < 0.3) ultDmg = Math.min(60, dmg * 2);
+        bits.push("Assassinate", `${ultDmg} true`, enemyPct < 0.3 ? "Execute!" : "", "Afterglow", "-3 HP");
         refreshCombatUI();
       } else if (cls === "wizard") {
         bits.push("Meteor", `${dmg} true`);
@@ -1899,8 +1930,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         void enemyPort.offsetWidth;
         enemyPort.classList.add("ult-flinch");
       }
-      dealDamageToEnemy(dmg, { trueDmg: true, source: "ult" });
-      showUltDamagePop(dmg, cls);
+      dealDamageToEnemy(ultDmg, { trueDmg: true, source: "ult" });
+      showUltDamagePop(ultDmg, cls);
       combat.sigBank = 0;
       combat.ultAnnounced = false;
       const liveBits = bits.filter((b) => b !== `${dmg} true` && b !== `${dmg} dmg`);
@@ -1968,7 +1999,23 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (!gameOver) sayVoice("weakTurn", { chance: 0.7, force: false });
     }, 200);
   }
-  enemyTurn();
+  // Ninja Shadow Step: prompt if 4+ swords cleared this turn and not used yet
+  if (combat.heroClass === "ninja" && combat.swordsClearedThisTurn >= 4 && !combat.shadowStepUsed) {
+    (async () => {
+      const use = await showShadowStepPrompt();
+      if (use && combat.playerHp > 3) {
+        combat.playerHp = Math.max(1, combat.playerHp - 3);
+        combat.ap = Math.min(AP_MAX, combat.ap + 1);
+        combat.shadowStepUsed = true;
+        setLog("Shadow Step · −3 HP · +1 AP");
+        refreshCombatUI();
+        return; // don't end turn — player continues with extra AP
+      }
+      enemyTurn();
+    })();
+  } else {
+    enemyTurn();
+  }
 });
 
     btnShuffle.addEventListener("click", () => {

@@ -1155,9 +1155,9 @@
       const sigLabel = { sword: "⚔️ Sword", shield: "🛡️ Shield", hp: "❤️ Potion" }[sig] || sig;
       let passive = "", ult = "", shapes = "";
       if (cls === "ninja") {
-        passive = "First hit always dodged. Then 20% dodge. Sword matches heal 2 HP (4 on Charged).";
-        ult = "Assassinate: 12–24 true dmg, −3 self HP, Afterglow (50% less dmg 1 turn).";
-        shapes = "⭐ +2 AP + 3→Sword · 💥 Mark (+15% dmg taken) · ⚡ +4 HP";
+        passive = "Shadow Step: First hit dodged, then 20% dodge. Clear 4+ Sword tiles in one turn → prompt: −3 HP for +1 extra swap (once per turn).";
+        ult = "Assassinate: 15–30 true dmg (doubled if enemy <30% HP), −3 self HP, Afterglow (50% less dmg 1 turn).";
+        shapes = "⭐ +2 AP + 4→Sword · 💥 +2 Mark (+15% dmg each) + 1 AP · ⚡ True dmg = Swords×4 (min 8, max 24)";
       } else if (cls === "wizard") {
         passive = "Arcane Reflection: 30%+ of damage taken reflected as true dmg (scales with floor). Shield matches deal Runic damage equal to shield gained.";
         ult = "Meteor: 12–24 true dmg (scales with charge).";

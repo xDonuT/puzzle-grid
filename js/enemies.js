@@ -614,6 +614,8 @@
       firstHitDodged: false,   // ninja
       afterglowTurns: 0,       // ninja ult
       markStacks: 0,           // ninja cross
+      swordsClearedThisTurn: 0, // ninja Shadow Step
+      shadowStepUsed: false,     // ninja Shadow Step (once per turn)
       fractureStacks: 0,       // knight
       fractureTurns: 0,
       mortalWoundTurns: 0,     // knight ult

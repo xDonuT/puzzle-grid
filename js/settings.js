@@ -22,7 +22,8 @@
       impactTurn: 11,
       // cosmetics: per-class costume + weapon choices
       costume: { ninja: "classic", wizard: "classic", knight: "classic" },
-      weapon: { ninja: "katana", wizard: "staff", knight: "sword" }
+      weapon: { ninja: "katana", wizard: "staff", knight: "sword" },
+      tutorialCompleted: false
     };
 
     function persistSettings() {
@@ -42,7 +43,8 @@
           feverTurn: settings.feverTurn,
           impactTurn: settings.impactTurn,
           costume: settings.costume,
-          weapon: settings.weapon
+          weapon: settings.weapon,
+          tutorialCompleted: settings.tutorialCompleted
         }));
       } catch (_) {}
     }
@@ -62,6 +64,7 @@
           if (o.costume && typeof o.costume[cls] === "string") settings.costume[cls] = o.costume[cls];
           if (o.weapon && typeof o.weapon[cls] === "string") settings.weapon[cls] = o.weapon[cls];
         });
+        if (typeof o.tutorialCompleted === "boolean") settings.tutorialCompleted = o.tutorialCompleted;
       } catch (_) {}
     }
     loadSettings();

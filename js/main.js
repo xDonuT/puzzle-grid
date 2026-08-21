@@ -13,6 +13,31 @@
       }
     }
 
+    // ─── Tutorial system (3-floor guided intro) ───
+    const TUTORIAL_FLOORS = {
+      1: { message: "Match tiles to damage your opponent!", enemyHpMul: 0.15, enemyAtkMul: 0.3 },
+      2: { message: "⚔️ Sword = Damage · ❤️ Heal · 🛡️ Shield · ⭐ Star = Big Damage", enemyHpMul: 0.2, enemyAtkMul: 0.3 },
+      3: { message: "4 tiles in a line = CHARGED (2x power). Try it!", enemyHpMul: 0.25, enemyAtkMul: 0.3 }
+    };
+    function isTutorialFloor(floor) { return !!TUTORIAL_FLOORS[floor]; }
+    function maybeAutoTutorial() { return !settings.tutorialCompleted; }
+
+    function showTutorialPopup(text) {
+      return new Promise(resolve => {
+        const ov = document.createElement("div");
+        ov.className = "overlay open";
+        ov.style.zIndex = "10001";
+        ov.innerHTML = `
+          <div class="overlay-panel" style="max-width:280px;text-align:center;padding:20px">
+            <div style="font-size:1.1rem;font-weight:800;color:#4a4035;margin-bottom:10px">Tutorial</div>
+            <div style="font-size:0.82rem;color:#5a5048;margin-bottom:16px;line-height:1.5">${text}</div>
+            <button type="button" class="action-btn primary" id="tutPopupOk" style="min-height:48px;min-width:100px;font-size:0.85rem;font-weight:700">Got it!</button>
+          </div>`;
+        document.body.appendChild(ov);
+        ov.querySelector("#tutPopupOk").addEventListener("click", () => { ov.remove(); resolve(); });
+      });
+    }
+
     // ─── Card builder helpers ───
     function detectArchetype(name, desc, icon) {
       const s = (name + " " + desc + " " + (icon || "")).toLowerCase();
@@ -265,7 +290,6 @@
     function showUltReadyBanner() {
       if (combat.ultAnnounced) return;
       combat.ultAnnounced = true;
-      if (combat.tutorial && typeof markTutorialObjective === "function") markTutorialObjective("ult");
       const ov = document.getElementById("ultReadyOverlay");
       if (!ov) return;
       ov.classList.add("open");
@@ -346,6 +370,11 @@
         run.floor = savedFloor + 1;
         saveRun();
         run.floor = savedFloor;
+      }
+      // Mark tutorial complete after floor 3
+      if (combat.tutorial && run.floor >= 3 && !settings.tutorialCompleted) {
+        settings.tutorialCompleted = true;
+        persistSettings();
       }
       sayVoice("victory", { force: true });
       playVictory();
@@ -671,6 +700,8 @@
           return;
         }
         run.floor += 1;
+        // Tutorial ends after floor 3
+        if (combat.tutorial && run.floor > 3) combat.tutorial = false;
       }
       // defeat retry keeps same floor; fresh start from the menu resets via resetRun
 
@@ -778,15 +809,16 @@
       combat.enemyShield = arch && arch.startShield ? arch.startShield : 0;
 
       if (opts.tutorial) {
-        // Training Grounds: a passive dummy that can't be killed and deals no damage.
+        // Tutorial floors 1-3: weak passive enemies
+        const tutCfg = TUTORIAL_FLOORS[run.floor] || {};
         combat.bossKit = null;
         combat.eliteKit = null;
         combat.enemyArchetype = null;
         combat.enemyClass = "slime";
         combat.enemyFullName = "Training Dummy";
         combat.enemyName = "Training Dummy";
-        combat.enemyMaxHp = 100000;
-        combat.enemyHp = 100000;
+        combat.enemyMaxHp = Math.round(unitHp * (tutCfg.enemyHpMul || 0.2));
+        combat.enemyHp = combat.enemyMaxHp;
         combat.enemyShield = 0;
         combat.enemyUltCharge = 0;
         combat.enemySpecialCharge = 0;
@@ -807,24 +839,30 @@
           ? " · ELITE"
           : "";
       if (opts.tutorial) {
-        setLog("Training Grounds · " + combat.enemyName);
+        setLog(`Floor ${run.floor} · Tutorial · ${combat.enemyName}`);
       } else {
         setLog(`Floor ${run.floor}${floorNote} · ${combat.enemyName}`);
         saveRun();
       }
       showScreen("game");
       if (opts.tutorial) {
-        // Custom intro banner rather than "Floor 1"
+        // Show floor banner then tutorial popup
         const ov = document.getElementById("floorBannerOverlay");
         const k = document.getElementById("floorBannerKicker");
         const t = document.getElementById("floorBannerTitle");
         const s = document.getElementById("floorBannerSub");
         if (ov && k && t) {
-          k.textContent = "Training";
-          t.textContent = "Grounds";
+          k.textContent = `Floor ${run.floor}`;
+          t.textContent = "Tutorial";
           if (s) s.textContent = combat.enemyName;
           ov.classList.add("open");
-          setTimeout(() => ov.classList.remove("open"), 1600);
+          setTimeout(() => {
+            ov.classList.remove("open");
+            const tutCfg = TUTORIAL_FLOORS[run.floor];
+            if (tutCfg && tutCfg.message) {
+              setTimeout(() => showTutorialPopup(tutCfg.message), 300);
+            }
+          }, 1600);
         }
       } else {
         showFloorBanner();
@@ -865,21 +903,6 @@
         // defeat — retry same floor
         startBattle({ retry: true });
       }
-    });
-
-    // Tutorial overlay
-    const tutOverlay = document.getElementById("tutorialOverlay");
-    if (tutOverlay) {
-      document.getElementById("tutContinue").addEventListener("click", () => {
-        if (typeof finishTutorialProceed === "function") finishTutorialProceed();
-      });
-      document.getElementById("tutExit").addEventListener("click", () => {
-        if (typeof exitTutorial === "function") exitTutorial();
-      });
-    }
-    const tutSkipBtn = document.getElementById("tutSkip");
-    if (tutSkipBtn) tutSkipBtn.addEventListener("click", () => {
-      if (typeof exitTutorial === "function") exitTutorial();
     });
 
     function buildCharPick() {
@@ -1123,8 +1146,9 @@
           persistSettings();
           ov.classList.remove("open");
           resetRun();
-          if (typeof maybeAutoTutorial === "function" && maybeAutoTutorial()) {
-            startTutorial({ then: "run" });
+          if (maybeAutoTutorial()) {
+            combat.tutorial = true;
+            startBattle({ tutorial: true });
           } else {
             startBattle();
           }
@@ -1132,6 +1156,20 @@
         });
         wrap.appendChild(btn);
       });
+      // Show skip button only during tutorial
+      const skipBtn = document.getElementById("btnSkipTutorial");
+      if (skipBtn) {
+        skipBtn.style.display = maybeAutoTutorial() ? "" : "none";
+        skipBtn.onclick = () => {
+          settings.tutorialCompleted = true;
+          persistSettings();
+          combat.tutorial = false;
+          ov.classList.remove("open");
+          resetRun();
+          startBattle();
+          refreshContinueBtn();
+        };
+      }
       ov.classList.add("open");
     }
 

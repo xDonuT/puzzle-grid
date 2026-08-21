@@ -1985,8 +1985,6 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
 
     btnEnd.addEventListener("click", () => {
   if (busy || !combat.playerTurn) return;
-  if (combat.tutorial && typeof markTutorialObjective === "function") markTutorialObjective("endTurn");
-  if (combat.tutorial && typeof isTutorialComplete === "function" && isTutorialComplete()) return;
   // Track unused AP for next turn bonus – always +1 if any AP is left (Momentum: up to +2)
   const leftover = combat.ap;
   if (combat.ap > 0) {
@@ -2027,7 +2025,6 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         combat.ap -= 1;
       }
       shuffleBoard();
-      if (combat.tutorial && typeof markTutorialObjective === "function") markTutorialObjective("shuffle");
       playGooeyPlop(0.9, 0.5);
       refreshCombatUI();
     });

@@ -496,7 +496,6 @@
         shape.comboLevel = combo; // current cascade depth for combat hooks
         // Combat effects from this clear (cascades also apply)
         applyMatchCombat(matchedList, false, shape);
-        if (combat.tutorial && combat.playerTurn && typeof markTutorialObjective === "function") markTutorialObjective("match");
 
         // Transformative upgrades (player turn only)
         if (combat.playerTurn) {

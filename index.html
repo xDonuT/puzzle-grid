@@ -2440,7 +2440,7 @@ body.ult-hitstop .board-wrap {
       <div class="combatant enemy">
            <div class="fighter-name" id="enemyName">Rival</div>
           <div class="portrait-wrap">
-            <div class="portrait enemy" id="enemyPortrait" aria-hidden="true" data-tut-target="enemyPortrait">
+            <div class="portrait enemy" id="enemyPortrait" aria-hidden="true" >
             </div>
             <div class="enemy-thinking" id="enemyThinking"></div>
           </div>
@@ -2478,7 +2478,7 @@ body.ult-hitstop .board-wrap {
       <div class="combatant player">
            <div class="fighter-name" id="playerName">Ninja</div>
           <div class="portrait-wrap">
-            <div class="portrait ninja" id="playerPortrait" aria-hidden="true" data-tut-target="playerPortrait">
+            <div class="portrait ninja" id="playerPortrait" aria-hidden="true">
             </div>
           </div>
           <div class="hp-row">
@@ -2516,10 +2516,10 @@ body.ult-hitstop .board-wrap {
 
     <!-- Actions (between portraits and board) -->
     <div class="action-bar">
-      <div class="turn-indicator" id="turnNum" data-tut-target="turnNum">Turn 1</div>
+      <div class="turn-indicator" id="turnNum">Turn 1</div>
       <div class="action-bar-btns">
-        <button type="button" class="action-btn" id="btnShuffle" title="Shuffle board" data-tut-target="btnShuffle">Shuffle</button>
-        <div class="end-wrap" id="endWrap" data-tut-target="endWrap">
+        <button type="button" class="action-btn" id="btnShuffle" title="Shuffle board">Shuffle</button>
+        <div class="end-wrap" id="endWrap">
           <button type="button" class="action-btn end-btn" id="btnEnd" title="End turn">End</button>
         </div>
       </div>
@@ -2689,6 +2689,7 @@ body.ult-hitstop .board-wrap {
       <p style="color:#7a6e64;font-size:0.85rem;margin:6px 0 12px;font-weight:600">Pick how hard the rival fights</p>
       <div class="upgrade-cards" id="diffPickerCards"></div>
       <button type="button" class="tut-skip" id="btnDiffCancel" style="margin-top:12px">✕ Cancel</button>
+      <button type="button" class="tut-skip" id="btnSkipTutorial" style="margin-top:8px;display:none">Skip Tutorial</button>
     </div>
   </div>
 

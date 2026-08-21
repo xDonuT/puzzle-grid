@@ -1166,11 +1166,7 @@ const screenMenu = document.getElementById("screen-menu");
           persistSettings();
           ov.classList.remove("open");
           resetRun();
-          if (maybeAutoTutorial()) {
-            showTutorialOverlay();
-          } else {
-            startBattle();
-          }
+          startBattle();
           refreshContinueBtn();
         });
         wrap.appendChild(btn);

@@ -1348,7 +1348,60 @@ const screenMenu = document.getElementById("screen-menu");
   `;
 }
 
+    const passportOverlay = document.getElementById("passportOverlay");
+
+    // Left "identity page" of the passport spread
+    function passportIdentityHtml(who) {
+      if (who === "player") {
+        const s = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
+        const sig = SIGNATURE[combat.playerClass];
+        const sigLabel = { sword: "⚔️ Sword", shield: "🛡️ Shield", hp: "❤️ Potion" }[sig] || sig;
+        return `
+          <div class="pp-photo"><div class="portrait ${combat.playerClass}" id="ppPhotoSlot"></div></div>
+          <div class="pp-id-name">${s.name}</div>
+          <div class="info-row"><span>Class</span><span>${s.name}</span></div>
+          <div class="info-row"><span>HP</span><span>${combat.playerHp}/${combat.playerMaxHp}</span></div>
+          <div class="info-row"><span>Shield</span><span>${combat.shield}</span></div>
+          <div class="info-row"><span>Signature</span><span>${sigLabel}</span></div>
+          <div class="info-row"><span>Charge</span><span>${combat.sigBank}/${settings.ultMaxCharge}</span></div>
+          <div class="info-row"><span>AP</span><span>${combat.ap}/${AP_MAX}</span></div>
+          <div class="info-section">Stamps</div>
+          <div class="info-body">${statusSummaryPlayer()}</div>
+        `;
+      }
+      const isBoss = !!combat.bossKit, isElite = !!combat.eliteKit;
+      return `
+        <div class="pp-photo"><div class="portrait ${combat.enemyClass || "slime"}" id="ppPhotoSlot"></div></div>
+        <div class="pp-id-name">${combat.enemyFullName || combat.enemyName || "Rival"}</div>
+        <div class="info-row"><span>Type</span><span>${isBoss ? "👑 Boss" : isElite ? "⚡ Elite" : "Normal foe"}</span></div>
+        <div class="info-row"><span>HP</span><span>${combat.enemyHp}/${combat.enemyMaxHp}</span></div>
+        <div class="info-section">Stamps</div>
+        <div class="info-body">${statusSummaryEnemy()}</div>
+      `;
+    }
+
     function openInfo(who) {
+      const left = document.getElementById("ppLeft");
+      const right = document.getElementById("ppRight");
+      if (passportOverlay && left && right) {
+        left.innerHTML = passportIdentityHtml(who);
+        right.innerHTML = who === "player" ? heroInfoHtml(combat.playerClass) : enemyInfoHtml();
+        const slot = document.getElementById("ppPhotoSlot");
+        if (slot) {
+          if (who === "player") {
+            renderPortrait(slot, combat.playerClass, {
+              costume: settings.costume && settings.costume[combat.playerClass],
+              weapon: settings.weapon && settings.weapon[combat.playerClass]
+            });
+          } else {
+            renderPortrait(slot, combat.enemyClass);
+          }
+        }
+        passportOverlay.classList.remove("open");
+        void passportOverlay.offsetWidth; // restart flip animation
+        passportOverlay.classList.add("open");
+        return;
+      }
       if (who === "player") {
         infoTitle.textContent = (HERO_STATS[combat.playerClass] || {}).name || "Hero";
         infoBody.innerHTML = heroInfoHtml(combat.playerClass);
@@ -1389,6 +1442,11 @@ const screenMenu = document.getElementById("screen-menu");
     });
     infoOverlay.addEventListener("click", e => {
       if (e.target === infoOverlay) infoOverlay.classList.remove("open");
+    });
+    const btnPassportClose = document.getElementById("btnPassportClose");
+    if (btnPassportClose) btnPassportClose.addEventListener("click", () => passportOverlay.classList.remove("open"));
+    if (passportOverlay) passportOverlay.addEventListener("click", e => {
+      if (e.target === passportOverlay) passportOverlay.classList.remove("open");
     });
 
     // Phase event pill → info

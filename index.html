@@ -2398,6 +2398,29 @@ body.ult-hitstop .board-wrap {
   .action-bar { gap: 6px; }
    .action-btn.end-btn { width: 88px; height: 64px; font-size: 0.75rem; }
 }
+    /* ─── Passport spread overlay (long-press portrait) ─── */
+    .passport-spread-panel { max-width: 560px; width: 100%; background: transparent; box-shadow: none; }
+    .passport-spread { display: flex; gap: 10px; perspective: 1000px; }
+    .pp-page {
+      flex: 1; min-width: 0; background: #f2e7d3; border-radius: 12px; padding: 12px;
+      box-shadow:
+        inset 0 0 0 1px rgba(104,92,80,0.35),
+        inset 0 0 0 4px #f2e7d3,
+        inset 0 0 0 5px rgba(104,92,80,0.2),
+        0 10px 26px rgba(60,50,40,0.25);
+      max-height: 70vh; overflow-y: auto;
+    }
+    .pp-left { transform-origin: left center; animation: ppFlipL 0.34s ease-out; }
+    .pp-right { transform-origin: right center; animation: ppFlipR 0.34s ease-out 0.05s backwards; }
+    @keyframes ppFlipL { from { transform: rotateY(-75deg); opacity: 0.3; } to { transform: rotateY(0); opacity: 1; } }
+    @keyframes ppFlipR { from { transform: rotateY(75deg); opacity: 0.3; } to { transform: rotateY(0); opacity: 1; } }
+    .pp-photo { display: flex; justify-content: center; margin-bottom: 8px; }
+    .pp-photo .portrait { width: 84px; height: 84px; }
+    .pp-id-name { text-align: center; font-weight: 900; color: #4a4035; font-size: 1rem; margin-bottom: 8px; letter-spacing: 0.04em; }
+    @media (max-width: 540px) {
+      .passport-spread { flex-direction: column; }
+      .pp-page { max-height: 42vh; }
+    }
 </style>
 </head>
 <body>
@@ -2699,6 +2722,19 @@ body.ult-hitstop .board-wrap {
       <div id="infoBody"></div>
       <div class="panel-actions" style="margin-top:14px">
         <button type="button" class="action-btn primary" id="btnInfoClose" style="width:100%">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASSPORT SPREAD (long-press portrait) -->
+  <div class="overlay" id="passportOverlay">
+    <div class="panel passport-spread-panel">
+      <div class="passport-spread">
+        <div class="pp-page pp-left" id="ppLeft"></div>
+        <div class="pp-page pp-right" id="ppRight"></div>
+      </div>
+      <div class="panel-actions" style="margin-top:14px">
+        <button type="button" class="action-btn primary" id="btnPassportClose" style="width:100%">Close</button>
       </div>
     </div>
   </div>

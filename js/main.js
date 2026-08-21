@@ -13,56 +13,6 @@ const screenMenu = document.getElementById("screen-menu");
       }
     }
 
-    // ─── Tutorial: single overlay with Skip ───
-    let tutorialShown = false;
-
-    function showTutorialOverlay() {
-      if (tutorialShown) return;
-      tutorialShown = true;
-
-      // Remove any existing
-      const existing = document.getElementById("tutorialOverlay");
-      if (existing) existing.remove();
-
-      const ov = document.createElement("div");
-      ov.id = "tutorialOverlay";
-      ov.className = "overlay open";
-      ov.style.zIndex = "10000";
-      ov.innerHTML = `
-        <div class="overlay-panel" style="max-width:300px;padding:24px;background:#efe0c7">
-          <div style="font-size:1.1rem;font-weight:800;color:#4a4035;margin-bottom:8px">Welcome to Puzzle-Grid!</div>
-          <div style="font-size:0.78rem;color:#5a5048;margin-bottom:6px;line-height:1.5">
-            ⚔️ <b>Sword</b> — Damage<br>
-            ❤️ <b>Heart</b> — Heal<br>
-            🛡️ <b>Shield</b> — Block<br>
-            ⭐ <b>Star</b> — Big damage (4+ = Charged)<br>
-            🎲 <b>Question</b> — Random effect (good or bad)
-          </div>
-          <div style="margin-top:16px">
-            <button type="button" class="action-btn primary" style="width:100%;min-height:44px;font-size:0.85rem;font-weight:700">Skip Tutorial</button>
-          </div>
-        </div>`;
-
-      document.body.appendChild(ov);
-
-      ov.querySelector("button").addEventListener("click", () => {
-        ov.remove();
-        settings.tutorialCompleted = true;
-        persistSettings();
-        // Don't set combat.tutorial = false here — startBattle handles it
-      });
-    }
-
-    // Initialize tutorial on first run
-    function initTutorial() {
-      if (settings.tutorialCompleted) return;
-      tutorialStep = 0;
-      showTutorialStep(tutorialStep);
-    }
-
-    // Call initTutorial after char pick + before startBattle
-    // Will be called from the difficulty picker flow
-
     // ─── Card builder helpers ───
     function detectArchetype(name, desc, icon) {
       const s = (name + " " + desc + " " + (icon || "")).toLowerCase();
@@ -1171,20 +1121,6 @@ const screenMenu = document.getElementById("screen-menu");
         });
         wrap.appendChild(btn);
       });
-      // Show skip button only during tutorial
-      const skipBtn = document.getElementById("btnSkipTutorial");
-      if (skipBtn) {
-        skipBtn.style.display = maybeAutoTutorial() ? "" : "none";
-        skipBtn.onclick = () => {
-          settings.tutorialCompleted = true;
-          persistSettings();
-          combat.tutorial = false;
-          ov.classList.remove("open");
-          resetRun();
-          startBattle();
-          refreshContinueBtn();
-        };
-      }
       ov.classList.add("open");
     }
 

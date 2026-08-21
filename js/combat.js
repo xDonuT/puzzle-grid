@@ -8,15 +8,6 @@
 
     const logBarText = document.getElementById("logBarText");
     const actionLogBar = document.getElementById("actionLogBar");
-
-    // Smart tutorial — first-time tips during floor 1
-    let tutorialSeenSword = false;
-    let tutorialSeenHeart = false;
-    let tutorialSeenStar = false;
-    let tutorialSeenQuestion = false;
-    let tutorialSeenEndTurn = false;
-    let tutorialSeenShuffle = false;
-    let tutorialSeenUltimate = false;
     const actionLogModal = document.getElementById("actionLogModal");
     const actionLogClose = document.getElementById("actionLogClose");
     const actionLogScroll = document.getElementById("actionLogScroll");

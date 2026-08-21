@@ -13,8 +13,11 @@
       }
     }
 
-    // ─── Tutorial system (single-floor intro) ───
+// ─── Tutorial system (single-floor intro + smart hints) ───
     function maybeAutoTutorial() { return !settings.tutorialCompleted; }
+
+    // Track which tutorial tips have been shown this floor
+    let tutorialTipsShown = {};
 
     function showTutorialPopup() {
       return new Promise(resolve => {
@@ -28,7 +31,7 @@
               <div style="margin-bottom:6px"><b>⚔️ Sword</b> — Deal damage to enemy</div>
               <div style="margin-bottom:6px"><b>❤️ Heart</b> — Heal your HP</div>
               <div style="margin-bottom:6px"><b>🛡️ Shield</b> — Block incoming damage</div>
-              <div style="margin-bottom:6px"><b>⭐ Star</b> — Deal big damage (charged: 4+ in a row)</div>
+              <div style="margin-bottom:6px"><b>⭐ Star</b> — Deal big damage (4+ in a row = Charged!)</div>
               <div style="margin-bottom:6px;color:#8a6a48"><b>🎲 Question</b> — Mystery tile: random effect (buff or debuff)</div>
               <div style="margin-bottom:4px">Buffs: <b>Heal</b>, <b>Shield</b>, <b>Charge</b> (+2 ult), <b>Empower</b> (next atk +50%)</div>
               <div style="margin-bottom:4px;color:#c44; ">Debuffs: <b>Damage</b> (self 3–6 dmg), <b>Poison</b> (2 turns), <b>Blind</b> (next atk -50%), <b>Weaken</b> (next sword -2)</div>
@@ -45,6 +48,14 @@
         document.body.appendChild(ov);
         ov.querySelector("#tutPopupOk").addEventListener("click", () => { ov.remove(); resolve(); });
       });
+    }
+
+    // ─── Smart tutorial hints — show first-time tips during floor 1 ───
+    function maybeShowTutorialTip(key, condition, text) {
+      if (combat.tutorial && run.floor === 1 && !tutorialTipsShown[key] && condition) {
+        setLog(`[Tutorial] ${text}`);
+        tutorialTipsShown[key] = true;
+      }
     }
 
     // ─── Card builder helpers ───

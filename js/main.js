@@ -170,9 +170,9 @@ const screenMenu = document.getElementById("screen-menu");
       const poolH = hard.slice();
       for (let i = poolE.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [poolE[i], poolE[j]] = [poolE[j], poolE[i]]; }
       for (let i = poolH.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [poolH[i], poolH[j]] = [poolH[j], poolH[i]]; }
-      const choices = [...poolE.slice(0, 2), ...poolH.slice(0, 1)];
+      const choices = [...poolE.slice(0, 1), ...poolH.slice(0, 2)];
       if (t) t.textContent = "Floor Modifier";
-      if (s) s.textContent = "Pick a buff or a challenge for this floor";
+      if (s) s.textContent = "Pick a benefit or a challenge for this floor";
       wrap.innerHTML = "";
       choices.forEach(m => {
         const btn = document.createElement("button");
@@ -180,7 +180,7 @@ const screenMenu = document.getElementById("screen-menu");
         const arch = detectArchetype(m.name, m.desc, m.icon);
         const callout = extractCallout(m.name, m.desc);
         btn.className = "upgrade-card glow-" + arch.cls;
-        // Top row
+        if (m.color) btn.style.borderColor = m.color;
         const top = document.createElement("div");
         top.className = "up-card-top";
         const archTag = document.createElement("span");
@@ -190,15 +190,12 @@ const screenMenu = document.getElementById("screen-menu");
         tierBadge.className = "modifier-tier " + m.tier;
         tierBadge.textContent = m.tier === "hard" ? "CHALLENGE" : "BENEFIT";
         top.append(archTag, tierBadge);
-        // Title
         const title = document.createElement("div");
         title.className = "up-card-title";
         title.textContent = (m.icon || "") + " " + m.name;
-        // Callout
         const calloutBox = document.createElement("div");
         calloutBox.className = "up-card-callout";
         calloutBox.textContent = callout || m.desc.toUpperCase();
-        // Description
         const descEl = document.createElement("div");
         descEl.className = "up-card-desc";
         descEl.textContent = m.desc;
@@ -206,7 +203,7 @@ const screenMenu = document.getElementById("screen-menu");
         if (m.tier === "hard") {
           const reward = document.createElement("div");
           reward.className = "modifier-reward";
-          reward.textContent = " Rare reward guaranteed next floor";
+          reward.textContent = " Also pick a bonus modifier";
           btn.appendChild(reward);
         }
         btn.addEventListener("click", () => {
@@ -218,7 +215,7 @@ const screenMenu = document.getElementById("screen-menu");
       ov.classList.add("open");
     }
 
-    function openHardStatPicker(onPick) {
+    function openEasyBonusPicker(onPick) {
       const ov = document.getElementById("upgradeOverlay");
       const wrap = document.getElementById("upgradeCards");
       const t = document.getElementById("upgradeTitle");
@@ -227,20 +224,27 @@ const screenMenu = document.getElementById("screen-menu");
       if (!ov || !wrap) { onPick(); return; }
       if (rr) rr.style.display = "none";
       if (t) t.textContent = "Challenge Bonus";
-      if (s) s.textContent = "Pick a permanent upgrade for taking the challenge";
+      if (s) s.textContent = "Pick a benefit — you earned it";
       wrap.innerHTML = "";
-      const stats = [
-        { icon: "❤️", name: "+5 Max HP", desc: "Permanently boost your health", tier: "uncommon", apply() { run.bonusMaxHp += 5; } },
-        { icon: "🛡️", name: "+2 Max Shield", desc: "Higher shield ceiling", tier: "uncommon", apply() { run.bonusShieldMax += 2; } },
-        { icon: "⚔️", name: "+1 Sword Damage", desc: "Permanently stronger swords", tier: "uncommon", apply() { run.bonusSwordDmg += 1; } },
-        { icon: "⭐", name: "+1 Star Damage", desc: "Permanently stronger stars", tier: "uncommon", apply() { run.bonusStarDmg += 1; } }
-      ];
-      stats.forEach(st => {
+      const easy = FLOOR_MODIFIERS.filter(m => m.tier === "easy");
+      const pool = easy.slice();
+      for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+      const picks = pool.slice(0, 3);
+      picks.forEach(st => {
         const btn = document.createElement("button");
         btn.type = "button";
-        buildRewardCard(btn, st, { permanent: true });
+        btn.className = "upgrade-card glow-general";
+        if (st.color) btn.style.borderColor = st.color;
+        const title = document.createElement("div");
+        title.className = "up-card-title";
+        title.textContent = (st.icon || "") + " " + st.name;
+        const descEl = document.createElement("div");
+        descEl.className = "up-card-desc";
+        descEl.textContent = st.desc;
+        btn.append(title, descEl);
         btn.addEventListener("click", () => {
-          st.apply();
+          // Apply the easy modifier immediately (on top of the hard one)
+          st.apply(combat);
           ov.classList.remove("open");
           onPick();
         });
@@ -254,9 +258,12 @@ const screenMenu = document.getElementById("screen-menu");
       const kicker = document.getElementById("floorBannerKicker");
       const title = document.getElementById("floorBannerTitle");
       const sub = document.getElementById("floorBannerSub");
+      const card = document.getElementById("floorBannerCard");
       if (!ov) return;
       let kick = "Floor";
       let extra = "";
+      if (card) card.style.background = "";
+      if (card) card.style.boxShadow = "";
       if (BOSS_KITS[run.floor]) {
         kick = "Boss Floor";
         extra = BOSS_KITS[run.floor].name;
@@ -266,6 +273,12 @@ const screenMenu = document.getElementById("screen-menu");
       }
       if (combat.floorModifier) {
         extra = (extra ? extra + " — " : "") + combat.floorModifier.icon + " " + combat.floorModifier.name;
+        // Tint the banner with the modifier's color
+        if (combat.floorModifier.color && card) {
+          const c = combat.floorModifier.color;
+          card.style.background = `linear-gradient(160deg, ${c}30, #f3efe8)`;
+          card.style.boxShadow = `0 12px 40px ${c}40`;
+        }
       }
       kicker.textContent = kick;
       title.textContent = String(run.floor);
@@ -669,7 +682,7 @@ const screenMenu = document.getElementById("screen-menu");
               run.pendingModifier = mod;
               if (mod && mod.tier === "hard") {
                 run.pendingModifierRare = true;
-                openHardStatPicker(() => {
+                openEasyBonusPicker(() => {
                   showVictoryOverlay({ label: permanentLabel, permanent: true, tempLabel: label });
                 });
               } else {
@@ -685,7 +698,7 @@ const screenMenu = document.getElementById("screen-menu");
               run.pendingModifier = mod;
               if (mod && mod.tier === "hard") {
                 run.pendingModifierRare = true;
-                openHardStatPicker(() => {
+                openEasyBonusPicker(() => {
                   showVictoryOverlay({ label, permanent: false });
                 });
               } else {
@@ -773,10 +786,6 @@ const screenMenu = document.getElementById("screen-menu");
           pending: run.pending,
           pendingModifier: run.pendingModifier,
           pendingModifierRare: run.pendingModifierRare,
-          pendingBranchDebuff: run.pendingBranchDebuff || null,
-          pendingBranchBuff: run.pendingBranchBuff || null,
-          branchSeenBuffs: run.branchSeenBuffs || [],
-          branchSeenDebuffs: run.branchSeenDebuffs || [],
           playerClass: combat.playerClass,
           difficulty: settings.difficulty,
           elapsedMs: run.elapsedMs || 0,
@@ -845,10 +854,6 @@ const screenMenu = document.getElementById("screen-menu");
       run.pending = { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 };
       run.pendingModifier = null;
       run.pendingModifierRare = false;
-      run.pendingBranchDebuff = null;
-      run.pendingBranchBuff = null;
-      run.branchSeenBuffs = [];
-      run.branchSeenDebuffs = [];
       run.elapsedMs = 0;
       run.floorElapsedMs = 0;
       timerRunning = false;
@@ -905,10 +910,6 @@ const screenMenu = document.getElementById("screen-menu");
       AP_MAX = 3 + run.bonusApMax;
       run.pendingModifier = d.pendingModifier || null;
       run.pendingModifierRare = !!d.pendingModifierRare;
-      run.pendingBranchDebuff = d.pendingBranchDebuff || null;
-      run.pendingBranchBuff = d.pendingBranchBuff || null;
-      run.branchSeenBuffs = d.branchSeenBuffs || [];
-      run.branchSeenDebuffs = d.branchSeenDebuffs || [];
       if (d.playerClass && HERO_STATS[d.playerClass]) combat.playerClass = d.playerClass;
       if (d.difficulty) settings.difficulty = d.difficulty;
     }
@@ -996,6 +997,12 @@ const screenMenu = document.getElementById("screen-menu");
       combat.cascadeDamageMult = 0;
       combat.enemySpeedMult = 1;
       combat.shieldCapOverride = 0;
+      combat.volatileFloor = false;
+      combat.enemyRegen = 0;
+      combat.quickening = false;
+      combat.quickeningTicks = 0;
+      combat.pendingChargedFirst = false;
+      combat.enemyAtkBonus = 0;
       if (combat.floorModifier) {
         combat.floorModifier.apply(combat);
         if (combat.enemySpeedMult && combat.enemySpeedMult !== 1) {
@@ -1007,26 +1014,6 @@ const screenMenu = document.getElementById("screen-menu");
         }
       }
       run.pendingModifierRare = false;
-      // Apply pending branch debuff/buff from the Whispering Staircase
-      if (run.pendingBranchDebuff) {
-        const bd = BRANCH_DEBUFFS.find(d => d.id === run.pendingBranchDebuff);
-        if (bd) {
-          bd.apply(combat);
-          if (combat.enemySpeedMult && combat.enemySpeedMult !== 1) {
-            combat.enemyUltNeed = Math.max(1, Math.round(combat.enemyUltNeed * combat.enemySpeedMult));
-            combat.enemySpecialNeed = Math.max(1, Math.round(combat.enemySpecialNeed * combat.enemySpeedMult));
-          }
-          if (combat.shieldCapOverride) {
-            combat.shield = Math.min(combat.shield, combat.shieldCapOverride);
-          }
-        }
-        run.pendingBranchDebuff = null;
-      }
-      if (run.pendingBranchBuff) {
-        const bb = BRANCH_BUFFS.find(b => b.id === run.pendingBranchBuff);
-        if (bb) bb.apply();
-        run.pendingBranchBuff = null;
-      }
       busy = false;
 
       // Single enemy setup (boss / elite / normal)

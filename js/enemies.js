@@ -498,22 +498,28 @@
     // Floor modifiers — picked after the reward. Easy = benefits player (normal reward).
     // Hard = hurts player but guarantees a rare-tier reward next floor.
     const FLOOR_MODIFIERS = [
-      { id: "swordMastery", tier: "easy", icon: "⚔️", name: "Sword Mastery", desc: "Sword damage +2 this floor.",
+      // ---- Easy (benefits) ----
+      { id: "swordMastery", tier: "easy", icon: "⚔️", name: "Sword Mastery", desc: "Sword damage +2 this floor.", color: "#c88060",
         apply(c) { c.tempSwordDmg += 2; } },
-      { id: "starBurst", tier: "easy", icon: "⭐", name: "Star Burst", desc: "Star damage +2 this floor.",
+      { id: "starBurst", tier: "easy", icon: "⭐", name: "Star Burst", desc: "Star damage +2 this floor.", color: "#d4a840",
         apply(c) { c.tempStarDmg = (c.tempStarDmg || 0) + 2; } },
-      { id: "ironSkin", tier: "easy", icon: "🛡️", name: "Iron Skin", desc: "+5 max HP this floor.",
+      { id: "ironSkin", tier: "easy", icon: "🛡️", name: "Iron Skin", desc: "+5 max HP this floor.", color: "#6a9a6a",
         apply(c) { c.playerMaxHp += 5; c.playerHp = Math.min(c.playerMaxHp, c.playerHp + 5); } },
-      { id: "timeRush", tier: "hard", icon: "⏱️", name: "Time Rush", desc: "Enemy specials & ults charge 40% faster.",
-        apply(c) { c.enemySpeedMult = 0.6; } },
-      { id: "glassCannon", tier: "hard", icon: "💥", name: "Glass Cannon", desc: "Player damage +50%, healing -50%.",
-        apply(c) { c.glassCannon = true; } },
-      { id: "shieldWeakness", tier: "hard", icon: "🛡️", name: "Shield Weakness", desc: "Shield cap reduced to 8.",
-        apply(c) { c.shieldCapOverride = 8; } },
-      { id: "armorPlating", tier: "easy", icon: "🛡️", name: "Armor Plating", desc: "+2 shield per match.",
-        apply(c) { c.armorPlating = (c.armorPlating || 0) + 2; } },
-      { id: "cascadeBoost", tier: "easy", icon: "⚡", name: "Cascade Boost", desc: "Cascade damage +50%.",
-        apply(c) { c.cascadeDamageMult = 1.5; } }
+      { id: "firstStrike", tier: "easy", icon: "💥", name: "First Strike", desc: "First match of the floor is charged (4+).", color: "#d4783c",
+        apply(c) { c.pendingChargedFirst = true; } },
+      { id: "signatureSurge", tier: "easy", icon: "🔥", name: "Signature Surge", desc: "Start floor with +4 ult charge.", color: "#e06040",
+        apply(c) { c.sigBank = Math.min(settings.ultMaxCharge, c.sigBank + 4); } },
+      // ---- Hard (challenges) ----
+      { id: "mirrorMatch", tier: "hard", icon: "🦴", name: "Mirror Match", desc: "Enemy starts with Fracture 3 — plan your Shatter.", color: "#8a50c0",
+        apply(c) { c.fractureStacks = Math.min(5, c.fractureStacks + 3); c.fractureTurns = Math.max(c.fractureTurns, 5); } },
+      { id: "toxicMist", tier: "hard", icon: "☠️", name: "Toxic Mist", desc: "Both fighters start poisoned 3 turns.", color: "#5a8a3a",
+        apply(c) { c.poisonTurns = Math.max(c.poisonTurns || 0, 3); c.enemyPoisonTurns = Math.max(c.enemyPoisonTurns || 0, 3); } },
+      { id: "volatileFloor", tier: "hard", icon: "🌋", name: "Volatile Floor", desc: "Every match deals 1 damage to you.", color: "#d44a2a",
+        apply(c) { c.volatileFloor = true; } },
+      { id: "bloodPrice", tier: "hard", icon: "🩸", name: "Blood Price", desc: "Enemy heals 3 HP per turn.", color: "#b83030",
+        apply(c) { c.enemyRegen = (c.enemyRegen || 0) + 3; } },
+      { id: "quickening", tier: "hard", icon: "⚡", name: "Quickening", desc: "Enemy gains +1 ATK every 2 turns.", color: "#c8a030",
+        apply(c) { c.quickening = true; c.quickeningTicks = 0; } }
     ];
 
     function pickDistinct(pool, n, taken) {
@@ -542,8 +548,8 @@
       return [top, ...commons];
     }
 
-    // --- Branch system (Whispering Staircase) ---
-    const BRANCH_FLOORS = [2, 7, 12, 16];
+    // --- Branch system (Whispering Staircase) — dormant, for future endless tower ---
+    const BRANCH_FLOORS = [];
 
     const BRANCH_BUFFS = [
       { id: "bHealFull", name: "Full Restore", desc: "Heal to max HP", icon: "💚", apply() { combat.playerHp = combat.playerMaxHp; } },
@@ -677,7 +683,14 @@
       poisonStacks: 0,
       acidStacks: 0,
       // Branch debuff flags
-      branchBleedingEdge: false
+      branchBleedingEdge: false,
+      // Floor modifier flags
+      volatileFloor: false,
+      enemyRegen: 0,
+      quickening: false,
+      quickeningTicks: 0,
+      pendingChargedFirst: false,
+      enemyAtkBonus: 0
     };
 
     // Track unused AP bonus from previous turn

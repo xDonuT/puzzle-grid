@@ -61,7 +61,7 @@
       // Combo text personality + scale
       comboTextEl.classList.remove("level-2", "level-3", "level-4", "level-5", "show");
       if (level >= 2) {
-        const labels = { 2: "Nice!", 3: "Great!", 4: "Amazing!", 5: "Incredible!", 6: "Unreal!", 7: "Divine!" };
+        const labels = { 2: "Yay!", 3: "Eyyyy!", 4: "Ayoo!", 5: "Sheeesh!", 6: "Let's Gooo!", 7: "Godlike!!" };
         comboTextEl.textContent = labels[Math.min(level, 7)] || "Divine!";
         const lv = Math.min(level, 5);
         comboTextEl.classList.add("show", `level-${lv}`);
@@ -535,10 +535,15 @@
         }
 
         const shape = analyzeShapes(mark);
-        // T/+ cross refunds 1 AP; each L X-seal detonated refunds 1 AP
         shape.apRefund = !!((shape.isCross && shape.crossKind !== "l") || xDetonated.length > 0);
         shape.comboLevel = combo; // current cascade depth for combat hooks
-        // Combat effects from this clear (cascades also apply)
+        // First Strike modifier: first player match is charged
+        if (combat.playerTurn && combat.pendingChargedFirst && !shape.charged) {
+          shape.charged = true;
+          shape.mult = Math.max(shape.mult, 1.5);
+          if (!shape.tags.includes("charged")) shape.tags.push("charged");
+          combat.pendingChargedFirst = false;
+        }
         applyMatchCombat(matchedList, false, shape);
 
         // Transformative upgrades (player turn only)

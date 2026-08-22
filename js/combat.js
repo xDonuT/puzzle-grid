@@ -1284,11 +1284,6 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           flyEffect(matchedList[0] ? getCell(matchedList[0].r, matchedList[0].c) : document.getElementById("playerPortrait"),
                     document.getElementById("enemyPortrait"), kind);
         }
-        // Bleeding Edge (branch debuff): sword matches deal 1 self-damage
-        if (!forEnemy && combat.branchBleedingEdge && swordCount > 0) {
-          dealDamageToPlayer(1, { noFracture: true });
-          dmgPop("player", "-1", "dmg");
-        }
         let healApplied = 0, shieldApplied = 0;
         if (heal > 0) healApplied = applyHealing(heal, healCount);
         if (sh > 0) shieldApplied = applyShielding(sh, shieldCount);
@@ -1326,6 +1321,12 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
             combat.ap = Math.min(AP_MAX, combat.ap + 1);
             bitsExtra.push("Mana Surge +1 AP");
           }
+        }
+        // Volatile Floor: every player match deals 1 self-damage
+        if (!forEnemy && combat.volatileFloor && matchedList.length > 0) {
+          dealDamageToPlayer(1, { noFracture: true });
+          dmgPop("player", "-1", "dmg");
+          bitsExtra.push("Volcano 1");
         }
         const bits = [label];
         if (shapeTag) bits.push(shapeTag + (mult !== 1 ? ` ×${mult}` : ""));
@@ -1369,6 +1370,25 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       // Boss turn-start passive (e.g. Last Rival regeneration)
       if (combat.bossKit && typeof combat.bossKit.turnStart === "function") {
         combat.bossKit.turnStart();
+      }
+
+      // Blood Price: floor modifier enemy regen
+      if (combat.enemyRegen > 0 && combat.enemyHp > 0 && combat.enemyHp < combat.enemyMaxHp) {
+        healEnemy(combat.enemyRegen);
+        flyEffect(document.getElementById("enemyPortrait"), document.getElementById("enemyPortrait"), "hp");
+        refreshCombatUI();
+        await sleep(200);
+      }
+
+      // Quickening: enemy gains +1 ATK every 2 turns
+      if (combat.quickening) {
+        combat.quickeningTicks = (combat.quickeningTicks || 0) + 1;
+        if (combat.quickeningTicks % 2 === 0) {
+          combat.enemyAtkBonus = (combat.enemyAtkBonus || 0) + 0.25;
+          dmgPop("enemy", "+ATK", "true");
+          refreshCombatUI();
+          await sleep(250);
+        }
       }
 
       // Knight Fracture: true dmg at start of enemy turn
@@ -1443,7 +1463,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       setLog(`${combat.enemyName} is thinking…`);
       const archAtk = (combat.enemyArchetype && combat.enemyArchetype.atkMul) || 1;
       const eliteAtk = (combat.eliteKit && combat.eliteKit.atkMul) || 1;
-      const atkScale = archAtk * eliteAtk;
+      const quickBonus = combat.quickening ? (combat.enemyAtkBonus || 0) : 0;
+      const atkScale = archAtk * eliteAtk + quickBonus;
 
       for (let i = 0; i < AP_MAX && combat.enemyAp > 0 && combat.playerHp > 0; i++) {
         await sleep(settings.difficulty === "hard" ? 280 : 380);

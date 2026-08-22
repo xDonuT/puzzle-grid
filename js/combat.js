@@ -709,10 +709,11 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
   pip.classList.toggle("empty", !on);
 });
 
-      // Enemy AP (mirror of the player's — same pips, drains as the rival acts)
+      // Enemy AP (own economy — capped at base 3 regardless of player bonuses)
       const enemyApPipsEl = document.getElementById("enemyApPips");
       if (enemyApPipsEl) {
-        const epipCount = Math.max(AP_MAX, combat.enemyAp || 0);
+        const eCap = Math.min(AP_MAX, 3);
+        const epipCount = Math.max(eCap, combat.enemyAp || 0);
         if (enemyApPipsEl.children.length !== epipCount) {
           enemyApPipsEl.innerHTML = "";
           for (let i = 0; i < epipCount; i++) {
@@ -1358,7 +1359,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       busy = true;
       combat.playerTurn = false;
       document.body.classList.remove("your-turn");
-      combat.enemyAp = AP_MAX;
+      combat.enemyAp = Math.min(AP_MAX, 3); // rival caps at base AP — player bonuses are pure upside
 
       // Boss turn-start passive (e.g. Last Rival regeneration)
       if (combat.bossKit && typeof combat.bossKit.turnStart === "function") {
@@ -1509,7 +1510,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
 
       combat.ap = AP_MAX + unusedApBonus;
       unusedApBonus = 0; // Reset for this turn
-      combat.enemyAp = AP_MAX;
+      combat.enemyAp = Math.min(AP_MAX, 3); // rival caps at base AP
       combat.turn += 1;
       combat.playerTurn = true;
       document.body.classList.add("your-turn");

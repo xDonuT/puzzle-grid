@@ -509,6 +509,12 @@
         apply(c) { c.pendingChargedFirst = true; } },
       { id: "signatureSurge", tier: "easy", icon: "🔥", name: "Signature Surge", desc: "Start floor with +4 ult charge.", color: "#e06040",
         apply(c) { c.sigBank = Math.min(settings.ultMaxCharge, c.sigBank + 4); } },
+      { id: "freeShuffles", tier: "easy", icon: "🔀", name: "Lucky Shuffle", desc: "+2 free shuffles this floor.", color: "#4eaa4e",
+        apply(c) { c.extraFreeShuffles = (c.extraFreeShuffles || 0) + 2; } },
+      { id: "tileBloom", tier: "easy", icon: "🌸", name: "Tile Bloom", desc: "Start each turn with a random special tile.", color: "#c080d0",
+        apply(c) { c.tileBloomPerTurn = true; } },
+      { id: "shieldBoon", tier: "easy", icon: "🏰", name: "Fortify", desc: "+5 max shield this floor.", color: "#6090c8",
+        apply(c) { c.tempShieldCapBonus = (c.tempShieldCapBonus || 0) + 5; } },
       // ---- Hard (challenges) ----
       { id: "mirrorMatch", tier: "hard", icon: "🦴", name: "Mirror Match", desc: "Enemy starts with Fracture 3 — plan your Shatter.", color: "#8a50c0",
         apply(c) { c.fractureStacks = Math.min(5, c.fractureStacks + 3); c.fractureTurns = Math.max(c.fractureTurns, 5); } },
@@ -690,7 +696,10 @@
       quickening: false,
       quickeningTicks: 0,
       pendingChargedFirst: false,
-      enemyAtkBonus: 0
+      enemyAtkBonus: 0,
+      extraFreeShuffles: 0,
+      tileBloomPerTurn: false,
+      tempShieldCapBonus: 0
     };
 
     // Track unused AP bonus from previous turn

@@ -1003,6 +1003,9 @@ const screenMenu = document.getElementById("screen-menu");
       combat.quickeningTicks = 0;
       combat.pendingChargedFirst = false;
       combat.enemyAtkBonus = 0;
+      combat.extraFreeShuffles = 0;
+      combat.tileBloomPerTurn = false;
+      combat.tempShieldCapBonus = 0;
       if (combat.floorModifier) {
         combat.floorModifier.apply(combat);
         if (combat.enemySpeedMult && combat.enemySpeedMult !== 1) {

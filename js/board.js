@@ -970,4 +970,22 @@
       }
     });
 
+    // Place a random special (bloom/cross/x) on a random non-special tile.
+    // Called by combat.js for the "Tile Bloom" floor modifier.
+    window.placeRandomSpecial = function placeRandomSpecial() {
+      const kinds = ["bloom", "cross", "x"];
+      const candidates = [];
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (board[r][c] && !specials[r][c]) candidates.push({ r, c });
+        }
+      }
+      if (!candidates.length) return;
+      const pick = candidates[Math.floor(Math.random() * candidates.length)];
+      const kind = kinds[Math.floor(Math.random() * kinds.length)];
+      specials[pick.r][pick.c] = kind;
+      const el = getCell(pick.r, pick.c);
+      setSpecialClass(el, kind);
+    };
+
     // ---------- Phase 2: character SVGs (simple, cute, flat) ----------

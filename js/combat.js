@@ -642,20 +642,23 @@
       }
       if (btnShuffle) {
         const free = (combat.freeShuffles || 0) > 0;
-        btnShuffle.title = free ? "Shuffle board (free)" : "Shuffle board (1 AP)";
-        btnShuffle.classList.toggle("free", free);
+        const extraFree = (combat.extraFreeShuffles || 0) > 0;
+        const anyFree = free || extraFree;
+        btnShuffle.title = anyFree ? "Shuffle board (free)" : "Shuffle board (1 AP)";
+        btnShuffle.classList.toggle("free", anyFree);
         // Build label + badge together so textContent doesn't wipe children
         let badgeHtml = "";
         if (combat.playerTurn && !busy) {
           if (free) {
             badgeHtml = '<span class="shuffle-badge free">FREE</span>';
+          } else if (extraFree) {
+            badgeHtml = `<span class="shuffle-badge free">${combat.extraFreeShuffles}</span>`;
           } else {
             const turnsUntilFree = 3 - ((combat.turn - 1) % 3);
-            const bc = turnsUntilFree <= 1 ? "" : "";
             badgeHtml = `<span class="shuffle-badge">${turnsUntilFree <= 1 ? "Next!" : turnsUntilFree}</span>`;
           }
         }
-        btnShuffle.innerHTML = (free ? "Shuffle FREE" : "Shuffle (1AP)") + badgeHtml;
+        btnShuffle.innerHTML = (anyFree ? "Shuffle FREE" : "Shuffle (1AP)") + badgeHtml;
       }
       // End button: AP ring shows the active side's AP for the current turn
       if (endWrap) {
@@ -731,7 +734,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       }
 
       const hero = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
-      const maxSh = hero.maxShieldCap + run.bonusShieldMax;
+      const maxSh = hero.maxShieldCap + run.bonusShieldMax + (combat.tempShieldCapBonus || 0);
       const shieldNumEl = document.getElementById("shieldNum");
       if (shieldBadgeEl) {
         shieldBadgeEl.style.opacity = combat.shield > 0 ? "1" : "0.4";
@@ -1551,6 +1554,11 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         combat.freeShuffles = 0;
       }
 
+      // Tile Bloom modifier: place a random special each turn
+      if (combat.tileBloomPerTurn && typeof window.placeRandomSpecial === "function") {
+        window.placeRandomSpecial();
+      }
+
       // Decay timed statuses
       if (combat.afterglowTurns > 0) combat.afterglowTurns--;
       if (combat.manaLockTurns > 0) combat.manaLockTurns--;
@@ -1602,7 +1610,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         if (totalStacks > 0) {
           const toxicShield = totalStacks * 2;
           const hero = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
-          const maxSh = combat.shieldCapOverride || (hero.maxShieldCap + run.bonusShieldMax);
+          const maxSh = combat.shieldCapOverride || (hero.maxShieldCap + run.bonusShieldMax + (combat.tempShieldCapBonus || 0));
           const shielded = Math.min(toxicShield, maxSh - combat.shield);
           if (shielded > 0) {
             combat.shield += shielded;
@@ -1734,7 +1742,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
     // Helper function to apply shielding with overflow-to-damage mechanic
     function applyShielding(amt, shieldCount = 0) {
       const hero = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
-      const maxSh = combat.shieldCapOverride || (hero.maxShieldCap + run.bonusShieldMax);
+      const maxSh = combat.shieldCapOverride || (hero.maxShieldCap + run.bonusShieldMax + (combat.tempShieldCapBonus || 0));
       const shielded = Math.min(amt, maxSh - combat.shield);
       combat.shield += shielded;
       if (combat.stats) combat.stats.shield += shielded;
@@ -2047,6 +2055,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (busy || !combat.playerTurn) return;
       if ((combat.freeShuffles || 0) > 0) {
         combat.freeShuffles -= 1;
+      } else if ((combat.extraFreeShuffles || 0) > 0) {
+        combat.extraFreeShuffles -= 1;
       } else {
         if (combat.ap <= 0) return;
         combat.ap -= 1;

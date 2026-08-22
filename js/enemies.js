@@ -542,6 +542,33 @@
       return [top, ...commons];
     }
 
+    // --- Branch system (Whispering Staircase) ---
+    const BRANCH_FLOORS = [2, 7, 12, 16];
+
+    const BRANCH_BUFFS = [
+      { id: "bHealFull", name: "Full Restore", desc: "Heal to max HP", icon: "💚", apply() { combat.playerHp = combat.playerMaxHp; } },
+      { id: "bEmpower", name: "Empower", desc: "Next damaging match +50%", icon: "⚔️", apply() { combat.empowerNext = true; } },
+      { id: "bSwordBoost", name: "Sharpen", desc: "+3 sword damage this fight", icon: "🗡️", apply() { combat.tempSwordDmg = (combat.tempSwordDmg || 0) + 3; } },
+      { id: "bEnemyPoison", name: "Poison", desc: "Enemy starts poisoned 2 turns", icon: "☠️", apply() { combat.enemyPoisonTurns = Math.max(combat.enemyPoisonTurns || 0, 2); } },
+      { id: "bCharge", name: "Star Surge", desc: "+3 ult charge", icon: "⭐", apply() { combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + 3); } },
+      { id: "bCrit", name: "Fated Edge", desc: "+20% crit this fight", icon: "🎯", apply() { combat.critChance = (combat.critChance || 0) + 20; } },
+      { id: "bMaxHp", name: "Tower's Gift", desc: "+6 Max HP, heal to full", icon: "❤️", apply() { run.bonusMaxHp += 6; combat.playerMaxHp += 6; combat.playerHp = combat.playerMaxHp; } },
+      { id: "bShield", name: "Ward", desc: "+8 shield now", icon: "🛡️", apply() { combat.shield = Math.min(settings.shieldMax + run.bonusShieldMax, combat.shield + 8); } },
+      { id: "bStarDmg", name: "Star Power", desc: "+3 star damage this fight", icon: "⭐", apply() { combat.tempStarDmg = (combat.tempStarDmg || 0) + 3; } },
+      { id: "bFreeAp", name: "Second Wind", desc: "+2 AP this turn", icon: "⚡", apply() { combat.ap = Math.min(AP_MAX + 2, combat.ap + 2); } }
+    ];
+
+    const BRANCH_DEBUFFS = [
+      { id: "bdTimeRush", name: "Time Rush", desc: "Enemy specials/ults 40% faster", icon: "⏱️", apply(c) { c.enemySpeedMult = 0.6; } },
+      { id: "bdGlass", name: "Glass Cannon", desc: "Take +50% damage, −50% healing", icon: "💥", apply(c) { c.glassCannon = true; } },
+      { id: "bdShatter", name: "Shield Weakness", desc: "Shield cap = 8", icon: "🛡️", apply(c) { c.shieldCapOverride = 8; } },
+      { id: "bdFracture", name: "Fractured Armor", desc: "Shield cap −3", icon: "🛡️", apply(c) { c.shieldCapOverride = Math.max(8, (c.shieldCap || 12) - 3); } },
+      { id: "bdPoison", name: "Poisoned Blood", desc: "Start with 3 Poison", icon: "☠️", apply(c) { c.poisonTurns = Math.max(c.poisonTurns || 0, 3); } },
+      { id: "bdBleed", name: "Bleeding Edge", desc: "Sword matches deal 1 self-damage", icon: "🗡️", apply(c) { c.branchBleedingEdge = true; } },
+      { id: "bdHeavy", name: "Heavy Footing", desc: "Enemy starts with +2 Shield", icon: "🛡️", apply(c) { c.enemyShield += 2; } },
+      { id: "bdCripple", name: "Crippled Start", desc: "Enter at 75% HP", icon: "💔", apply(c) { c.playerHp = Math.max(1, Math.floor(c.playerHp * 0.75)); } }
+    ];
+
     // Elite floors: both Rares + 1 Uncommon for the temp perk
     function buildEliteTempChoices() {
       const taken = new Set();
@@ -648,7 +675,9 @@
       _bulwarkUsed: false,
       // Poison / Acid stacks
       poisonStacks: 0,
-      acidStacks: 0
+      acidStacks: 0,
+      // Branch debuff flags
+      branchBleedingEdge: false
     };
 
     // Track unused AP bonus from previous turn

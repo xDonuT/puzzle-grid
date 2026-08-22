@@ -390,6 +390,200 @@ const screenMenu = document.getElementById("screen-menu");
       recordRun(true);
     }
 
+    // --- Branch system (Whispering Staircase) ---
+    const branchOverlay = () => document.getElementById("branchOverlay");
+    const branchCards = () => document.getElementById("branchCards");
+    const branchResult = () => document.getElementById("branchResult");
+    const branchSubtitle = () => document.getElementById("branchSubtitle");
+
+    function isBranchFloor(f) { return BRANCH_FLOORS.includes(f); }
+
+    function showBranchOverlay() {
+      const ov = branchOverlay();
+      const sub = branchSubtitle();
+      const cards = branchCards();
+      const res = branchResult();
+      if (!ov || !cards) return;
+      if (sub) sub.textContent = `Floor ${run.floor} cleared — choose your path`;
+      if (res) { res.textContent = ""; res.style.opacity = 0; }
+      cards.innerHTML = "";
+      const node = pickBranchNode();
+      // Left door: always safe (normal fight)
+      const left = makeBranchCard("⚔️", "A Guarded Hall", "Normal foe, no tricks", "safe", () => {
+        hideBranchOverlay();
+        startBattle({ fromVictory: true });
+        saveRun();
+      });
+      // Right door: gamble
+      const right = makeBranchCard(node.icon, node.name, node.desc, "gamble", () => {
+        right.classList.add("disabled");
+        left.classList.add("disabled");
+        applyBranchOutcome(node, () => {
+          hideBranchOverlay();
+          startBattle({ fromVictory: true });
+          saveRun();
+        });
+      });
+      cards.appendChild(left);
+      cards.appendChild(right);
+      ov.classList.add("open");
+    }
+
+    function hideBranchOverlay() {
+      const ov = branchOverlay();
+      if (ov) ov.classList.remove("open");
+    }
+
+    function makeBranchCard(icon, name, desc, className, onClick) {
+      const el = document.createElement("div");
+      el.className = `upgrade-card branch-card ${className}`;
+      el.innerHTML = `<div class="branch-card-icon">${icon}</div><div class="branch-card-name">${name}</div><div class="branch-card-desc">${desc}</div>`;
+      el.addEventListener("click", onClick);
+      return el;
+    }
+
+    function pickBranchNode() {
+      const roll = Math.random();
+      if (roll < 0.45) return pickMysteryNode();
+      if (roll < 0.75) return pickShrineNode();
+      return pickAltarNode();
+    }
+
+    function pickMysteryNode() {
+      return { type: "mystery", icon: "🎲", name: "The Whispering Door", desc: "Flip for a mystery effect — buff or debuff" };
+    }
+    function pickShrineNode() {
+      return { type: "shrine", icon: "🔮", name: "Shrine of Fortune", desc: "Pick 1 of 3 — two blessings, one curse" };
+    }
+    function pickAltarNode() {
+      return { type: "altar", icon: "🩸", name: "Altar of the Tower", desc: "Sacrifice 15% max HP for a permanent upgrade" };
+    }
+
+    function applyBranchOutcome(node, cb) {
+      if (node.type === "mystery") applyMysteryFlip(cb);
+      else if (node.type === "shrine") applyShrinePick(cb);
+      else if (node.type === "altar") applyBloodAltar(cb);
+      else cb();
+    }
+
+    // --- Mystery Card: 70% buff / 30% debuff ---
+    function applyMysteryFlip(cb) {
+      const res = branchResult();
+      const isBuff = Math.random() < 0.7;
+      if (isBuff) {
+        const pool = BRANCH_BUFFS.filter(b => !(run.branchSeenBuffs || []).includes(b.id));
+        const pick = pool.length ? pool[Math.floor(Math.random() * pool.length)] : BRANCH_BUFFS[Math.floor(Math.random() * BRANCH_BUFFS.length)];
+        pick.apply();
+        if (!run.branchSeenBuffs) run.branchSeenBuffs = [];
+        run.branchSeenBuffs.push(pick.id);
+        if (res) { res.innerHTML = `<span class="buff">${pick.icon} ${pick.name}</span> — ${pick.desc}`; res.style.opacity = 1; }
+      } else {
+        const pool = BRANCH_DEBUFFS.filter(d => !(run.branchSeenDebuffs || []).includes(d.id));
+        const pick = pool.length ? pool[Math.floor(Math.random() * pool.length)] : BRANCH_DEBUFFS[Math.floor(Math.random() * BRANCH_DEBUFFS.length)];
+        run.pendingBranchDebuff = pick.id;
+        if (!run.branchSeenDebuffs) run.branchSeenDebuffs = [];
+        run.branchSeenDebuffs.push(pick.id);
+        if (res) { res.innerHTML = `<span class="debuff">${pick.icon} ${pick.name}</span> — ${pick.desc}`; res.style.opacity = 1; }
+      }
+      setTimeout(cb, 1200);
+    }
+
+    // --- Three Shrines: pick 1 of 3 (2 blessings, 1 curse) ---
+    function applyShrinePick(cb) {
+      const cards = branchCards();
+      const res = branchResult();
+      if (!cards) { cb(); return; }
+      cards.innerHTML = "";
+      // Pick 2 buffs + 1 debuff
+      const buffPool = BRANCH_BUFFS.filter(b => !(run.branchSeenBuffs || []).includes(b.id));
+      const debuffPool = BRANCH_DEBUFFS.filter(d => !(run.branchSeenDebuffs || []).includes(d.id));
+      const b1 = buffPool.length ? buffPool[Math.floor(Math.random() * buffPool.length)] : BRANCH_BUFFS[Math.floor(Math.random() * BRANCH_BUFFS.length)];
+      let b2Pool = buffPool.filter(b => b.id !== b1.id);
+      const b2 = b2Pool.length ? b2Pool[Math.floor(Math.random() * b2Pool.length)] : BRANCH_BUFFS.find(b => b.id !== b1.id) || BRANCH_BUFFS[0];
+      const d1 = debuffPool.length ? debuffPool[Math.floor(Math.random() * debuffPool.length)] : BRANCH_DEBUFFS[Math.floor(Math.random() * BRANCH_DEBUFFS.length)];
+      const choices = [b1, b2, d1];
+      // Shuffle
+      for (let i = choices.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [choices[i], choices[j]] = [choices[j], choices[i]]; }
+      const shrineWrap = document.createElement("div");
+      shrineWrap.className = "branch-shrines";
+      choices.forEach(node => {
+        const isDebuff = node === d1;
+        const card = document.createElement("div");
+        card.className = `upgrade-card branch-card shrine`;
+        card.innerHTML = `<div class="branch-card-icon">${node.icon}</div><div class="branch-card-name">${node.name}</div><div class="branch-card-desc">${node.desc}</div>`;
+        card.addEventListener("click", () => {
+          shrineWrap.querySelectorAll(".branch-card").forEach(c => c.style.pointerEvents = "none");
+          if (isDebuff) {
+            run.pendingBranchDebuff = node.id;
+            if (!run.branchSeenDebuffs) run.branchSeenDebuffs = [];
+            run.branchSeenDebuffs.push(node.id);
+            if (res) { res.innerHTML = `<span class="debuff">${node.icon} ${node.name}</span> — ${node.desc}`; res.style.opacity = 1; }
+          } else {
+            node.apply();
+            if (!run.branchSeenBuffs) run.branchSeenBuffs = [];
+            run.branchSeenBuffs.push(node.id);
+            if (res) { res.innerHTML = `<span class="buff">${node.icon} ${node.name}</span> — ${node.desc}`; res.style.opacity = 1; }
+          }
+          setTimeout(cb, 1200);
+        });
+        shrineWrap.appendChild(card);
+      });
+      cards.appendChild(shrineWrap);
+    }
+
+    // --- Blood Altar: pay 15% max HP → permanent upgrade ---
+    function applyBloodAltar(cb) {
+      const res = branchResult();
+      const hpCost = Math.max(1, Math.floor(combat.playerMaxHp * 0.15));
+      if (combat.playerHp <= Math.floor(combat.playerMaxHp * 0.3)) {
+        // Too low HP — altar refuses
+        if (res) { res.innerHTML = `<span class="debuff">💔 Not enough blood...</span> — The altar rejects you.`; res.style.opacity = 1; }
+        run.pendingBranchBuff = "bHealFull"; // consolation: heal to full
+        setTimeout(cb, 1200);
+        return;
+      }
+      const cards = branchCards();
+      if (!cards) { cb(); return; }
+      cards.innerHTML = "";
+      // Pick 3 upgrade options from RUN_UPGRADES (class-filtered, not yet picked)
+      const hero = (combat.playerClass || "ninja").toUpperCase();
+      const avail = RUN_UPGRADES.filter(u => {
+        if ((run.pickedUpgrades || []).includes(u.id)) return false;
+        if (u.classRequirement === "ANY") return true;
+        return u.classRequirement === hero;
+      });
+      const shuffled = avail.slice();
+      for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; }
+      const picks = shuffled.slice(0, Math.min(3, shuffled.length));
+      if (picks.length === 0) {
+        // No upgrades available — heal as consolation
+        if (res) { res.innerHTML = `<span class="buff">💚 Tower's Mercy</span> — No upgrades remain. Healed to full.`; res.style.opacity = 1; }
+        combat.playerHp = combat.playerMaxHp;
+        setTimeout(cb, 1200);
+        return;
+      }
+      // Show pay prompt first
+      if (res) { res.innerHTML = `🩸 Sacrifice <b>${hpCost} HP</b> for a permanent upgrade?`; res.style.opacity = 1; }
+      const altWrap = document.createElement("div");
+      altWrap.className = "branch-shrines";
+      picks.forEach(upg => {
+        const card = document.createElement("div");
+        card.className = "upgrade-card branch-card altar";
+        card.innerHTML = `<div class="branch-card-name">${upg.name}</div><div class="branch-card-desc">${upg.desc}</div>`;
+        card.addEventListener("click", () => {
+          altWrap.querySelectorAll(".branch-card").forEach(c => c.style.pointerEvents = "none");
+          combat.playerHp = Math.max(1, combat.playerHp - hpCost);
+          upg.apply();
+          if (!run.pickedUpgrades) run.pickedUpgrades = [];
+          run.pickedUpgrades.push(upg.id);
+          if (res) { res.innerHTML = `<span class="buff">🩸 ${upg.name}</span> — −${hpCost} HP. Permanent!`; res.style.opacity = 1; }
+          setTimeout(cb, 1200);
+        });
+        altWrap.appendChild(card);
+      });
+      cards.appendChild(altWrap);
+    }
+
     // Boss win → choose 1 of 3 upgrades (4 with a pending extra-pick reward), then show the victory overlay
     function openUpgradePicker(onPick) {
       const wrap = document.getElementById("upgradeCards");
@@ -579,6 +773,10 @@ const screenMenu = document.getElementById("screen-menu");
           pending: run.pending,
           pendingModifier: run.pendingModifier,
           pendingModifierRare: run.pendingModifierRare,
+          pendingBranchDebuff: run.pendingBranchDebuff || null,
+          pendingBranchBuff: run.pendingBranchBuff || null,
+          branchSeenBuffs: run.branchSeenBuffs || [],
+          branchSeenDebuffs: run.branchSeenDebuffs || [],
           playerClass: combat.playerClass,
           difficulty: settings.difficulty,
           elapsedMs: run.elapsedMs || 0,
@@ -647,6 +845,10 @@ const screenMenu = document.getElementById("screen-menu");
       run.pending = { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 };
       run.pendingModifier = null;
       run.pendingModifierRare = false;
+      run.pendingBranchDebuff = null;
+      run.pendingBranchBuff = null;
+      run.branchSeenBuffs = [];
+      run.branchSeenDebuffs = [];
       run.elapsedMs = 0;
       run.floorElapsedMs = 0;
       timerRunning = false;
@@ -703,6 +905,10 @@ const screenMenu = document.getElementById("screen-menu");
       AP_MAX = 3 + run.bonusApMax;
       run.pendingModifier = d.pendingModifier || null;
       run.pendingModifierRare = !!d.pendingModifierRare;
+      run.pendingBranchDebuff = d.pendingBranchDebuff || null;
+      run.pendingBranchBuff = d.pendingBranchBuff || null;
+      run.branchSeenBuffs = d.branchSeenBuffs || [];
+      run.branchSeenDebuffs = d.branchSeenDebuffs || [];
       if (d.playerClass && HERO_STATS[d.playerClass]) combat.playerClass = d.playerClass;
       if (d.difficulty) settings.difficulty = d.difficulty;
     }
@@ -801,6 +1007,26 @@ const screenMenu = document.getElementById("screen-menu");
         }
       }
       run.pendingModifierRare = false;
+      // Apply pending branch debuff/buff from the Whispering Staircase
+      if (run.pendingBranchDebuff) {
+        const bd = BRANCH_DEBUFFS.find(d => d.id === run.pendingBranchDebuff);
+        if (bd) {
+          bd.apply(combat);
+          if (combat.enemySpeedMult && combat.enemySpeedMult !== 1) {
+            combat.enemyUltNeed = Math.max(1, Math.round(combat.enemyUltNeed * combat.enemySpeedMult));
+            combat.enemySpecialNeed = Math.max(1, Math.round(combat.enemySpecialNeed * combat.enemySpeedMult));
+          }
+          if (combat.shieldCapOverride) {
+            combat.shield = Math.min(combat.shield, combat.shieldCapOverride);
+          }
+        }
+        run.pendingBranchDebuff = null;
+      }
+      if (run.pendingBranchBuff) {
+        const bb = BRANCH_BUFFS.find(b => b.id === run.pendingBranchBuff);
+        if (bb) bb.apply();
+        run.pendingBranchBuff = null;
+      }
       busy = false;
 
       // Single enemy setup (boss / elite / normal)
@@ -906,8 +1132,13 @@ const screenMenu = document.getElementById("screen-menu");
     });
     document.getElementById("btnGoRetry").addEventListener("click", () => {
       if (combat.enemyHp <= 0 && run.floor < MAX_FLOOR) {
-        startBattle({ fromVictory: true });
-        saveRun();
+        if (isBranchFloor(run.floor)) {
+          gameOverOverlay.classList.remove("open");
+          showBranchOverlay();
+        } else {
+          startBattle({ fromVictory: true });
+          saveRun();
+        }
       } else if (combat.enemyHp <= 0 && run.floor >= MAX_FLOOR) {
         resetRun();
         showScreen("menu");

@@ -1284,6 +1284,11 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           flyEffect(matchedList[0] ? getCell(matchedList[0].r, matchedList[0].c) : document.getElementById("playerPortrait"),
                     document.getElementById("enemyPortrait"), kind);
         }
+        // Bleeding Edge (branch debuff): sword matches deal 1 self-damage
+        if (!forEnemy && combat.branchBleedingEdge && swordCount > 0) {
+          dealDamageToPlayer(1, { noFracture: true });
+          dmgPop("player", "-1", "dmg");
+        }
         let healApplied = 0, shieldApplied = 0;
         if (heal > 0) healApplied = applyHealing(heal, healCount);
         if (sh > 0) shieldApplied = applyShielding(sh, shieldCount);

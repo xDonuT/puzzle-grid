@@ -377,7 +377,9 @@
       enemyUltSlow: 0,
       pending: { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 },
       pendingModifier: null,
-      pendingModifierRare: false
+      pendingModifierRare: false,
+      elapsedMs: 0,
+      floorElapsedMs: 0
     };
 
     // Boss floors are marked here (also drives boss HP scaling); rewards are now

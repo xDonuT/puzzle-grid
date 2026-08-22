@@ -11,6 +11,7 @@ const screenMenu = document.getElementById("screen-menu");
       if (name !== "game") {
         document.body.classList.remove("phase-fever", "phase-impact", "tower-1", "tower-2", "tower-3", "tower-4");
       }
+      if (name === "game") resumeRunTimer(); else pauseRunTimer();
     }
 
     // Tower ascent: background shifts as floors climb
@@ -19,6 +20,29 @@ const screenMenu = document.getElementById("screen-menu");
       b.classList.remove("tower-1", "tower-2", "tower-3", "tower-4");
       const f = run && typeof run.floor === "number" ? run.floor : 1;
       b.classList.add(f >= 20 ? "tower-4" : f >= 13 ? "tower-3" : f >= 6 ? "tower-2" : "tower-1");
+    }
+
+    // ─── Run timer (pure stats; pauses in menus/settings/overlays) ───
+    function fmtTime(ms) {
+      const t = Math.max(0, Math.floor((ms || 0) / 1000));
+      const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+      return h > 0
+        ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+        : `${m}:${String(s).padStart(2, "0")}`;
+    }
+    let timerRunning = false;
+    let timerLastResume = 0;
+    function pauseRunTimer() {
+      if (!timerRunning) return;
+      const delta = Date.now() - timerLastResume;
+      run.elapsedMs = (run.elapsedMs || 0) + delta;
+      run.floorElapsedMs = (run.floorElapsedMs || 0) + delta;
+      timerRunning = false;
+    }
+    function resumeRunTimer() {
+      if (timerRunning) return;
+      timerLastResume = Date.now();
+      timerRunning = true;
     }
 
     // ─── Card builder helpers ───
@@ -281,12 +305,13 @@ const screenMenu = document.getElementById("screen-menu");
     }
 
     function showVictoryOverlay(reward) {
+      pauseRunTimer();
       // Context line + damage breakdown for the floor just cleared
       const s = combat.stats || {};
       const sub = document.getElementById("gameOverSubtitle");
       if (sub) {
         const diff = String(settings.difficulty || "normal");
-        sub.textContent = `Floor ${run.floor} · ${combat.enemyName || "Rival"} · ${diff[0].toUpperCase() + diff.slice(1)}`;
+        sub.textContent = `Floor ${run.floor} · ${combat.enemyName || "Rival"} · ${diff[0].toUpperCase() + diff.slice(1)} · ⏱ ${fmtTime(run.floorElapsedMs)}`;
       }
       const sum = document.getElementById("victorySummary");
       if (sum) {
@@ -325,7 +350,7 @@ const screenMenu = document.getElementById("screen-menu");
       gameOverOverlay.classList.add("win");
       if (isFinal) {
         document.getElementById("gameOverTitle").textContent = "Campaign Clear!";
-        document.getElementById("gameOverMsg").textContent = `All ${MAX_FLOOR} floors conquered.`;
+        document.getElementById("gameOverMsg").textContent = `All ${MAX_FLOOR} floors conquered · ⏱ ${fmtTime(run.elapsedMs)}`;
         rewardMsg.innerHTML = label
           ? (permanent ? `🎁 Permanent: ${label}` : `🎁 ${label}`)
           : "🏆 Victory";
@@ -478,11 +503,12 @@ const screenMenu = document.getElementById("screen-menu");
       } else if (combat.playerHp <= 0) {
         gameOver = true;
         busy = true;
+        pauseRunTimer();
         gameOverOverlay.classList.remove("win");
         gameOverOverlay.classList.add("lose");
         shakeBoard("strong");
         document.getElementById("gameOverTitle").textContent = "Defeat";
-        document.getElementById("gameOverMsg").textContent = `Fell on floor ${run.floor}.`;
+        document.getElementById("gameOverMsg").textContent = `Fell on floor ${run.floor} · ⏱ ${fmtTime(run.elapsedMs)}`;
         document.getElementById("rewardMsg").textContent = "";
         document.getElementById("victoryStats").innerHTML = "";
         document.getElementById("victorySummary").innerHTML = "";
@@ -529,7 +555,8 @@ const screenMenu = document.getElementById("screen-menu");
         hp: combat.playerHp,
         maxHp: combat.playerMaxHp,
         picks: run.pickLog || [],
-        dealt: (s.sword || 0) + (s.star || 0) + (s.runic || 0) + (s.poison || 0) + (s.fracture || 0) + (s.ult || 0) + (s.reflect || 0)
+        dealt: (s.sword || 0) + (s.star || 0) + (s.runic || 0) + (s.poison || 0) + (s.fracture || 0) + (s.ult || 0) + (s.reflect || 0),
+        timeMs: run.elapsedMs || 0
       });
     }
 
@@ -553,7 +580,9 @@ const screenMenu = document.getElementById("screen-menu");
           pendingModifier: run.pendingModifier,
           pendingModifierRare: run.pendingModifierRare,
           playerClass: combat.playerClass,
-          difficulty: settings.difficulty
+          difficulty: settings.difficulty,
+          elapsedMs: run.elapsedMs || 0,
+          floorElapsedMs: run.floorElapsedMs || 0
         };
         localStorage.setItem(SAVE_KEY, JSON.stringify(data));
       } catch (_) {}
@@ -618,6 +647,9 @@ const screenMenu = document.getElementById("screen-menu");
       run.pending = { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 };
       run.pendingModifier = null;
       run.pendingModifierRare = false;
+      run.elapsedMs = 0;
+      run.floorElapsedMs = 0;
+      timerRunning = false;
       AP_MAX = 3;
       clearSave();
     }
@@ -636,6 +668,8 @@ const screenMenu = document.getElementById("screen-menu");
       run.floorShieldBonus = d.floorShieldBonus | 0;
       run.feverEarly = d.feverEarly | 0;
       run.enemyUltSlow = d.enemyUltSlow | 0;
+      run.elapsedMs = d.elapsedMs | 0;
+      run.floorElapsedMs = 0; // fresh floor timing on continue
       // Re-derive transformative upgrades from the picked list (not stored as flags)
       run.cascadeAp = (run.pickedUpgrades || []).includes("cascadeAp");
       run.crossAp = (run.pickedUpgrades || []).includes("crossAp");
@@ -826,6 +860,7 @@ const screenMenu = document.getElementById("screen-menu");
         setLog(`Floor ${run.floor}${floorNote} · ${combat.enemyName}`);
         saveRun();
       }
+      run.floorElapsedMs = 0;
       updateTowerBand();
       showScreen("game");
       if (opts.tutorial) {
@@ -953,7 +988,7 @@ const screenMenu = document.getElementById("screen-menu");
       el.innerHTML = `
         <div class="last-run-card ${cls}" id="lastRunCard">
           <div class="last-run-label">${result}</div>
-          <div class="last-run-info">${hero} · Floor ${last.floor}</div>
+          <div class="last-run-info">${hero} · Floor ${last.floor}${last.timeMs != null ? ` · ⏱ ${fmtTime(last.timeMs)}` : ""}</div>
         </div>`;
       el.querySelector(".last-run-card").addEventListener("click", () => {
         showLastRunOverlay(last);
@@ -975,7 +1010,7 @@ const screenMenu = document.getElementById("screen-menu");
         <div class="overlay-panel" style="max-width:260px;text-align:center;padding:20px">
           <div class="last-run-ov-result ${won ? 'win' : 'loss'}">${result}</div>
           <div class="last-run-ov-hero">${hero}</div>
-          <div class="last-run-ov-detail">Floor ${run.floor} · ${diff}</div>
+          <div class="last-run-ov-detail">Floor ${run.floor} · ${diff}${run.timeMs != null ? ` · ⏱ ${fmtTime(run.timeMs)}` : ""}</div>
           <div class="last-run-ov-section">Upgrades</div>
           ${picksHtml}
           <button type="button" class="action-btn primary" id="lastRunClose" style="margin-top:14px;min-height:48px;font-size:0.85rem">Close</button>
@@ -986,6 +1021,7 @@ const screenMenu = document.getElementById("screen-menu");
     }
 
     function openSettings() {
+      pauseRunTimer();
       document.getElementById("admSword").value = settings.swordDmg;
       document.getElementById("admStar").value = settings.starDmg;
       document.getElementById("admHeal").value = settings.healAmt;
@@ -1015,6 +1051,7 @@ const screenMenu = document.getElementById("screen-menu");
 
     function closeSettings() {
       settingsOverlay.classList.remove("open");
+      if (screenGame.classList.contains("active")) resumeRunTimer();
     }
 
     function saveSettings() {
@@ -1032,6 +1069,7 @@ const screenMenu = document.getElementById("screen-menu");
       if (impactEl) settings.impactTurn = Math.max(settings.feverTurn + 1, +impactEl.value || 11);
       persistSettings();
       closeSettings();
+      if (screenGame.classList.contains("active")) resumeRunTimer();
       refreshCombatUI();
     }
 

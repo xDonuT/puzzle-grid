@@ -2566,6 +2566,36 @@ body.ult-hitstop .board-wrap {
     body.tower-2 #mapOverlay { background: linear-gradient(180deg, rgba(96,58,74,0.88), rgba(56,40,50,0.9)); }
     body.tower-4 #mapOverlay { background: linear-gradient(180deg, rgba(120,84,40,0.88), rgba(70,52,32,0.9)); }
 
+    /* ─── Vine-drapped choice modals ─── */
+    #upgradeOverlay .panel, #diffPickerOverlay .panel, #mysteryOverlay .panel,
+    #shopOverlay .panel, #gameOverOverlay .panel {
+      position: relative;
+      overflow: hidden;
+    }
+    #upgradeOverlay .panel::before, #diffPickerOverlay .panel::before,
+    #mysteryOverlay .panel::before, #shopOverlay .panel::before,
+    #gameOverOverlay .panel::before,
+    #upgradeOverlay .panel::after, #diffPickerOverlay .panel::after,
+    #mysteryOverlay .panel::after, #shopOverlay .panel::after,
+    #gameOverOverlay .panel::after {
+      content: "";
+      position: absolute;
+      width: 52px; height: 52px;
+      pointer-events: none;
+      opacity: 0.5;
+      background: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2040%2040'%3E%3Cpath%20d='M3%2037C15%2035%2025%2027%2023%2015C21.8%208%2028%203.4%2033.5%205.6C37%207%2037.6%2011.4%2035%2013.8C33%2015.6%2030%2014.8%2029%2012.8'%20fill='none'%20stroke='%237fae5e'%20stroke-width='2.6'%20stroke-linecap='round'/%3E%3Cpath%20d='M10%2031c4.5-.7%207.2-3.2%208-7c-4.5.7-7.2%203.2-8%207z'%20fill='%23a5c287'/%3E%3C/svg%3E") center / contain no-repeat;
+    }
+    #upgradeOverlay .panel::before, #diffPickerOverlay .panel::before,
+    #mysteryOverlay .panel::before, #shopOverlay .panel::before,
+    #gameOverOverlay .panel::before {
+      top: 2px; left: 2px; transform: rotate(180deg);
+    }
+    #upgradeOverlay .panel::after, #diffPickerOverlay .panel::after,
+    #mysteryOverlay .panel::after, #shopOverlay .panel::after,
+    #gameOverOverlay .panel::after {
+      bottom: 2px; right: 2px;
+    }
+
     @media (prefers-reduced-transparency: reduce) {
       body::before, body::after { display: none; }
       #actSky, #actSky::before, #actSky::after { display: none; }
@@ -2601,8 +2631,9 @@ body.ult-hitstop .board-wrap {
       animation: msSway 5s ease-in-out infinite alternate;
     }
     @keyframes msSway { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+    /* Bloom scales from the stem junction so the cup never leaves the peduncle */
     .menu-sprout .ms-bloom {
-      transform-origin: 32px 26px;
+      transform-origin: 32px 34px;
       animation: msBloom 6s ease-in-out infinite;
     }
     @keyframes msBloom {
@@ -2654,10 +2685,14 @@ body.ult-hitstop .board-wrap {
       to { transform: scale(1) rotate(0deg); opacity: 1; }
     }
     .bloom-flower .bp-rays {
-      transform-box: fill-box; transform-origin: center;
+      transform-box: fill-box;
+      transform-origin: 50% 100%; /* unfold from the stem junction */
       animation: petalUnfold 0.9s ease-out 0.25s both;
     }
-    @keyframes petalUnfold { from { transform: scale(0.3); } to { transform: scale(1); } }
+    @keyframes petalUnfold {
+      from { transform: scale(0.3) rotate(4deg); }
+      to { transform: scale(1) rotate(-6deg); } /* gentle nod with the curved stem */
+    }
 
     /* ─── Map overlay ─── */
     #mapOverlay { background: rgba(40, 35, 28, 0.85); flex-direction: column; overflow-y: auto; }

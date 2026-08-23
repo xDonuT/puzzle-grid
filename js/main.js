@@ -370,9 +370,12 @@ const screenMenu = document.getElementById("screen-menu");
       const rewardMsg = document.getElementById("rewardMsg");
       const mod = run.pendingModifier;
       const isFinal = run.floor >= MAX_FLOOR;
+      const payoff = document.getElementById("bloomPayoff");
+      if (payoff) payoff.hidden = true;
       gameOverOverlay.classList.remove("lose");
       gameOverOverlay.classList.add("win");
       if (isFinal) {
+        if (payoff) payoff.hidden = false;
         document.getElementById("gameOverTitle").textContent = "🌸 The Tower Blooms!";
         document.getElementById("gameOverMsg").textContent = `All ${MAX_FLOOR} floors climbed. The Storm parts, sunlight floods the grid — and the tower, no longer afraid, blooms. · ⏱ ${fmtTime(run.elapsedMs)}`;
         rewardMsg.innerHTML = label

@@ -1,4 +1,4 @@
-// map.js — STS-style branching map for Puzzle Grid
+// map.js — branching act map for Bloom Tower
 // Generates a map of connected nodes per act.
 // Node types: "normal", "elite", "mystery" (card flip), "boss"
 

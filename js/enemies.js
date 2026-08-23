@@ -236,7 +236,7 @@
     // ---------- Combat state ----------
     let AP_MAX = 3;
     const BASE_HP = 100;
-    const MAX_FLOOR = 15;
+    const MAX_FLOOR = 45;
 
     // Random enemy name pools
     const ENEMY_NAMES = [
@@ -331,11 +331,11 @@
 
     // Former gauntlet floors → single elite with strong passive/skills
     const ELITE_KITS = {
-      4: { name: "Bloodroot", persona: "raider", bias: { sword: 1.8 }, hpMul: 1.55, atkMul: 1.3, passive: "Lifesteal on hit",
+      12: { name: "Bloodroot", persona: "raider", bias: { sword: 1.8 }, hpMul: 1.55, atkMul: 1.3, passive: "Lifesteal on hit",
             onHit: () => { healEnemy(4); } },
-      9: { name: "Stormglass", persona: "viper", bias: { star: 1.8 }, hpMul: 1.45, atkMul: 1.4, passive: "Chain shock (extra poke)",
+      27: { name: "Stormglass", persona: "viper", bias: { star: 1.8 }, hpMul: 1.45, atkMul: 1.4, passive: "Chain shock (extra poke)",
             onHit: () => { dealDamageToPlayer(Math.max(2, Math.round(enemyAtkForFloor(run.floor) * 0.35))); } },
-      14: { name: "Nightcoil", persona: "bruiser", bias: { sword: 1.6 }, hpMul: 1.5, atkMul: 1.25, passive: "Applies poison + weaken",
+      42: { name: "Nightcoil", persona: "bruiser", bias: { sword: 1.6 }, hpMul: 1.5, atkMul: 1.25, passive: "Applies poison + weaken",
             onHit: () => {
               combat.poisonTurns = Math.max(combat.poisonTurns || 0, 2);
               flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "poison");
@@ -385,9 +385,9 @@
     // Boss floors are marked here (also drives boss HP scaling); rewards are now
     // chosen via the 3-card upgrade picker instead of fixed grants.
     const BOSS_REWARDS = {
-      5:  { label: "Boss", apply: () => {} },
-      10: { label: "Boss", apply: () => {} },
-      15: { label: "Boss", apply: () => {} }
+      15: { label: "Boss", apply: () => {} },
+      30: { label: "Boss", apply: () => {} },
+      45: { label: "Boss", apply: () => {} }
     };
 
     // Post-boss upgrade pool — each pick may be taken once per run.
@@ -396,7 +396,6 @@
       // ---- General / Stat boosts (any class) ----
       { id: "hp10", name: "❤️ +10 Max HP", desc: "Permanently boost your health", classRequirement: "ANY", apply: () => { run.bonusMaxHp += 10; } },
       { id: "shield5", name: "🛡️ +5 Max Shield", desc: "Higher shield ceiling", classRequirement: "ANY", apply: () => { run.bonusShieldMax += 5; } },
-      { id: "ap1", name: "⚡ +1 Max AP", desc: "More actions each turn", classRequirement: "ANY", apply: () => { run.bonusApMax += 1; AP_MAX = 3 + run.bonusApMax; } },
       { id: "ultCharge", name: "🔥 Faster Ult", desc: "Signature charge +1 per signature match", classRequirement: "ANY", apply: () => { run.ultChargeBonus += 1; } },
       { id: "swordDmg", name: "⚔️ +1 Sword Damage", desc: "Permanently stronger swords", classRequirement: "ANY", apply: () => { run.bonusSwordDmg += 1; } },
       { id: "healAmt", name: "💚 +2 Heal Amount", desc: "Potions heal more", classRequirement: "ANY", apply: () => { run.bonusHeal += 2; } },
@@ -404,7 +403,6 @@
       { id: "feverEarly", name: "⭐ Fever 1 Turn Earlier", desc: "Star Fever arrives sooner", classRequirement: "ANY", apply: () => { run.feverEarly += 1; } },
       { id: "enemyUltSlow", name: "⛓️ Enemy Ult +1 Turn", desc: "Rival ultimates charge slower", classRequirement: "ANY", apply: () => { run.enemyUltSlow += 1; } },
       // ---- Transformative upgrades (change how you play) ----
-      { id: "cascadeAp", name: "⚡ Cascade Refund", desc: "Every cascade after the first refunds 1 AP", classRequirement: "ANY", apply: () => { run.cascadeAp = true; } },
       { id: "crossAp", name: "✚ Seal Mastery", desc: "T/+ and L seals refund 1 additional AP", classRequirement: "ANY", apply: () => { run.crossAp = true; } },
       { id: "overflowBoost", name: "💚 Overflow Surge", desc: "Overflow heal/shield damage +50%", classRequirement: "ANY", apply: () => { run.overflowBoost = true; } },
       { id: "bloomCharge", name: "🌸 Bloom Signature", desc: "Detonating a Bloom gives +1 Sig charge", classRequirement: "ANY", apply: () => { run.bloomCharge = true; } },
@@ -413,22 +411,17 @@
       { id: "phasePower", name: "🌠 Phase Attunement", desc: "Signature effects stronger in Fever; Mystery +1 charge in Impact", classRequirement: "ANY", apply: () => { run.phasePower = true; } },
       { id: "startShield", name: "🛡️ Fortified Start", desc: "Begin every floor with +4–6 extra Shield", classRequirement: "ANY", apply: () => { run.fortifiedStart = true; } },
       { id: "poisonMaster", name: "☠️ Venomous", desc: "Sword matches can poison the enemy (30%)", classRequirement: "NINJA", apply: () => { run.venomous = true; } },
-      { id: "fractureBoost", name: "💥 Deep Fracture", desc: "Fracture deals +1 true damage per stack", classRequirement: "KNIGHT", apply: () => { run.deepFracture = true; } },
       { id: "reflectBoost", name: "🪞 Arcane Mirror", desc: "Wizard reflection +10% (scales with floor)", classRequirement: "WIZARD", apply: () => { run.arcaneMirror = true; } },
-      { id: "afterglowPlus", name: "🌑 Lingering Shadow", desc: "Ninja Afterglow lasts 2 turns", classRequirement: "NINJA", apply: () => { run.lingeringShadow = true; } },
       { id: "enemySlow2", name: "⛓️ Heavy Chains", desc: "Enemy specials/ults +1 additional turn", classRequirement: "ANY", apply: () => { run.heavyChains = true; } },
       { id: "apCarry", name: "⚡ Momentum", desc: "Unused AP carries over up to +2 next turn", classRequirement: "ANY", apply: () => { run.momentum = true; } },
       { id: "mysteryBias", name: "🎲 Lucky Dice", desc: "Mystery tiles are 70% buffs before Star Impact", classRequirement: "ANY", apply: () => { run.luckyDice = true; } },
-      // ---- Wizard-specific ----
-      { id: "runicShield", name: "🔮 Runic Shield", desc: "Wizard: Shield matches deal double Runic damage", classRequirement: "WIZARD", apply: () => { run.runicShield = true; } },
-      { id: "manaSurge", name: "⚡ Mana Surge", desc: "Wizard: Full charge — signature matches refund 1 AP", classRequirement: "WIZARD", apply: () => { run.manaSurge = true; } },
       // ---- Knight-specific ----
       { id: "mortalStrike", name: "⚔️ Mortal Strike", desc: "Knight: Ultimate also reduces enemy damage by 25% for 2 turns", classRequirement: "KNIGHT", apply: () => { run.mortalStrike = true; } },
       { id: "bulwark", name: "🛡️ Bulwark", desc: "Knight: Shield matches apply 1 Fracture stack (once per turn)", classRequirement: "KNIGHT", apply: () => { run.bulwark = true; } },
       // ---- Ninja-specific ----
       { id: "venomousBlade", name: "🗡️ Venomous Blade", desc: "Ninja: Matches of 4+ Swords or cascades apply +2 Poison", classRequirement: "NINJA", apply: () => { run.venomousBlade = true; } },
       { id: "miasmaReflex", name: "💨 Miasma Reflex", desc: "Ninja: Dodging triggers 100% of Poison stacks as immediate damage", classRequirement: "NINJA", apply: () => { run.miasmaReflex = true; } },
-      // ---- Wizard-specific (Poison/Acid) ----
+      // ---- Wizard-specific ----
       { id: "acidicBarrier", name: "🧪 Acidic Barrier", desc: "Wizard: Every 10 damage absorbed by Shield applies +1 Poison", classRequirement: "WIZARD", apply: () => { run.acidicBarrier = true; } },
       { id: "contagionCatalyst", name: "☣️ Contagion Catalyst", desc: "Wizard: Clearing a Mystery tile while Shielded doubles enemy Poison", classRequirement: "WIZARD", apply: () => { run.contagionCatalyst = true; } },
       // ---- Knight-specific (Poison/Acid) ----
@@ -705,19 +698,19 @@
 
     // Gauntlet floors: small permanent stat (paired with the Rare temp perk)
     const GAUNTLET_REWARDS = {
-      4: { label: "+4 Max Shield", apply: () => { run.bonusShieldMax += 4; } },
-      9: { label: "+1 Max AP", apply: () => { run.bonusApMax += 1; AP_MAX = 3 + run.bonusApMax; } },
-      14: { label: "+8 Max HP", apply: () => { run.bonusMaxHp += 8; } }
+      12: { label: "+4 Max Shield", apply: () => { run.bonusShieldMax += 4; } },
+      27: { label: "+1 Max AP", apply: () => { run.bonusApMax += 1; AP_MAX = 3 + run.bonusApMax; } },
+      42: { label: "+8 Max HP", apply: () => { run.bonusMaxHp += 8; } }
     };
 
     // Unique boss kits (floor → definition)
     const BOSS_KITS = {
-      5:  { id: "bracken", name: "Bracken the Rootbound", persona: "bruiser", bias: { sword: 1.5 }, ultName: "Root Snare", ultTurns: 4,
+      15: { id: "bracken", name: "Bracken the Rootbound", persona: "bruiser", bias: { sword: 1.5 }, ultName: "Root Snare", ultTurns: 4,
             ultFn: () => { combat.blindNext = true; dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.4)); setLog("Root Snare · blind + heavy hit"); } },
-      10: { id: "cinder", name: "Cinder Queen", persona: "viper", bias: { star: 1.5, sword: 1.2 }, ultName: "Ashstorm", ultTurns: 4,
+      30: { id: "cinder", name: "Cinder Queen", persona: "viper", bias: { star: 1.5, sword: 1.2 }, ultName: "Ashstorm", ultTurns: 4,
             ultFn: () => { combat.poisonTurns = Math.max(combat.poisonTurns, 3); flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "poison"); dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.5)); setLog("Ashstorm · poison 3t + burst"); } },
-      // The Last Rival = dark Knight kit: final boss at floor 15
-      15: { id: "lastrival", name: "The Last Rival", persona: "mender", bias: { hp: 1.8, shield: 1.3 }, ultName: "Earthshatter", ultTurns: 5,
+      // The Last Rival = dark Knight kit: final boss at floor 45
+      45: { id: "lastrival", name: "The Last Rival", persona: "mender", bias: { hp: 1.8, shield: 1.3 }, ultName: "Earthshatter", ultTurns: 5,
             passive: "Regenerates 3 HP each turn · every hit applies Fracture (2 true dmg per stack at your turn start)",
             ultDesc: "Massive hit + Mortal Wound (your healing -50% for 2 turns)",
             turnStart: () => { if (combat.enemyHp > 0) healEnemy(3); },

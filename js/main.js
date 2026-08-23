@@ -285,7 +285,12 @@ const screenMenu = document.getElementById("screen-menu");
       }
       kicker.textContent = kick;
       title.textContent = String(run.floor);
-      sub.textContent = extra;
+      if (!extra && run.gameMap) {
+        const actIdx = run.gameMap.currentAct || 1;
+        sub.textContent = ACT_NAMES[actIdx] || "";
+      } else {
+        sub.textContent = extra;
+      }
       ov.classList.add("open");
       setTimeout(() => ov.classList.remove("open"), 1400);
     }
@@ -366,7 +371,7 @@ const screenMenu = document.getElementById("screen-menu");
       gameOverOverlay.classList.add("win");
       if (isFinal) {
         document.getElementById("gameOverTitle").textContent = "Campaign Clear!";
-        document.getElementById("gameOverMsg").textContent = `All ${MAX_FLOOR} floors conquered · ⏱ ${fmtTime(run.elapsedMs)}`;
+        document.getElementById("gameOverMsg").textContent = `All ${MAX_FLOOR} floors conquered — the tower blooms! · ⏱ ${fmtTime(run.elapsedMs)}`;
         rewardMsg.innerHTML = label
           ? (permanent ? `🎁 Permanent: ${label}` : `🎁 ${label}`)
           : "🏆 Victory";
@@ -607,7 +612,7 @@ const screenMenu = document.getElementById("screen-menu");
     // Boss win → choose 1 of 3 upgrades (4 with a pending extra-pick reward), then show the victory overlay
 
     // ===================== STS-STYLE MAP SYSTEM =====================
-    const ACT_NAMES = ["", "The Rootbound", "The Ashen Depths", "The Last Spire"];
+    const ACT_NAMES = ["", "\ud83c\udf31 The Sprout", "\ud83c\udf38 The Bloom", "\ud83c\udf3a The Flourish"];
     const ACT_CLIMBS = ["", "tower-1", "tower-2", "tower-4"];
 
     function showMap() {
@@ -621,7 +626,7 @@ const screenMenu = document.getElementById("screen-menu");
       const actData = map.acts[act - 1];
       if (!actData) return;
 
-      if (actLabel) actLabel.innerHTML = `Act <span class="act-num">${act}</span> — ${ACT_NAMES[act] || ""}`;
+      if (actLabel) actLabel.textContent = ACT_NAMES[act] || `Act ${act}`;
       layersEl.innerHTML = "";
 
       // Build a set of reachable node IDs
@@ -679,8 +684,8 @@ const screenMenu = document.getElementById("screen-menu");
 
       // Route to the right encounter
       if (node.type === "boss") {
-        // Boss floors are always at 5/10/15 for kit lookup
-        const bossFloors = [5, 10, 15];
+        // Boss floors are always at 15/30/45 for kit lookup
+        const bossFloors = [15, 30, 45];
         run.floor = bossFloors[map.currentAct - 1] || calcMapFloor(map);
         startBattle({ fromVictory: false, isBoss: true });
       } else if (node.type === "mystery") {
@@ -694,8 +699,8 @@ const screenMenu = document.getElementById("screen-menu");
           saveRun();
         });
       } else if (node.type === "elite") {
-        // Elite floors are always at 4/9/14 for kit lookup
-        const eliteFloors = [4, 9, 14];
+        // Elite floors are always at 12/27/42 for kit lookup
+        const eliteFloors = [12, 27, 42];
         run.floor = eliteFloors[map.currentAct - 1] || calcMapFloor(map);
         startBattle({ fromVictory: false });
       } else {
@@ -715,7 +720,7 @@ const screenMenu = document.getElementById("screen-menu");
           if (map.visitedNodes[node.id] && node.type !== "boss") count++;
         }
       }
-      return (map.currentAct - 1) * 5 + count;
+      return (map.currentAct - 1) * 15 + count;
     }
 
     // --- New run with map ---
@@ -753,9 +758,9 @@ const screenMenu = document.getElementById("screen-menu");
       const sub = document.getElementById("floorBannerSub");
       const card = document.getElementById("floorBannerCard");
       if (!ov) { if (cb) cb(); return; }
-      if (kicker) kicker.textContent = "New Act";
-      if (title) title.textContent = `Act ${act}`;
-      if (sub) sub.textContent = ACT_NAMES[act] || "";
+      if (kicker) kicker.textContent = "Growing Stronger";
+      if (title) title.textContent = ACT_NAMES[act] || `Act ${act}`;
+      if (sub) sub.textContent = `Floor ${(act - 1) * 15 + 1}–${act * 15}`;
       if (card) { card.style.background = ""; card.style.boxShadow = ""; }
       ov.classList.add("open");
       setTimeout(() => { ov.classList.remove("open"); if (cb) cb(); }, 1400);
@@ -1128,7 +1133,7 @@ const screenMenu = document.getElementById("screen-menu");
         gameOverOverlay.classList.add("lose");
         shakeBoard("strong");
         document.getElementById("gameOverTitle").textContent = "Defeat";
-        document.getElementById("gameOverMsg").textContent = `Fell on floor ${run.floor} · ⏱ ${fmtTime(run.elapsedMs)}`;
+        document.getElementById("gameOverMsg").textContent = `Fell on floor ${run.floor}${run.gameMap ? ` · ${ACT_NAMES[run.gameMap.currentAct || 1] || ""}` : ""} · ⏱ ${fmtTime(run.elapsedMs)}`;
         document.getElementById("rewardMsg").textContent = "";
         document.getElementById("victoryStats").innerHTML = "";
         document.getElementById("victorySummary").innerHTML = "";
@@ -1244,9 +1249,7 @@ const screenMenu = document.getElementById("screen-menu");
       } else {
         btn.style.display = "none";
       }
-    }
-
-    function resetRun() {
+    }    function resetRun() {
       run.floor = 1;
       combat.tutorial = false;
       run.bonusMaxHp = 0;
@@ -1507,6 +1510,12 @@ const screenMenu = document.getElementById("screen-menu");
       if (floorEl) floorEl.textContent = String(run.floor);
       const floorTotalEl = document.getElementById("floorTotal");
       if (floorTotalEl) floorTotalEl.textContent = String(MAX_FLOOR);
+      // Show act name next to floor number
+      const floorActEl = document.getElementById("floorActName");
+      if (floorActEl && run.gameMap) {
+        const actIdx = run.gameMap.currentAct || 1;
+        floorActEl.textContent = ACT_NAMES[actIdx] || "";
+      }
 
       build();
       setupFighters();
@@ -1897,19 +1906,21 @@ const screenMenu = document.getElementById("screen-menu");
       let passive = "", ult = "", shapes = "";
       if (cls === "ninja") {
         passive = "Shadow Step: First hit dodged, then 20% dodge. Clear 4+ Sword tiles in one turn → prompt: −3 HP for +1 extra swap (once per turn).";
-        ult = "Assassinate: 15–30 true dmg (doubled if enemy <30% HP), −3 self HP, Afterglow (50% less dmg 1 turn).";
+        ult = "Assassinate: Consumes ALL ⚔️ on board — 5 + 6 dmg per ⚔️, true. ×2 if enemy <30% HP. Costs −3 HP, grants Afterglow.";
         shapes = "⭐ +2 AP + 4→Sword · 💥 +2 Mark (+15% dmg each) + 1 AP · ⚡ True dmg = Swords×4 (min 8, max 24)";
       } else if (cls === "wizard") {
         passive = "Arcane Reflection: 30%+ of damage taken reflected as true dmg (scales with floor). Shield matches deal Runic damage equal to shield gained.";
-        ult = "Meteor: 12–24 true dmg (scales with charge).";
+        ult = "Meteor: Consumes ALL 🛡️ on board — 5 + 5 dmg per 🛡️, true. Also steals up to 3 enemy Shield.";
         shapes = "⭐ +12 Shield + 3→Shield · 💥 Mana Lock 2t · ⚡ Steal up to 3 Shield";
       } else {
         passive = "Regen +3 HP each turn. Iron Will: survive a lethal hit once per battle at 1 HP, gain +5 Fracture. Fracture stacks deal true dmg at enemy turn start — or cash them in early with a Charged match (Shatter: stacks×3).";
-        ult = "Earthshatter: 12–24 true dmg + Shatter all Fracture stacks (stacks×4 bonus) + Mortal Wound 2t.";
+        ult = "Earthshatter: Consumes ALL ❤️ on board — 5 + 5 dmg per ❤️, true + Shatter all Fracture (stacks×4 bonus) + Mortal Wound 2t.";
         shapes = "⭐ +2 Fracture + 3→Potion · 💥 +3 Fracture + 1 AP · ⚡ Shatter (stacks×3)";
       }
       return `
         <div class="info-row"><span>Class</span><span>${s.name}</span></div>
+        <div class="info-row"><span>Location</span><span>${run.gameMap ? (ACT_NAMES[run.gameMap.currentAct || 1] || "") : "—"}</span></div>
+        <div class="info-row"><span>Floor</span><span>${run.floor}/${MAX_FLOOR}</span></div>
         <div class="info-row"><span>HP</span><span>${s.hp} (+${run.bonusMaxHp} run)</span></div>
         <div class="info-row"><span>Start Shield</span><span>${s.startShield}</span></div>
         <div class="info-row"><span>Signature</span><span>${sigLabel}</span></div>
@@ -2092,10 +2103,13 @@ const screenMenu = document.getElementById("screen-menu");
         const s = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
         const sig = SIGNATURE[combat.playerClass];
         const sigLabel = { sword: "⚔️ Sword", shield: "🛡️ Shield", hp: "❤️ Potion" }[sig] || sig;
+        const actIdx = run.gameMap ? (run.gameMap.currentAct || 1) : 1;
         return `
           <div class="pp-photo"><div class="portrait ${combat.playerClass}" id="ppPhotoSlot"></div></div>
           <div class="pp-id-name">${s.name}</div>
           <div class="info-row"><span>Class</span><span>${s.name}</span></div>
+          <div class="info-row"><span>Location</span><span>${ACT_NAMES[actIdx] || `Act ${actIdx}`}</span></div>
+          <div class="info-row"><span>Floor</span><span>${run.floor}/${MAX_FLOOR}</span></div>
           <div class="info-row"><span>HP</span><span>${combat.playerHp}/${combat.playerMaxHp}</span></div>
           <div class="info-row"><span>Shield</span><span>${combat.shield}</span></div>
           <div class="info-row"><span>Signature</span><span>${sigLabel}</span></div>
@@ -2213,6 +2227,11 @@ const screenMenu = document.getElementById("screen-menu");
       if (!infoTitle || !infoBody) return;
       infoTitle.textContent = `Floor ${run.floor}`;
       const parts = [];
+      // Act name
+      if (run.gameMap) {
+        const actIdx = run.gameMap.currentAct || 1;
+        parts.push(`<div class="info-section">${ACT_NAMES[actIdx] || `Act ${actIdx}`}</div>`);
+      }
       // Floor type
       if (isBossFloor(run.floor)) {
         const kit = BOSS_KITS[run.floor];
@@ -2255,7 +2274,7 @@ const screenMenu = document.getElementById("screen-menu");
       parts.push(`<div class="info-section">Progress</div>`);
       if (run.gameMap) {
         const act = run.gameMap.currentAct || 1;
-        parts.push(`<div class="info-body">Act ${act}/3 · ${ACT_NAMES[act] || ""}. ${isBossFloor(run.floor) ? "Boss floor!" : isEliteFloor(run.floor) ? "Elite challenge ahead." : ""}</div>`);
+        parts.push(`<div class="info-body">${ACT_NAMES[act] || ""} · Floor ${((act - 1) * 15) + 1}–${act * 15}. ${isBossFloor(run.floor) ? "Boss floor!" : isEliteFloor(run.floor) ? "Elite challenge ahead." : ""}</div>`);
       } else {
         parts.push(`<div class="info-body">Floor ${run.floor} of ${MAX_FLOOR}. ${isBossFloor(run.floor) ? "Boss floor!" : isEliteFloor(run.floor) ? "Elite challenge ahead." : `${MAX_FLOOR - run.floor} floors remaining.`}</div>`);
       }

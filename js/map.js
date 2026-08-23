@@ -3,7 +3,7 @@
 // Node types: "normal", "elite", "mystery" (card flip), "boss"
 
 const MAP_LAYERS_PER_ACT = [
-  [3, 2, 3, 2, 1], // layer 0..4 node counts per act (boss is separate)
+  [2, 3, 2, 3, 2, 1, 1], // layer 0..6 node counts per act (14 battle nodes + boss)
 ];
 
 const NODE_ICONS = {
@@ -71,13 +71,13 @@ function pickNodeType(layerIdx, act) {
     return "normal";
   }
   // Middle layers: more variety
-  if (layerIdx <= 3) {
+  if (layerIdx <= 5) {
     const r = Math.random();
     if (r < 0.45) return "normal";
     if (r < 0.65) return "elite";
     return "mystery";
   }
-  // Layer 4 (last before boss): always normal warmup
+  // Layer 6 (last before boss): always normal warmup
   return "normal";
 }
 

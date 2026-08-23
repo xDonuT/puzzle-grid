@@ -1381,7 +1381,9 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           // Track total signature tiles cleared this turn (3 tiles = 1 charge, cascades count)
           const sigTiles = sigSwordCount + sigShieldCount + sigHpCount;
           combat.sigTilesThisTurn += sigTiles;
-          const totalCharges = Math.floor(combat.sigTilesThisTurn / 3);
+          // Faster Ult / Battle Cry: each signature match grants bonus charge(s)
+          combat._sigMatchesThisTurn = (combat._sigMatchesThisTurn || 0) + 1;
+          const totalCharges = Math.floor(combat.sigTilesThisTurn / 3) + combat._sigMatchesThisTurn * (run.ultChargeBonus || 0);
           const chargesToAdd = totalCharges - (combat._lastSigChargeTotal || 0);
           combat._lastSigChargeTotal = totalCharges;
           if (chargesToAdd > 0) {
@@ -1620,6 +1622,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       combat.swordsClearedThisTurn = 0; // ninja Shadow Step
       combat.shadowStepUsed = false;     // ninja Shadow Step
       combat.sigTilesThisTurn = 0;       // sig tile charge accumulator (3 tiles = 1 charge)
+      combat._sigMatchesThisTurn = 0;    // sig match counter (for ultChargeBonus)
       combat._lastSigChargeTotal = 0;
       combat._blitzUsedThisTurn = false;  // Blitz passive: first match free
       // Free shuffle every 3rd turn (use it or lose it)

@@ -370,8 +370,8 @@ const screenMenu = document.getElementById("screen-menu");
       gameOverOverlay.classList.remove("lose");
       gameOverOverlay.classList.add("win");
       if (isFinal) {
-        document.getElementById("gameOverTitle").textContent = "Campaign Clear!";
-        document.getElementById("gameOverMsg").textContent = `All ${MAX_FLOOR} floors conquered — the tower blooms! · ⏱ ${fmtTime(run.elapsedMs)}`;
+        document.getElementById("gameOverTitle").textContent = "🌸 The Tower Blooms!";
+        document.getElementById("gameOverMsg").textContent = `All ${MAX_FLOOR} floors climbed. The Storm parts, sunlight floods the grid — and the tower, no longer afraid, blooms. · ⏱ ${fmtTime(run.elapsedMs)}`;
         rewardMsg.innerHTML = label
           ? (permanent ? `🎁 Permanent: ${label}` : `🎁 ${label}`)
           : "🏆 Victory";
@@ -380,7 +380,7 @@ const screenMenu = document.getElementById("screen-menu");
       } else {
         document.getElementById("gameOverTitle").textContent = `Floor ${run.floor} Clear`;
         document.getElementById("gameOverMsg").textContent = isBossFloor(run.floor)
-          ? "Boss defeated!"
+          ? (run.floor >= 30 ? "Boss down — the Storm thins, light leaks through!" : "Boss down — the first storm layer breaks!")
           : isEliteFloor(run.floor)
             ? "Elite defeated!"
             : "Rival defeated.";
@@ -614,6 +614,13 @@ const screenMenu = document.getElementById("screen-menu");
     // ===================== STS-STYLE MAP SYSTEM =====================
     const ACT_NAMES = ["", "\ud83c\udf31 The Sprout", "\ud83c\udf38 The Bloom", "\ud83c\udf3a The Flourish"];
     const ACT_CLIMBS = ["", "tower-1", "tower-2", "tower-4"];
+    // Story: the tower is a seed afraid to bloom; the Storm is its fear.
+    const ACT_LORE = [
+      "",
+      "A seed woke beneath the village. Climb gently — the storm is thin here.",
+      "Higher now. The Storm thickens — the tower fears what it might become.",
+      "One last climb. The Storm isn't angry. It's afraid of the light."
+    ];
 
     function showMap() {
       const ov = document.getElementById("mapOverlay");
@@ -724,6 +731,29 @@ const screenMenu = document.getElementById("screen-menu");
     }
 
     // --- New run with map ---
+    function showStoryIntro(cb) {
+      const ov = document.createElement("div");
+      ov.className = "overlay open";
+      ov.style.zIndex = 1500;
+      ov.innerHTML = `
+        <div class="overlay-panel" style="max-width:300px;text-align:center;padding:22px">
+          <div style="font-size:2.2rem;line-height:1">🌱</div>
+          <div class="last-run-ov-section" style="margin-top:8px">The Bloom Tower</div>
+          <div class="info-body" style="text-align:left;font-size:0.72rem;line-height:1.55;margin-top:8px">
+            One morning, a tiny seed sprouted in the village square — and grew straight toward the sun.<br><br>
+            The village believes: <em>if it ever blooms, something wonderful happens.</em><br><br>
+            But a grey Storm has settled at its peak, and the tower is too scared to grow past it.<br><br>
+            So it sent for its three bravest friends. Climb the grid, little hero — be brave for the tower.
+          </div>
+          <button type="button" class="action-btn primary" id="btnStoryGo" style="margin-top:14px;min-height:48px;font-size:0.85rem">Begin the Climb</button>
+        </div>`;
+      document.body.appendChild(ov);
+      ov.querySelector("#btnStoryGo").addEventListener("click", () => {
+        ov.remove();
+        if (cb) cb();
+      });
+    }
+
     function startNewRunMap() {
       const map = generateFullMap();
       run.gameMap = map;
@@ -732,7 +762,8 @@ const screenMenu = document.getElementById("screen-menu");
       map.currentNode = null;
       map.visitedNodes = {};
       run.floor = 0;
-      showMap();
+      showScreen("game");
+      showStoryIntro(() => showMap());
     }
 
     function advanceActOrVictory() {
@@ -760,10 +791,10 @@ const screenMenu = document.getElementById("screen-menu");
       if (!ov) { if (cb) cb(); return; }
       if (kicker) kicker.textContent = "Growing Stronger";
       if (title) title.textContent = ACT_NAMES[act] || `Act ${act}`;
-      if (sub) sub.textContent = `Floor ${(act - 1) * 15 + 1}–${act * 15}`;
+      if (sub) sub.innerHTML = `${ACT_LORE[act] || ""}<br><span style="font-size:0.62rem;opacity:.75">Floor ${(act - 1) * 15 + 1}–${act * 15}</span>`;
       if (card) { card.style.background = ""; card.style.boxShadow = ""; }
       ov.classList.add("open");
-      setTimeout(() => { ov.classList.remove("open"); if (cb) cb(); }, 1400);
+      setTimeout(() => { ov.classList.remove("open"); if (cb) cb(); }, 2200);
     }
 
     // ===================== MYSTERY NODE (Card Flip) =====================
@@ -1352,6 +1383,15 @@ const screenMenu = document.getElementById("screen-menu");
       if (d.difficulty) settings.difficulty = d.difficulty;
       run.gameMap = d.gameMap || null;
       run.currentAct = d.currentAct || 1;
+      // Map layout changed (45-floor campaign): regenerate incompatible maps.
+      // Player restarts the current act with all upgrades/passives intact.
+      if (run.gameMap && !isMapCompatible(run.gameMap)) {
+        const savedAct = Math.min(3, Math.max(1, d.currentAct || Math.ceil((d.floor || 1) / 15)));
+        const fresh = generateFullMap();
+        fresh.currentAct = savedAct;
+        run.gameMap = fresh;
+        run.currentAct = savedAct;
+      }
     }
 
     function startBattle(opts = {}) {
@@ -1872,6 +1912,7 @@ const screenMenu = document.getElementById("screen-menu");
       const d = loadRun();
       if (!d) return;
       applyLoadedRun(d);
+      saveRun(); // persists regenerated map if migration occurred
       if (run.gameMap) {
         showScreen("game");
         showMap();

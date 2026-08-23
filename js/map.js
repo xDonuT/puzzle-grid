@@ -111,11 +111,22 @@ function isNodeReachable(map, nodeId, visited) {
   return false;
 }
 
+// Bump when MAP_LAYERS_PER_ACT / node structure changes so old saves regenerate.
+const MAP_VERSION = 2;
+
 function generateFullMap() {
   return {
+    v: MAP_VERSION,
     acts: [generateActMap(1), generateActMap(2), generateActMap(3)],
     visitedNodes: {},  // "act-layer-index" → true
     currentNode: null, // currently active node id
     currentAct: 1,
   };
+}
+
+function isMapCompatible(map) {
+  const expectedLayers = MAP_LAYERS_PER_ACT[0].length + 1; // + boss layer
+  return !!map && map.v === MAP_VERSION &&
+    Array.isArray(map.acts) && map.acts.length === 3 &&
+    map.acts.every(a => a && Array.isArray(a.layers) && a.layers.length === expectedLayers);
 }

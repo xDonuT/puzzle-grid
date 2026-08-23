@@ -1314,10 +1314,18 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           bitsExtra.push(`Bulwark Fracture ${combat.fractureStacks}`);
         }
         if (hasSigMatch) {
-          const before = combat.sigBank;
-          combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + 1 + (run.ultChargeBonus || 0));
-          if (before < settings.ultNeed && combat.sigBank >= settings.ultNeed) {
-            showUltReadyBanner();
+          // Track total signature tiles cleared this turn (3 tiles = 1 charge, cascades count)
+          const sigTiles = sigSwordCount + sigShieldCount + sigHpCount;
+          combat.sigTilesThisTurn += sigTiles;
+          const totalCharges = Math.floor(combat.sigTilesThisTurn / 3);
+          const chargesToAdd = totalCharges - (combat._lastSigChargeTotal || 0);
+          combat._lastSigChargeTotal = totalCharges;
+          if (chargesToAdd > 0) {
+            const before = combat.sigBank;
+            combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + chargesToAdd);
+            if (before < settings.ultNeed && combat.sigBank >= settings.ultNeed) {
+              showUltReadyBanner();
+            }
           }
           // Mana Surge (Wizard): full charge — signature matches refund 1 AP
           if (run.manaSurge && combat.sigBank >= settings.ultMaxCharge) {
@@ -1547,6 +1555,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       combat._bulwarkUsed = false; // Bulwark: once per turn
       combat.swordsClearedThisTurn = 0; // ninja Shadow Step
       combat.shadowStepUsed = false;     // ninja Shadow Step
+      combat.sigTilesThisTurn = 0;       // sig tile charge accumulator (3 tiles = 1 charge)
+      combat._lastSigChargeTotal = 0;
       // Free shuffle every 3rd turn (use it or lose it)
       if (combat.turn % 3 === 0) {
         combat.freeShuffles = 1;
@@ -1882,12 +1892,18 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       }
       busy = true;
       combat.ap -= 1;
-      const charge = combat.sigBank;
-      const dmg = 15 + Math.max(0, charge - 6) * 2;
       const cls = combat.playerClass;
+      const sig = playerSignature(); // "sword" | "shield" | "hp"
       const bits = [];
       const playerPort = document.getElementById("playerPortrait");
       const enemyPort = document.getElementById("enemyPortrait");
+
+      // Count all signature tiles on board, then consume them
+      const tilesOnBoard = typeof window.countTilesOfType === "function" ? window.countTilesOfType(sig) : 0;
+      const tilesConsumed = typeof window.consumeTilesOfType === "function" ? window.consumeTilesOfType(sig) : 0;
+      const perTileDmg = sig === "sword" ? 6 : sig === "shield" ? 5 : 5;
+      const baseDmg = 5;
+      let ultDmg = baseDmg + tilesConsumed * perTileDmg;
 
       // --- Wind-up ---
       if (playerPort) {
@@ -1897,49 +1913,52 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       playUltSfx(cls);
       await sleep(cls === "knight" ? 140 : 110);
 
-      // Class-specific pre-impact
-      let ultDmg = dmg;
+      // Class-specific pre-impact bonuses
       if (cls === "ninja") {
         combat.playerHp = Math.max(1, combat.playerHp - 3);
         combat.afterglowTurns = run.lingeringShadow ? 2 : 1;
         const enemyPct = combat.enemyHp / Math.max(1, combat.enemyMaxHp);
-        if (enemyPct < 0.3) ultDmg = Math.min(60, dmg * 2);
-        bits.push("Assassinate", `${ultDmg} true`, enemyPct < 0.3 ? "Execute!" : "", "Afterglow", "-3 HP");
+        if (enemyPct < 0.3) ultDmg = Math.round(ultDmg * 2);
+        bits.push("Assassinate", `${ultDmg} true`, enemyPct < 0.3 ? "Execute!" : "", `${tilesConsumed} ⚔️ consumed`, "Afterglow", "-3 HP");
         refreshCombatUI();
       } else if (cls === "wizard") {
-        bits.push("Meteor", `${dmg} true`);
+        bits.push("Meteor", `${ultDmg} true`, `${tilesConsumed} 🛡️ consumed`);
+        // Mana steal if enemy has shield
+        if (combat.enemyShield > 0) {
+          const steal = Math.min(3, combat.enemyShield);
+          combat.enemyShield -= steal;
+          applyShielding(steal);
+          bits.push(`steal ${steal}🛡️`);
+        }
       } else if (cls === "knight") {
         const shatterBonus = combat.fractureStacks * 4;
         combat.fractureStacks = 0;
         combat.fractureTurns = 0;
         combat.mortalWoundTurns = Math.max(combat.mortalWoundTurns, 2);
-        bits.push("Earthshatter", `${dmg} true`, shatterBonus > 0 ? `Shatter +${shatterBonus}` : "No Fracture", "Mortal Wound");
+        bits.push("Earthshatter", `${ultDmg} true`, `${tilesConsumed} ❤️ consumed`, shatterBonus > 0 ? `Shatter +${shatterBonus}` : "No Fracture", "Mortal Wound");
         if (shatterBonus > 0) {
           await sleep(90);
           dealDamageToEnemy(shatterBonus, { trueDmg: true, source: "ult" });
           showUltDamagePop(shatterBonus, cls);
         }
-        // Mortal Strike (Knight): ult also reduces enemy damage by 25% for 2 turns
         if (run.mortalStrike) {
           combat.enemyWeakenTurns = Math.max(combat.enemyWeakenTurns || 0, 2);
           bits.push("Weaken 25%");
         }
       } else {
-        bits.push("Ultimate", `${dmg} dmg`);
+        bits.push("Ultimate", `${ultDmg} dmg`, `${tilesConsumed} consumed`);
       }
 
       // --- Hit-stop + flash + flinch + cinematic ---
       document.body.classList.add("ult-hitstop");
       runUltFlash(cls);
       shakeBoard("strong");
-      // Per-class cinematic overlay + screen-wide filter
       const cinEl = document.createElement("div");
       cinEl.className = "ult-cinematic " + cls;
       document.body.appendChild(cinEl);
       void cinEl.offsetWidth;
       cinEl.classList.add("go");
       document.body.classList.add("ult-cin-" + cls);
-      // Extra crack lines for knight (pseudo-elements only give 2)
       if (cls === "knight") {
         [144, 216, 288].forEach((deg, i) => {
           const crack = document.createElement("div");
@@ -1948,18 +1967,15 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           cinEl.appendChild(crack);
         });
       }
-      // Extra slash line for ninja (pseudo-elements only give 2)
       if (cls === "ninja") {
         const extraSlash = document.createElement("div");
         extraSlash.className = "ult-slash-extra";
         extraSlash.style.cssText = "position:fixed;width:200%;height:3px;background:linear-gradient(90deg,transparent,rgba(123,159,212,0.9),transparent);transform:rotate(-35deg);top:42%;left:-50%;pointer-events:none;z-index:10000;animation:slashLine 0.35s 0.1s ease-out forwards;opacity:0;";
         cinEl.appendChild(extraSlash);
       }
-      // Mega particle burst from player → enemy
       flyEffect(playerPort || document.getElementById("playerPortrait"),
                 enemyPort || document.getElementById("enemyPortrait"),
-                cls === "ninja" ? "sword" : cls === "wizard" ? "star" : "hp",
-                { mega: true });
+                sig, { mega: true });
       if (enemyPort) {
         enemyPort.classList.remove("ult-flinch");
         void enemyPort.offsetWidth;
@@ -1969,7 +1985,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       showUltDamagePop(ultDmg, cls);
       combat.sigBank = 0;
       combat.ultAnnounced = false;
-      const liveBits = bits.filter((b) => b !== `${dmg} true` && b !== `${dmg} dmg`);
+      const liveBits = bits.filter((b) => b !== `${ultDmg} true` && b !== `${ultDmg} dmg`);
       setLog(liveBits.join(" · "), bits.join(" · "));
       refreshCombatUI();
 
@@ -1978,28 +1994,6 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       document.body.classList.remove("ult-cin-ninja", "ult-cin-wizard", "ult-cin-knight");
       setTimeout(() => cinEl.remove(), 500);
 
-      // --- Board residue ---
-      let residueNote = "";
-      if (cls === "ninja") {
-        const n = convertRandomTiles(3, "sword");
-        if (n > 0) residueNote = `${n}→⚔️`;
-      } else if (cls === "wizard") {
-        const n = convertRandomTiles(3, "shield");
-        if (n > 0) residueNote = `${n}→🛡️`;
-        // Small mana steal if enemy has shield
-        if (combat.enemyShield > 0) {
-          const steal = Math.min(3, combat.enemyShield);
-          combat.enemyShield -= steal;
-          applyShielding(steal);
-          residueNote = (residueNote ? residueNote + " · " : "") + `steal ${steal}🛡️`;
-        }
-      } else if (cls === "knight") {
-        const n = convertRandomTiles(2, "hp");
-        if (n > 0) residueNote = `${n}→❤️`;
-      }
-      if (residueNote) {
-        setLog(liveBits.join(" · ") + " · " + residueNote, bits.join(" · ") + " · " + residueNote);
-      }
       refreshCombatUI();
 
       // Rival voice

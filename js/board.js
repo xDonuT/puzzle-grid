@@ -988,4 +988,34 @@
       setSpecialClass(el, kind);
     };
 
+    // Count all tiles of a given type on the board.
+    window.countTilesOfType = function countTilesOfType(type) {
+      let count = 0;
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (board[r][c] === type) count++;
+        }
+      }
+      return count;
+    };
+
+    // Consume (remove) all tiles of a given type from the board.
+    // Returns the number of tiles consumed. Board refs become null; visual is cleared.
+    window.consumeTilesOfType = function consumeTilesOfType(type) {
+      let count = 0;
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (board[r][c] === type) {
+            board[r][c] = null;
+            specials[r][c] = false;
+            count++;
+            const el = getCell(r, c);
+            el.className = "tile";
+            el.style.opacity = "0";
+          }
+        }
+      }
+      return count;
+    };
+
     // ---------- Phase 2: character SVGs (simple, cute, flat) ----------

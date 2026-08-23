@@ -695,7 +695,8 @@
       enemyAtkBonus: 0,
       extraFreeShuffles: 0,
       tileBloomPerTurn: false,
-      tempShieldCapBonus: 0
+      tempShieldCapBonus: 0,
+      sigTilesThisTurn: 0
     };
 
     // Track unused AP bonus from previous turn

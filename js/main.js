@@ -386,11 +386,15 @@ const screenMenu = document.getElementById("screen-menu");
           msg += `<br>${mod.icon} Modifier: ${mod.name}`;
         }
         rewardMsg.innerHTML = msg;
-        document.getElementById("btnGoRetry").textContent = "Next Floor";
-        const savedFloor = run.floor;
-        run.floor = savedFloor + 1;
-        saveRun();
-        run.floor = savedFloor;
+        if (run.gameMap) {
+          document.getElementById("btnGoRetry").textContent = "View Map";
+        } else {
+          document.getElementById("btnGoRetry").textContent = "Next Floor";
+          const savedFloor = run.floor;
+          run.floor = savedFloor + 1;
+          saveRun();
+          run.floor = savedFloor;
+        }
       }
       // Mark tutorial complete after floor 1
       if (combat.tutorial && !settings.tutorialCompleted) {
@@ -598,6 +602,320 @@ const screenMenu = document.getElementById("screen-menu");
     }
 
     // Boss win → choose 1 of 3 upgrades (4 with a pending extra-pick reward), then show the victory overlay
+
+    // ===================== STS-STYLE MAP SYSTEM =====================
+    const ACT_NAMES = ["", "The Rootbound", "The Ashen Depths", "The Last Spire"];
+    const ACT_CLIMBS = ["", "tower-1", "tower-2", "tower-4"];
+
+    function showMap() {
+      const ov = document.getElementById("mapOverlay");
+      const layersEl = document.getElementById("mapLayers");
+      const actLabel = document.getElementById("mapActLabel");
+      if (!ov || !layersEl) return;
+      const map = run.gameMap;
+      if (!map) return;
+      const act = map.currentAct;
+      const actData = map.acts[act - 1];
+      if (!actData) return;
+
+      if (actLabel) actLabel.innerHTML = `Act <span class="act-num">${act}</span> — ${ACT_NAMES[act] || ""}`;
+      layersEl.innerHTML = "";
+
+      // Build a set of reachable node IDs
+      const visitedSet = new Set(Object.keys(map.visitedNodes).filter(k => map.visitedNodes[k]));
+      const currentId = map.currentNode;
+      const reachable = new Set();
+      if (!currentId) {
+        // First layer: all nodes in layer 0 are reachable
+        actData.layers[0].forEach(n => reachable.add(n.id));
+      } else {
+        const conn = getConnectedNodes(actData, currentId);
+        conn.forEach(id => reachable.add(id));
+      }
+
+      // Render layers top-to-bottom (boss at top, layer 0 at bottom) using column-reverse
+      for (let li = 0; li < actData.layers.length; li++) {
+        const layer = actData.layers[li];
+        const layerEl = document.createElement("div");
+        layerEl.className = "map-layer";
+        layer.forEach(node => {
+          const nodeEl = document.createElement("div");
+          const isVisited = visitedSet.has(node.id);
+          const isCurrent = currentId === node.id;
+          const isReachable = reachable.has(node.id) && !isVisited;
+          nodeEl.className = `map-node ${node.type}` + (isVisited ? " visited" : "") + (isCurrent ? " current" : "") + (isReachable ? " reachable" : "") + (!isVisited && !isCurrent && !isReachable ? " locked" : "");
+          nodeEl.innerHTML = `<span class="node-icon">${NODE_ICONS[node.type] || "⚔️"}</span><span class="node-label">${NODE_LABELS[node.type] || ""}</span>`;
+          if (isReachable) {
+            nodeEl.addEventListener("click", () => onMapNodeClick(node));
+          }
+          layerEl.appendChild(nodeEl);
+        });
+        layersEl.appendChild(layerEl);
+        // Connector between layers (not above layer 0)
+        if (li > 0) {
+          const conn = document.createElement("div");
+          conn.className = "map-connector";
+          layersEl.appendChild(conn);
+        }
+      }
+      ov.classList.add("open");
+    }
+
+    function hideMap() {
+      const ov = document.getElementById("mapOverlay");
+      if (ov) ov.classList.remove("open");
+    }
+
+    function onMapNodeClick(node) {
+      const map = run.gameMap;
+      if (!map) return;
+      hideMap();
+      // Mark visited and set current
+      map.visitedNodes[node.id] = true;
+      map.currentNode = node.id;
+
+      // Route to the right encounter
+      if (node.type === "boss") {
+        // Boss floors are always at 5/10/15 for kit lookup
+        const bossFloors = [5, 10, 15];
+        run.floor = bossFloors[map.currentAct - 1] || calcMapFloor(map);
+        startBattle({ fromVictory: false, isBoss: true });
+      } else if (node.type === "mystery") {
+        openMysteryNode(() => {
+          showMap();
+          saveRun();
+        });
+      } else if (node.type === "shop") {
+        openShopNode(() => {
+          showMap();
+          saveRun();
+        });
+      } else if (node.type === "elite") {
+        // Elite floors are always at 4/9/14 for kit lookup
+        const eliteFloors = [4, 9, 14];
+        run.floor = eliteFloors[map.currentAct - 1] || calcMapFloor(map);
+        startBattle({ fromVictory: false });
+      } else {
+        // Normal fight
+        run.floor = calcMapFloor(map);
+        startBattle({ fromVictory: false });
+      }
+      saveRun();
+    }
+
+    function calcMapFloor(map) {
+      // Count visited battle nodes in current act to determine floor index
+      const actData = map.acts[map.currentAct - 1];
+      let count = 0;
+      for (const layer of actData.layers) {
+        for (const node of layer) {
+          if (map.visitedNodes[node.id] && node.type !== "boss") count++;
+        }
+      }
+      return (map.currentAct - 1) * 5 + count;
+    }
+
+    // --- New run with map ---
+    function startNewRunMap() {
+      const map = generateFullMap();
+      run.gameMap = map;
+      run.currentAct = 1;
+      map.currentAct = 1;
+      map.currentNode = null;
+      map.visitedNodes = {};
+      run.floor = 0;
+      showMap();
+    }
+
+    function advanceActOrVictory() {
+      const map = run.gameMap;
+      if (!map) { showVictoryOverlay({ label: "Victory!" }); return; }
+      if (map.currentAct < 3) {
+        // Advance to next act
+        map.currentAct++;
+        run.currentAct = map.currentAct;
+        map.currentNode = null;
+        // Show act transition banner then map
+        showActBanner(map.currentAct, () => showMap());
+      } else {
+        // Beat final boss → campaign clear
+        showVictoryOverlay({ label: "Campaign Clear!" });
+      }
+    }
+
+    function showActBanner(act, cb) {
+      const ov = document.getElementById("floorBannerOverlay");
+      const kicker = document.getElementById("floorBannerKicker");
+      const title = document.getElementById("floorBannerTitle");
+      const sub = document.getElementById("floorBannerSub");
+      const card = document.getElementById("floorBannerCard");
+      if (!ov) { if (cb) cb(); return; }
+      if (kicker) kicker.textContent = "New Act";
+      if (title) title.textContent = `Act ${act}`;
+      if (sub) sub.textContent = ACT_NAMES[act] || "";
+      if (card) { card.style.background = ""; card.style.boxShadow = ""; }
+      ov.classList.add("open");
+      setTimeout(() => { ov.classList.remove("open"); if (cb) cb(); }, 1400);
+    }
+
+    // ===================== MYSTERY NODE (Card Flip) =====================
+    const MYSTERY_EFFECTS = [
+      // Good (free)
+      { id: "mHeal", icon: "❤️", label: "Heal 30% HP", tier: "good", apply() {
+        const hero = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
+        const max = hero.hp + run.bonusMaxHp;
+        combat.playerHp = Math.min(max, combat.playerHp + Math.floor(max * 0.3));
+      }, cost: null },
+      { id: "mShield", icon: "🛡️", label: "+8 Shield next fight", tier: "good", apply() { run.pending.shield += 8; }, cost: null },
+      { id: "mSword", icon: "⚔️", label: "+3 Sword dmg next fight", tier: "good", apply() { run.pending.swordBoost += 3; }, cost: null },
+      { id: "mCharge", icon: "⭐", label: "+3 Ult charge next fight", tier: "good", apply() { run.pending.feverBoost += 3; }, cost: null },
+      { id: "mMaxHp", icon: "❤️", label: "+6 Max HP", tier: "good", apply() { run.bonusMaxHp += 6; }, cost: null },
+      // Paid (cost HP)
+      { id: "mBigShield", icon: "🏰", label: "+15 Shield next fight", tier: "neutral", apply() { run.pending.shield += 15; }, cost: { type: "hp", amount: 10, label: "−10 HP" } },
+      { id: "mAp", icon: "⚡", label: "+2 AP next fight", tier: "neutral", apply() { run.pending.bonusAp += 2; }, cost: { type: "hp", amount: 8, label: "−8 HP" } },
+      { id: "mSacrifice", icon: "💀", label: "+4 All stats next fight", tier: "neutral", apply() { run.pending.swordBoost += 2; run.pending.feverBoost += 2; run.pending.shield += 4; }, cost: { type: "hp", amount: 12, label: "−12 HP" } },
+      { id: "mCrit", icon: "🎯", label: "+15% Crit next fight", tier: "neutral", apply() { run.pending.critChance += 15; }, cost: { type: "shield", amount: 6, label: "−6 Shield" } },
+      // Bad (free)
+      { id: "mPoison", icon: "☠️", label: "Enemy starts poisoned 3t", tier: "bad", apply() { run.pending.enemyPoison += 3; }, cost: null },
+      { id: "mWound", icon: "💔", label: "−8 Max HP", tier: "bad", apply() { run.bonusMaxHp = Math.max(0, run.bonusMaxHp - 8); }, cost: null },
+      { id: "mDebuff", icon: "⛓️", label: "Enemy ult −1 turn sooner", tier: "bad", apply() { run.pending.enemySlow -= 1; }, cost: null },
+    ];
+
+    function openMysteryNode(onDone) {
+      const ov = document.getElementById("mysteryOverlay");
+      const cardsEl = document.getElementById("mysteryCards");
+      const resultEl = document.getElementById("mysteryResult");
+      const btnDone = document.getElementById("btnMysteryDone");
+      const titleEl = document.getElementById("mysteryTitle");
+      const subEl = document.getElementById("mysterySub");
+      if (!ov || !cardsEl) { if (onDone) onDone(); return; }
+
+      // Pick 3 random effects
+      const shuffled = MYSTERY_EFFECTS.slice();
+      for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; }
+      const choices = shuffled.slice(0, 3);
+
+      cardsEl.innerHTML = "";
+      resultEl.textContent = "";
+      resultEl.style.opacity = 0;
+      if (btnDone) btnDone.style.display = "none";
+      if (titleEl) titleEl.textContent = "❓ Mystery Node";
+      if (subEl) subEl.textContent = "Pick a card — risk or reward?";
+
+      choices.forEach((effect, i) => {
+        const card = document.createElement("div");
+        card.className = "mystery-card reachable";
+        const inner = document.createElement("div");
+        inner.className = "mystery-card-inner";
+        const front = document.createElement("div");
+        front.className = "mystery-card-front";
+        const back = document.createElement("div");
+        back.className = `mystery-card-back ${effect.tier}`;
+        const costLine = effect.cost ? `<div class="mc-cost">${effect.cost.label}</div>` : "";
+        back.innerHTML = `<div class="mc-icon">${effect.icon}</div><div class="mc-label">${effect.label}</div>${costLine}`;
+        inner.appendChild(front);
+        inner.appendChild(back);
+        card.appendChild(inner);
+
+        card.addEventListener("click", () => {
+          // Can't afford?
+          if (effect.cost) {
+            if (effect.cost.type === "hp" && combat.playerHp <= effect.cost.amount) {
+              resultEl.innerHTML = `<span style="color:#c88080">Not enough HP!</span>`;
+              resultEl.style.opacity = 1;
+              return;
+            }
+            if (effect.cost.type === "shield" && combat.shield < effect.cost.amount) {
+              resultEl.innerHTML = `<span style="color:#80a0c8">Not enough shield!</span>`;
+              resultEl.style.opacity = 1;
+              return;
+            }
+          }
+          // Flip all cards
+          cardsEl.querySelectorAll(".mystery-card").forEach(c => c.classList.add("flipped"));
+          card.style.zIndex = 10;
+          // Pay cost
+          if (effect.cost) {
+            if (effect.cost.type === "hp") combat.playerHp = Math.max(1, combat.playerHp - effect.cost.amount);
+            if (effect.cost.type === "shield") combat.shield = Math.max(0, combat.shield - effect.cost.amount);
+          }
+          // Apply effect
+          effect.apply();
+          const tierLabel = effect.tier === "good" ? "✨" : effect.tier === "bad" ? "💀" : "🔮";
+          resultEl.innerHTML = `${tierLabel} ${effect.label}`;
+          resultEl.style.opacity = 1;
+          // Disable all cards
+          cardsEl.querySelectorAll(".mystery-card").forEach(c => c.style.pointerEvents = "none");
+          if (btnDone) btnDone.style.display = "";
+        });
+        cardsEl.appendChild(card);
+      });
+
+      if (btnDone) {
+        btnDone.onclick = () => { ov.classList.remove("open"); if (onDone) onDone(); };
+      }
+      ov.classList.add("open");
+    }
+
+    // ===================== SHOP NODE (Spend HP/Shield) =====================
+    function generateShopItems() {
+      const items = [
+        { icon: "⚔️", name: "Sharpen", desc: "+3 sword damage", costType: "hp", cost: 10, apply() { combat.tempSwordDmg += 3; } },
+        { icon: "⭐", name: "Star Focus", desc: "+3 star damage", costType: "hp", cost: 10, apply() { combat.tempStarDmg += 3; } },
+        { icon: "❤️", name: "Blood Pact", desc: "+10 max HP", costType: "shield", cost: 8, apply() { combat.playerMaxHp += 10; combat.playerHp += 10; } },
+        { icon: "🛡️", name: "Iron Mantle", desc: "+5 max shield", costType: "hp", cost: 8, apply() { combat.tempShieldCapBonus += 5; } },
+        { icon: "⚡", name: "Surge", desc: "+1 max AP", costType: "hp", cost: 15, apply() { combat.ap = Math.min(AP_MAX + 1, combat.ap + 1); } },
+        { icon: "🔮", name: "Enchant", desc: "Add a special tile to board", costType: "shield", cost: 5, apply() { if (typeof window.placeRandomSpecial === "function") window.placeRandomSpecial(); } },
+        { icon: "💀", name: "Fracture Shard", desc: "Apply 2 Fracture to enemy", costType: "hp", cost: 12, apply() { combat.fractureStacks = Math.min(5, combat.fractureStacks + 2); combat.fractureTurns = Math.max(combat.fractureTurns, 3); } },
+        { icon: "🌟", name: "Star Surge", desc: "+4 ult charge", costType: "shield", cost: 6, apply() { combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + 4); } },
+      ];
+      // Pick 4 random items
+      const shuffled = items.slice();
+      for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; }
+      return shuffled.slice(0, 4);
+    }
+
+    function openShopNode(onDone) {
+      const ov = document.getElementById("shopOverlay");
+      const itemsEl = document.getElementById("shopItems");
+      const hpDisplay = document.getElementById("shopHpDisplay");
+      const btnDone = document.getElementById("btnShopDone");
+      if (!ov || !itemsEl) { if (onDone) onDone(); return; }
+
+      const items = generateShopItems();
+      const bought = new Set();
+
+      function renderShop() {
+        itemsEl.innerHTML = "";
+        if (hpDisplay) hpDisplay.innerHTML = `❤️ ${combat.playerHp}/${combat.playerMaxHp} HP &nbsp;·&nbsp; 🛡️ ${combat.shield} shield`;
+        items.forEach((item, i) => {
+          const el = document.createElement("div");
+          el.className = "shop-item" + (bought.has(i) ? " bought" : "");
+          const costClass = item.costType === "shield" ? " shield-cost" : "";
+          const costIcon = item.costType === "hp" ? "❤️" : "🛡️";
+          // Check if can afford
+          const canAfford = item.costType === "hp" ? combat.playerHp > item.cost : combat.shield >= item.cost;
+          if (!canAfford && !bought.has(i)) el.classList.add("cant-afford");
+          el.innerHTML = `<span class="si-icon">${item.icon}</span><div class="si-info"><div class="si-name">${item.name}</div><div class="si-desc">${item.desc}</div></div><span class="si-cost${costClass}">${costIcon} ${item.cost}</span>`;
+          if (!bought.has(i) && canAfford) {
+            el.addEventListener("click", () => {
+              bought.add(i);
+              // Pay cost
+              if (item.costType === "hp") combat.playerHp = Math.max(1, combat.playerHp - item.cost);
+              if (item.costType === "shield") combat.shield = Math.max(0, combat.shield - item.cost);
+              item.apply();
+              renderShop();
+            });
+          }
+          itemsEl.appendChild(el);
+        });
+      }
+      renderShop();
+      if (btnDone) btnDone.onclick = () => { ov.classList.remove("open"); if (onDone) onDone(); };
+      ov.classList.add("open");
+    }
+
+    // Boss win → choose 1 of 3 upgrades (4 with a pending extra-pick reward), then show the victory overlay
     function openUpgradePicker(onPick) {
       const wrap = document.getElementById("upgradeCards");
       const ov = document.getElementById("upgradeOverlay");
@@ -789,7 +1107,9 @@ const screenMenu = document.getElementById("screen-menu");
           playerClass: combat.playerClass,
           difficulty: settings.difficulty,
           elapsedMs: run.elapsedMs || 0,
-          floorElapsedMs: run.floorElapsedMs || 0
+          floorElapsedMs: run.floorElapsedMs || 0,
+          gameMap: run.gameMap || null,
+          currentAct: run.currentAct || 1
         };
         localStorage.setItem(SAVE_KEY, JSON.stringify(data));
       } catch (_) {}
@@ -856,6 +1176,8 @@ const screenMenu = document.getElementById("screen-menu");
       run.pendingModifierRare = false;
       run.elapsedMs = 0;
       run.floorElapsedMs = 0;
+      run.gameMap = null;
+      run.currentAct = 1;
       timerRunning = false;
       AP_MAX = 3;
       clearSave();
@@ -912,6 +1234,8 @@ const screenMenu = document.getElementById("screen-menu");
       run.pendingModifierRare = !!d.pendingModifierRare;
       if (d.playerClass && HERO_STATS[d.playerClass]) combat.playerClass = d.playerClass;
       if (d.difficulty) settings.difficulty = d.difficulty;
+      run.gameMap = d.gameMap || null;
+      run.currentAct = d.currentAct || 1;
     }
 
     function startBattle(opts = {}) {
@@ -1122,8 +1446,17 @@ const screenMenu = document.getElementById("screen-menu");
     });
     document.getElementById("btnGoRetry").addEventListener("click", () => {
       if (combat.enemyHp <= 0 && run.floor < MAX_FLOOR) {
-        if (isBranchFloor(run.floor)) {
-          gameOverOverlay.classList.remove("open");
+        gameOverOverlay.classList.remove("open");
+        // Map system: after victory, show map (or advance act if boss)
+        if (run.gameMap) {
+          const map = run.gameMap;
+          const node = getNodeById(map.acts[map.currentAct - 1], map.currentNode);
+          if (node && node.type === "boss") {
+            advanceActOrVictory();
+          } else {
+            showMap();
+          }
+        } else if (isBranchFloor(run.floor)) {
           showBranchOverlay();
         } else {
           startBattle({ fromVictory: true });
@@ -1384,7 +1717,7 @@ const screenMenu = document.getElementById("screen-menu");
           persistSettings();
           ov.classList.remove("open");
           resetRun();
-          startBattle();
+          startNewRunMap();
           refreshContinueBtn();
         });
         wrap.appendChild(btn);
@@ -1407,7 +1740,12 @@ const screenMenu = document.getElementById("screen-menu");
       const d = loadRun();
       if (!d) return;
       applyLoadedRun(d);
-      startBattle({ retry: true }); // stay on saved floor
+      if (run.gameMap) {
+        showScreen("game");
+        showMap();
+      } else {
+        startBattle({ retry: true }); // stay on saved floor
+      }
       refreshContinueBtn();
     });
 
@@ -1782,7 +2120,12 @@ const screenMenu = document.getElementById("screen-menu");
       }
       // Progress
       parts.push(`<div class="info-section">Progress</div>`);
-      parts.push(`<div class="info-body">Floor ${run.floor} of 20. ${isBossFloor(run.floor) ? "Final boss!" : isEliteFloor(run.floor) ? "Elite challenge ahead." : `${20 - run.floor} floors remaining.`}</div>`);
+      if (run.gameMap) {
+        const act = run.gameMap.currentAct || 1;
+        parts.push(`<div class="info-body">Act ${act}/3 · ${ACT_NAMES[act] || ""}. ${isBossFloor(run.floor) ? "Boss floor!" : isEliteFloor(run.floor) ? "Elite challenge ahead." : ""}</div>`);
+      } else {
+        parts.push(`<div class="info-body">Floor ${run.floor} of ${MAX_FLOOR}. ${isBossFloor(run.floor) ? "Boss floor!" : isEliteFloor(run.floor) ? "Elite challenge ahead." : `${MAX_FLOOR - run.floor} floors remaining.`}</div>`);
+      }
       infoBody.innerHTML = parts.join("");
       infoOverlay.classList.add("open");
     }

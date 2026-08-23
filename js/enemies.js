@@ -236,7 +236,7 @@
     // ---------- Combat state ----------
     let AP_MAX = 3;
     const BASE_HP = 100;
-    const MAX_FLOOR = 20;
+    const MAX_FLOOR = 15;
 
     // Random enemy name pools
     const ENEMY_NAMES = [
@@ -340,10 +340,7 @@
               combat.poisonTurns = Math.max(combat.poisonTurns || 0, 2);
               flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "poison");
               if (Math.random() < 0.5) combat.weakenNextSword = true;
-            } },
-      19: { name: "Ashcrown", persona: "mender", bias: { shield: 2.0 }, hpMul: 1.65, atkMul: 1.5, passive: "Gains shield when struck",
-            onHit: () => {},
-            onDamaged: () => { combat.enemyShield = Math.min(25, combat.enemyShield + 3); } }
+            } }
     };
 
     // Signature tile per class (charges ultimate)
@@ -379,7 +376,9 @@
       pendingModifier: null,
       pendingModifierRare: false,
       elapsedMs: 0,
-      floorElapsedMs: 0
+      floorElapsedMs: 0,
+      gameMap: null,     // STS-style branching map
+      currentAct: 1
     };
 
     // Boss floors are marked here (also drives boss HP scaling); rewards are now
@@ -387,8 +386,7 @@
     const BOSS_REWARDS = {
       5:  { label: "Boss", apply: () => {} },
       10: { label: "Boss", apply: () => {} },
-      15: { label: "Boss", apply: () => {} },
-      20: { label: "Boss", apply: () => {} }
+      15: { label: "Boss", apply: () => {} }
     };
 
     // Post-boss upgrade pool — each pick may be taken once per run.
@@ -593,8 +591,7 @@
     const GAUNTLET_REWARDS = {
       4: { label: "+4 Max Shield", apply: () => { run.bonusShieldMax += 4; } },
       9: { label: "+1 Max AP", apply: () => { run.bonusApMax += 1; AP_MAX = 3 + run.bonusApMax; } },
-      14: { label: "+8 Max HP", apply: () => { run.bonusMaxHp += 8; } },
-      19: { label: "+5 Max Shield", apply: () => { run.bonusShieldMax += 5; } }
+      14: { label: "+8 Max HP", apply: () => { run.bonusMaxHp += 8; } }
     };
 
     // Unique boss kits (floor → definition)
@@ -603,10 +600,8 @@
             ultFn: () => { combat.blindNext = true; dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.4)); setLog("Root Snare · blind + heavy hit"); } },
       10: { id: "cinder", name: "Cinder Queen", persona: "viper", bias: { star: 1.5, sword: 1.2 }, ultName: "Ashstorm", ultTurns: 4,
             ultFn: () => { combat.poisonTurns = Math.max(combat.poisonTurns, 3); flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "poison"); dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.5)); setLog("Ashstorm · poison 3t + burst"); } },
-      15: { id: "ironjaw", name: "Ironjaw the Unbroken", persona: "mender", bias: { shield: 2.0 }, ultName: "Shield Wall", ultTurns: 5,
-            ultFn: () => { combat.enemyShield = Math.min(30, combat.enemyShield + 12); dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.2)); setLog("Shield Wall · +12 shield + strike"); } },
-      // The Last Rival = dark Knight kit: Regen 3/turn + Fracture on hit + Earthshatter ult
-      20: { id: "lastrival", name: "The Last Rival", persona: "mender", bias: { hp: 1.8, shield: 1.3 }, ultName: "Earthshatter", ultTurns: 5,
+      // The Last Rival = dark Knight kit: final boss at floor 15
+      15: { id: "lastrival", name: "The Last Rival", persona: "mender", bias: { hp: 1.8, shield: 1.3 }, ultName: "Earthshatter", ultTurns: 5,
             passive: "Regenerates 3 HP each turn · every hit applies Fracture (2 true dmg per stack at your turn start)",
             ultDesc: "Massive hit + Mortal Wound (your healing -50% for 2 turns)",
             turnStart: () => { if (combat.enemyHp > 0) healEnemy(3); },

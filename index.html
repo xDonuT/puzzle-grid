@@ -2473,6 +2473,142 @@ body.ult-hitstop .board-wrap {
     @media (prefers-reduced-transparency: reduce) {
       body::before, body::after { display: none; }
     }
+
+    /* ─── Map overlay ─── */
+    #mapOverlay { background: rgba(40, 35, 28, 0.85); flex-direction: column; overflow-y: auto; }
+    #mapOverlay.open { display: flex; }
+    .map-panel {
+      background: #f3efe8; border-radius: 20px; padding: 18px 14px; margin: auto;
+      min-width: min(92vw, 360px); max-width: 380px;
+      box-shadow: 0 10px 36px rgba(40,30,20,0.35);
+      border: 1px solid rgba(255,255,255,0.5);
+    }
+    .map-act-label {
+      text-align: center; font-size: 0.85rem; font-weight: 800; color: #6b5f55;
+      letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px;
+    }
+    .map-act-label .act-num { font-size: 1.1rem; color: #b89420; }
+    .map-layers { display: flex; flex-direction: column-reverse; gap: 0; align-items: center; }
+    .map-layer { display: flex; justify-content: center; gap: 10px; padding: 6px 0; width: 100%; position: relative; }
+    .map-connector {
+      width: 2px; height: 14px; background: rgba(120,110,100,0.25); margin: 0 auto;
+    }
+    .map-node {
+      width: 52px; height: 52px; border-radius: 14px; border: 2px solid rgba(120,110,100,0.3);
+      background: #ebe4d8; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+      position: relative; flex-shrink: 0;
+    }
+    .map-node .node-icon { font-size: 1.3rem; line-height: 1; }
+    .map-node .node-label { font-size: 0.45rem; font-weight: 700; color: #8a7a6a; margin-top: 1px; }
+    .map-node.reachable { border-color: #b89420; box-shadow: 0 0 8px rgba(184,148,32,0.35); animation: nodePulse 1.5s infinite; }
+    .map-node.visited { opacity: 0.45; border-color: #999; pointer-events: none; }
+    .map-node.locked { opacity: 0.3; pointer-events: none; }
+    .map-node.current { border-color: #d4783c; box-shadow: 0 0 12px rgba(212,120,60,0.5); }
+    .map-node.elite { border-color: #c04040; }
+    .map-node.mystery { border-color: #8a50c0; }
+    .map-node.shop { border-color: #40a060; }
+    .map-node.boss { border-color: #b89420; background: linear-gradient(135deg, #f8e8c0, #ebe4d8); width: 60px; height: 60px; }
+    .map-node.boss .node-icon { font-size: 1.5rem; }
+    @keyframes nodePulse {
+      0%, 100% { box-shadow: 0 0 8px rgba(184,148,32,0.35); }
+      50% { box-shadow: 0 0 16px rgba(184,148,32,0.55); }
+    }
+    .map-path-line {
+      position: absolute; pointer-events: none; z-index: 0;
+    }
+
+    /* ─── Mystery card flip ─── */
+    #mysteryOverlay { background: rgba(60, 40, 80, 0.7); }
+    #mysteryOverlay.open { display: flex; }
+    .mystery-panel {
+      background: linear-gradient(160deg, #3a2850, #2a1e3a); border-radius: 22px;
+      padding: 24px 20px; margin: auto; text-align: center;
+      min-width: min(88vw, 320px); max-width: 360px;
+      box-shadow: 0 12px 40px rgba(20,10,40,0.5);
+      border: 1px solid rgba(180,140,220,0.3);
+    }
+    .mystery-title { font-size: 1.1rem; font-weight: 800; color: #d8c8f0; margin-bottom: 4px; }
+    .mystery-sub { font-size: 0.78rem; color: #a898c0; margin-bottom: 16px; }
+    .mystery-cards { display: flex; justify-content: center; gap: 12px; margin-bottom: 14px; }
+    .mystery-card {
+      width: 80px; height: 110px; border-radius: 12px; cursor: pointer;
+      perspective: 400px; position: relative;
+    }
+    .mystery-card-inner {
+      width: 100%; height: 100%; transition: transform 0.5s; transform-style: preserve-3d;
+      position: relative;
+    }
+    .mystery-card.flipped .mystery-card-inner { transform: rotateY(180deg); }
+    .mystery-card-front, .mystery-card-back {
+      position: absolute; width: 100%; height: 100%; border-radius: 12px;
+      backface-visibility: hidden; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .mystery-card-front {
+      background: linear-gradient(135deg, #5a4878, #3a2850);
+      border: 2px solid rgba(180,140,220,0.4);
+      box-shadow: 0 4px 16px rgba(20,10,40,0.4);
+    }
+    .mystery-card-front::after { content: "?"; font-size: 2rem; font-weight: 900; color: rgba(180,140,220,0.5); }
+    .mystery-card-back {
+      transform: rotateY(180deg); border: 2px solid rgba(255,255,255,0.2);
+      padding: 8px; text-align: center;
+    }
+    .mystery-card-back .mc-icon { font-size: 1.6rem; margin-bottom: 4px; }
+    .mystery-card-back .mc-label { font-size: 0.65rem; font-weight: 700; color: #e8e0f0; line-height: 1.2; }
+    .mystery-card-back .mc-cost { font-size: 0.55rem; color: #c8a0a0; margin-top: 4px; font-weight: 600; }
+    .mystery-card-back.good { background: linear-gradient(135deg, #2a5040, #1a3828); border-color: rgba(100,200,120,0.4); }
+    .mystery-card-back.bad { background: linear-gradient(135deg, #502a2a, #381a1a); border-color: rgba(200,100,100,0.4); }
+    .mystery-card-back.neutral { background: linear-gradient(135deg, #4a4060, #2a2838); border-color: rgba(160,140,200,0.4); }
+    .mystery-card.reachable { animation: mysteryFloat 2s ease-in-out infinite; }
+    .mystery-card.reachable:nth-child(2) { animation-delay: 0.2s; }
+    .mystery-card.reachable:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes mysteryFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    .mystery-apply-btn {
+      background: #6a50a0; color: #fff; border: none; border-radius: 12px;
+      padding: 10px 28px; font-size: 0.9rem; font-weight: 700; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .mystery-apply-btn:hover { background: #7a60b0; }
+    .mystery-apply-btn:disabled { opacity: 0.4; cursor: default; }
+
+    /* ─── Shop overlay ─── */
+    #shopOverlay { background: rgba(30, 50, 30, 0.75); }
+    #shopOverlay.open { display: flex; }
+    .shop-panel {
+      background: linear-gradient(160deg, #f3efe8, #e8e0d0); border-radius: 20px;
+      padding: 20px 16px; margin: auto; text-align: center;
+      min-width: min(90vw, 340px); max-width: 380px;
+      box-shadow: 0 10px 36px rgba(20,30,10,0.4);
+      border: 1px solid rgba(255,255,255,0.5);
+    }
+    .shop-title { font-size: 1.1rem; font-weight: 800; color: #4a6a4a; margin-bottom: 2px; }
+    .shop-sub { font-size: 0.75rem; color: #7a6e64; margin-bottom: 12px; }
+    .shop-items { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+    .shop-item {
+      display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 12px;
+      padding: 10px 14px; border: 1px solid rgba(120,110,100,0.2); cursor: pointer;
+      transition: background 0.12s, transform 0.12s;
+    }
+    .shop-item:hover { background: #f0ede4; transform: translateY(-1px); }
+    .shop-item.cant-afford { opacity: 0.4; pointer-events: none; }
+    .shop-item .si-icon { font-size: 1.4rem; }
+    .shop-item .si-info { flex: 1; text-align: left; }
+    .shop-item .si-name { font-size: 0.82rem; font-weight: 700; color: #5a4e44; }
+    .shop-item .si-desc { font-size: 0.68rem; color: #8a7e74; }
+    .shop-item .si-cost {
+      font-size: 0.75rem; font-weight: 800; color: #b83030; white-space: nowrap;
+    }
+    .shop-item .si-cost.shield-cost { color: #3a6f9e; }
+    .shop-item.bought { opacity: 0.35; pointer-events: none; border-style: dashed; }
+    .shop-done-btn {
+      background: #6a9a6a; color: #fff; border: none; border-radius: 12px;
+      padding: 10px 28px; font-size: 0.9rem; font-weight: 700; cursor: pointer;
+    }
 </style>
 </head>
 <body>
@@ -2714,6 +2850,37 @@ body.ult-hitstop .board-wrap {
     </div>
   </div>
 
+  <!-- MAP OVERLAY -->
+  <div class="overlay" id="mapOverlay">
+    <div class="map-panel" id="mapPanel">
+      <div class="map-act-label" id="mapActLabel">Act <span class="act-num">1</span> — The Rootbound</div>
+      <div class="map-layers" id="mapLayers"></div>
+      <p style="text-align:center;font-size:0.65rem;color:#a89a8c;margin-top:10px">Tap a glowing node to choose your path</p>
+    </div>
+  </div>
+
+  <!-- MYSTERY CARD FLIP -->
+  <div class="overlay" id="mysteryOverlay">
+    <div class="mystery-panel">
+      <div class="mystery-title" id="mysteryTitle">Mystery Node</div>
+      <div class="mystery-sub" id="mysterySub">Pick a card — risk or reward?</div>
+      <div class="mystery-cards" id="mysteryCards"></div>
+      <div id="mysteryResult" style="color:#d8c8f0;font-size:0.85rem;font-weight:700;min-height:1.2em;margin-bottom:10px"></div>
+      <button type="button" class="mystery-apply-btn" id="btnMysteryDone" style="display:none">Continue</button>
+    </div>
+  </div>
+
+  <!-- SHOP OVERLAY -->
+  <div class="overlay" id="shopOverlay">
+    <div class="shop-panel">
+      <div class="shop-title">🛒 Wandering Merchant</div>
+      <div class="shop-sub" id="shopSub">Pay with HP or Shield to power up</div>
+      <div id="shopHpDisplay" style="font-size:0.7rem;font-weight:700;color:#b8435c;margin-bottom:8px"></div>
+      <div class="shop-items" id="shopItems"></div>
+      <button type="button" class="shop-done-btn" id="btnShopDone">Leave Shop</button>
+    </div>
+  </div>
+
   <!-- Floor banner -->
   <div class="overlay" id="floorBannerOverlay">
     <div class="banner-card" id="floorBannerCard">
@@ -2795,6 +2962,7 @@ body.ult-hitstop .board-wrap {
   <script src="js/audio.js"></script>
   <script src="js/board.js"></script>
   <script src="js/enemies.js"></script>
+  <script src="js/map.js"></script>
   <script src="js/ai.js"></script>
   <script src="js/combat.js"></script>
   <script src="js/main.js"></script>

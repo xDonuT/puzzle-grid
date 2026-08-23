@@ -1,6 +1,6 @@
 // map.js — STS-style branching map for Puzzle Grid
 // Generates a map of connected nodes per act.
-// Node types: "normal", "elite", "mystery" (card flip), "shop", "boss"
+// Node types: "normal", "elite", "mystery" (card flip), "boss"
 
 const MAP_LAYERS_PER_ACT = [
   [3, 2, 3, 2, 1], // layer 0..4 node counts per act (boss is separate)
@@ -67,17 +67,15 @@ function pickNodeType(layerIdx, act) {
   if (layerIdx === 0) {
     const r = Math.random();
     if (r < 0.4) return "normal";
-    if (r < 0.65) return "mystery";
-    if (r < 0.85) return "normal";
-    return "shop";
+    if (r < 0.75) return "mystery";
+    return "normal";
   }
   // Middle layers: more variety
   if (layerIdx <= 3) {
     const r = Math.random();
-    if (r < 0.40) return "normal";
-    if (r < 0.60) return "elite";
-    if (r < 0.80) return "mystery";
-    return "shop";
+    if (r < 0.45) return "normal";
+    if (r < 0.65) return "elite";
+    return "mystery";
   }
   // Layer 4 (last before boss): always normal warmup
   return "normal";

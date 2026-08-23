@@ -505,7 +505,8 @@
     function rollMysteryEffect() {
       const phase = getPhase();
       // Lucky Dice: mystery tiles are 70% buffs before Star Impact (Impact is always a buff)
-      const isBuff = phase === "impact" || (run.luckyDice ? Math.random() < 0.7 : Math.random() < 0.5);
+      // Mystic Insight: mystery tiles are 100% buffs
+      const isBuff = run.mysticInsight || phase === "impact" || (run.luckyDice ? Math.random() < 0.7 : Math.random() < 0.5);
       let pool = isBuff ? MYSTERY_BUFFS : MYSTERY_DEBUFFS;
       const pick = pool[Math.floor(Math.random() * pool.length)];
       let detail = pick.apply();
@@ -875,6 +876,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if ((combat.enemyWeakenTurns || 0) > 0) {
         dmg = Math.round(dmg * 0.75);
       }
+      // Vengeance (Knight Retaliate T1): take 2 less damage
+      if (run.vengeance) dmg = Math.max(1, dmg - 2);
 
       // Wizard Arcane Reflection: 30% of pre-mitigation dmg reflected as true dmg
       if (combat.playerClass === "wizard" && dmg > 0) {
@@ -889,7 +892,9 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
 
       const before = combat.playerHp;
       if (combat.shield > 0) {
-        const toShield = Math.min(combat.shield, Math.floor(dmg / 2));
+        // Mana Shield passive: shield absorbs 60% instead of 50%
+        const shieldRatio = run.manaShield ? 0.6 : 0.5;
+        const toShield = Math.min(combat.shield, Math.floor(dmg * shieldRatio));
         const toHp = dmg - toShield;
         combat.shield -= toShield;
         if (toHp > 0) combat.playerHp = Math.max(0, combat.playerHp - toHp);
@@ -920,6 +925,21 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         playHit(Math.min(1.2, 0.5 + dmg / 12), { down: true });
         if (!opts.noFracture) animatePortraits("enemy");
         if (dmg >= 8) shakeBoard("light");
+        // Counter Strike (Knight Retaliate T2): deal 3 true damage when hit
+        if (run.counterStrike || run.retribution) {
+          const counterDmg = run.retribution
+            ? Math.min(15, combat.playerMaxHp - combat.playerHp)
+            : 3;
+          if (counterDmg > 0) {
+            dealDamageToEnemy(counterDmg, { trueDmg: true, source: "counter" });
+            dmgPop("enemy", `⚔${counterDmg}`, "true");
+          }
+        }
+        // Reflective Aura (Wizard Aegis T3): reflect 2 damage when hit
+        if (run.reflectiveAura && dmg > 0) {
+          dealDamageToEnemy(2, { trueDmg: true, source: "reflect" });
+          dmgPop("enemy", `🛡2`, "true");
+        }
         // The Last Rival (dark knight): every hit you take adds Fracture
         if (!opts.noFracture && combat.bossKit && combat.bossKit.id === "lastrival") {
           combat.playerFractureStacks = Math.min(5, combat.playerFractureStacks + 1);
@@ -1048,13 +1068,36 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
 
       for (const { type } of matchedList) {
         if (type === "sword") {
-          dmg += settings.swordDmg + (run.bonusSwordDmg || 0) + (combat.tempSwordDmg || 0);
+          let sDmg = settings.swordDmg + (run.bonusSwordDmg || 0) + (combat.tempSwordDmg || 0);
+          // Critical Edge: 25% chance ×2 sword damage
+          if (!forEnemy && run.criticalEdge && Math.random() < 0.25) {
+            sDmg *= 2;
+            bitsExtra.push("Crit ×2");
+          }
+          // Assassinate: enemies below 30% HP take ×2
+          if (!forEnemy && run.assassinate && combat.enemyHp < combat.enemyMaxHp * 0.3) {
+            sDmg *= 2;
+            bitsExtra.push("Assassinate");
+          }
+          dmg += sDmg;
           swordCount++;
           if (!forEnemy && sigType === "sword") { hasSigMatch = true; sigSwordCount++; }
           if (!forEnemy) combat.swordsClearedThisTurn++;
+          // Toxic Blade: sword matches poison enemy
+          if (!forEnemy && run.toxicBlade && combat.enemyPoisonTurns <= 0) {
+            const toxicDuration = run.lethalPoison ? 3 : 2;
+            combat.enemyPoisonTurns = Math.max(combat.enemyPoisonTurns, toxicDuration);
+            combat.enemyPoisonDmg = Math.max(combat.enemyPoisonDmg || 0, 2 + (run.lethalPoison ? 1 : 0));
+            bitsExtra.push("Toxic Blade");
+          }
         } else if (type === "star") {
           dmg += settings.starDmg + (run.bonusStarDmg || 0) + (combat.tempStarDmg || 0);
           starCount++;
+          // Celestial passive: star matches also heal 3 + shield 1
+          if (!forEnemy && run.celestial) {
+            heal += 3;
+            applyShielding(1);
+          }
         } else if (type === "hp") {
           healCount++;
           // Knight signature: +6 per potion tile + Fracture per tile
@@ -1102,6 +1145,12 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
                     document.getElementById("enemyPortrait"), "poison");
           bitsExtra.push(`Venom Blade +2 ☠`);
         }
+      }
+
+      // Infinite Mana: 4+ tile matches grant 1 AP
+      if (!forEnemy && run.infiniteMana && matchedList.length >= 4) {
+        combat.ap = Math.min(AP_MAX, combat.ap + 1);
+        bitsExtra.push("Infinite Mana +1");
       }
 
       // Signature Echo: matching your signature tile also counts as a small star
@@ -1206,11 +1255,18 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
             bitsExtra.push(`Sunder +3 Fracture · +1 AP`);
           }
           if (isCharged && combat.fractureStacks > 0) {
-            const shatterDmg = combat.fractureStacks * 3;
+            let shatterDmg = combat.fractureStacks * 3;
+            // Shatter+ passive: ×1.5 damage
+            if (run.shatterPlus) shatterDmg = Math.round(shatterDmg * 1.5);
             combat.fractureStacks = 0;
             combat.fractureTurns = 0;
             dealDamageToEnemy(shatterDmg, { trueDmg: true, source: "fracture" });
             bitsExtra.push(`Shatter ${shatterDmg}!`);
+            // Earthquake passive: stun enemy 1 turn on shatter
+            if (run.earthquake) {
+              combat.enemyStunTurns = Math.max(combat.enemyStunTurns || 0, 1);
+              bitsExtra.push("Earthquake Stun!");
+            }
           }
         }
       }
@@ -1299,10 +1355,18 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         // the shield gained (×2 with the Runic Shield upgrade). Uses raw sh so it
         // still hits at the shield cap.
         if (!forEnemy && combat.playerClass === "wizard" && sh > 0 && hasSigMatch) {
-          const runic = sh * (run.runicShield ? 2 : 1);
+          let runic = sh * (run.runicShield ? 2 : 1);
+          // Runic Edge passive: shield matches +4 damage
+          if (run.runicEdge) runic += 4;
           dealDamageToEnemy(runic, { trueDmg: true, source: "runic" });
           dmgPop("enemy", `🔮${runic}`, "true");
           bitsExtra.push(`Runic ${runic}`);
+          // Runic Nova passive: shield matches also deal 5 splash
+          if (run.runicNova) {
+            dealDamageToEnemy(5, { trueDmg: true, source: "runic" });
+            dmgPop("enemy", `🔮+5`, "true");
+            bitsExtra.push("Nova +5");
+          }
         }
         // Bulwark (Knight): shield matches apply 1 Fracture stack (once per turn)
         if (!forEnemy && shieldApplied > 0 && run.bulwark && !combat._bulwarkUsed) {
@@ -1557,6 +1621,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       combat.shadowStepUsed = false;     // ninja Shadow Step
       combat.sigTilesThisTurn = 0;       // sig tile charge accumulator (3 tiles = 1 charge)
       combat._lastSigChargeTotal = 0;
+      combat._blitzUsedThisTurn = false;  // Blitz passive: first match free
       // Free shuffle every 3rd turn (use it or lose it)
       if (combat.turn % 3 === 0) {
         combat.freeShuffles = 1;
@@ -1570,6 +1635,12 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       }
 
       // Decay timed statuses
+      // Shadow Echo / Shadow Army: afterglow deals damage per turn
+      if (combat.afterglowTurns > 0 && (run.shadowEcho || run.shadowArmy)) {
+        const afterglowDmg = run.shadowArmy ? 5 : 3;
+        dealDamageToEnemy(afterglowDmg, { trueDmg: true, source: "afterglow" });
+        dmgPop("enemy", `🌑${afterglowDmg}`, "true");
+      }
       if (combat.afterglowTurns > 0) combat.afterglowTurns--;
       if (combat.manaLockTurns > 0) combat.manaLockTurns--;
       if (combat.mortalWoundTurns > 0) combat.mortalWoundTurns--;
@@ -1608,7 +1679,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       // --- New Poison/Acid stack system (ticks at start of player turn) ---
       // Poison DoT: stacks × (3 + floorLevel × 0.5), then decay 1 stack
       if (combat.poisonStacks > 0) {
-        const poisonDmg = Math.round(combat.poisonStacks * (3 + run.floor * 0.5));
+        const poisonBase = 3 + (run.lethalPoison ? 1 : 0);
+        const poisonDmg = Math.round(combat.poisonStacks * (poisonBase + run.floor * 0.5));
         dealDamageToEnemy(poisonDmg, { trueDmg: true, source: "poison" });
         dmgPop("enemy", `☠${poisonDmg}`, "poison");
         combat.poisonStacks = Math.max(0, combat.poisonStacks - 1);
@@ -1904,6 +1976,15 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       const perTileDmg = sig === "sword" ? 6 : sig === "shield" ? 5 : 5;
       const baseDmg = 5;
       let ultDmg = baseDmg + tilesConsumed * perTileDmg;
+      // Earthshatter+ passive: ult +15 true damage
+      if (run.earthshatterPlus) ultDmg += 15;
+      // Devastation passive: ult consumes all shield, adding it to damage
+      let shieldBonus = 0;
+      if (run.devastation && combat.shield > 0) {
+        shieldBonus = combat.shield;
+        ultDmg += shieldBonus;
+        combat.shield = 0;
+      }
 
       // --- Wind-up ---
       if (playerPort) {
@@ -1916,7 +1997,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       // Class-specific pre-impact bonuses
       if (cls === "ninja") {
         combat.playerHp = Math.max(1, combat.playerHp - 3);
-        combat.afterglowTurns = run.lingeringShadow ? 2 : 1;
+        combat.afterglowTurns = run.shadowArmy ? 3 : (run.lingeringShadow ? 2 : 1);
         const enemyPct = combat.enemyHp / Math.max(1, combat.enemyMaxHp);
         if (enemyPct < 0.3) ultDmg = Math.round(ultDmg * 2);
         bits.push("Assassinate", `${ultDmg} true`, enemyPct < 0.3 ? "Execute!" : "", `${tilesConsumed} ⚔️ consumed`, "Afterglow", "-3 HP");

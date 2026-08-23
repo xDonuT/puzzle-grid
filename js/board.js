@@ -796,7 +796,12 @@
 
       const { any } = findMatches();
       if (any) {
-        combat.ap = Math.max(0, combat.ap - 1);
+        // Blitz passive: first match each turn is free
+        if (run.blitz && !combat._blitzUsedThisTurn) {
+          combat._blitzUsedThisTurn = true;
+        } else {
+          combat.ap = Math.max(0, combat.ap - 1);
+        }
         refreshCombatUI();
         await resolveBoard();
       } else {

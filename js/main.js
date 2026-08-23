@@ -994,14 +994,91 @@ const screenMenu = document.getElementById("screen-menu");
       ov.classList.add("open");
     }
 
+    // Passive tree picker — shows available passive upgrades for the player's class.
+    // Tier 1 = start new path. Tier 2/3 = upgrade existing path (requires previous tier).
+    function openPassivePicker(onPick) {
+      const wrap = document.getElementById("upgradeCards");
+      const ov = document.getElementById("upgradeOverlay");
+      const t = document.getElementById("upgradeTitle");
+      const s = document.getElementById("upgradeSub");
+      const rr = document.getElementById("upgradeReroll");
+      if (!wrap || !ov) { onPick(null); return; }
+      if (rr) rr.style.display = "none";
+      if (t) t.textContent = "Passive Upgrade";
+      if (s) s.textContent = "Choose a new path or strengthen an existing one";
+      wrap.innerHTML = "";
+      const choices = getPassiveChoices(3);
+      if (!choices.length) {
+        const note = document.createElement("div");
+        note.className = "up-card-desc";
+        note.style.textAlign = "center";
+        note.style.padding = "20px";
+        note.textContent = "All passive paths mastered!";
+        wrap.appendChild(note);
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "upgrade-card glow-general";
+        btn.textContent = "💚 Full Heal";
+        btn.addEventListener("click", () => {
+          combat.playerHp = combat.playerMaxHp;
+          ov.classList.remove("open");
+          onPick("Full Heal");
+        });
+        wrap.appendChild(btn);
+        ov.classList.add("open");
+        return;
+      }
+      choices.forEach(p => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "upgrade-card glow-" + (p.cls === "NINJA" ? "sword" : p.cls === "WIZARD" ? "shield" : "hp");
+        const top = document.createElement("div");
+        top.className = "up-card-top";
+        const tierTag = document.createElement("span");
+        tierTag.className = "up-card-archetype sword";
+        tierTag.textContent = p.tier === 1 ? "NEW PATH" : "TIER " + p.tier;
+        const pathTag = document.createElement("span");
+        pathTag.className = "modifier-tier easy";
+        pathTag.textContent = p.path.toUpperCase();
+        top.append(tierTag, pathTag);
+        const title = document.createElement("div");
+        title.className = "up-card-title";
+        title.textContent = (p.icon || "") + " " + p.name;
+        const descEl = document.createElement("div");
+        title.className = "up-card-title";
+        title.textContent = (p.icon || "") + " " + p.name;
+        const descEl2 = document.createElement("div");
+        descEl2.className = "up-card-desc";
+        descEl2.textContent = p.desc;
+        btn.append(top, title, descEl2);
+        btn.addEventListener("click", () => {
+          if (!run.passives) run.passives = [];
+          run.passives.push(p.id);
+          p.apply();
+          ov.classList.remove("open");
+          onPick(p.name);
+        });
+        wrap.appendChild(btn);
+      });
+      ov.classList.add("open");
+    }
+
     function checkGameOver() {
       if (gameOver) return;
       document.body.classList.remove("your-turn");
       if (combat.enemyHp <= 0) {
         gameOver = true;
         busy = true;
+        // Plague passive: if enemy died while poisoned, next floor's enemy takes 10 damage
+        if (run.plague && combat.poisonStacks > 0) {
+          run.plagueDmg = (run.plagueDmg || 0) + 10;
+        }
         if (isBossFloor(run.floor)) {
-          openUpgradePicker(rewardLabel => showVictoryOverlay(rewardLabel));
+          openUpgradePicker(upgradeLabel => {
+            openPassivePicker(passiveLabel => {
+              showVictoryOverlay({ label: upgradeLabel, permanent: true, passiveLabel });
+            });
+          });
         } else if (isEliteFloor(run.floor)) {
           const perm = GAUNTLET_REWARDS[run.floor];
           let permanentLabel = null;
@@ -1009,20 +1086,22 @@ const screenMenu = document.getElementById("screen-menu");
             perm.apply();
             permanentLabel = perm.label;
           }
-          openRewardPicker(buildEliteTempChoices(), {
-            title: "Elite Reward",
-            sub: "Pick a rare perk for the next floor",
-            onPick: label => openModifierPicker(mod => {
-              run.pendingModifier = mod;
-              if (mod && mod.tier === "hard") {
-                run.pendingModifierRare = true;
-                openEasyBonusPicker(() => {
-                  showVictoryOverlay({ label: permanentLabel, permanent: true, tempLabel: label });
-                });
-              } else {
-                showVictoryOverlay({ label: permanentLabel, permanent: true, tempLabel: label });
-              }
-            })
+          openPassivePicker(passiveLabel => {
+            openRewardPicker(buildEliteTempChoices(), {
+              title: "Elite Reward",
+              sub: "Pick a rare perk for the next floor",
+              onPick: label => openModifierPicker(mod => {
+                run.pendingModifier = mod;
+                if (mod && mod.tier === "hard") {
+                  run.pendingModifierRare = true;
+                  openEasyBonusPicker(() => {
+                    showVictoryOverlay({ label: permanentLabel, permanent: true, tempLabel: label, passiveLabel });
+                  });
+                } else {
+                  showVictoryOverlay({ label: permanentLabel, permanent: true, tempLabel: label, passiveLabel });
+                }
+              })
+            });
           });
         } else {
           openRewardPicker(buildFloorRewardChoices(), {
@@ -1110,7 +1189,9 @@ const screenMenu = document.getElementById("screen-menu");
           bonusApMax: run.bonusApMax,
           rewardsClaimed: run.rewardsClaimed,
           pickedUpgrades: run.pickedUpgrades,
+          passives: run.passives || [],
           pickedModifierIds: run.pickedModifierIds || [],
+          plagueDmg: run.plagueDmg || 0,
           ultChargeBonus: run.ultChargeBonus,
           bonusSwordDmg: run.bonusSwordDmg,
           bonusStarDmg: run.bonusStarDmg,
@@ -1173,6 +1254,7 @@ const screenMenu = document.getElementById("screen-menu");
       run.bonusApMax = 0;
       run.rewardsClaimed = {};
       run.pickedUpgrades = [];
+      run.passives = [];
       run.pickedModifierIds = [];
       run.ultChargeBonus = 0;
       run.bonusSwordDmg = 0;
@@ -1210,7 +1292,9 @@ const screenMenu = document.getElementById("screen-menu");
       run.bonusApMax = d.bonusApMax | 0;
       run.rewardsClaimed = d.rewardsClaimed || {};
       run.pickedUpgrades = d.pickedUpgrades || [];
+      run.passives = d.passives || [];
       run.pickedModifierIds = d.pickedModifierIds || [];
+      run.plagueDmg = d.plagueDmg || 0;
       run.ultChargeBonus = d.ultChargeBonus | 0;
       run.bonusSwordDmg = d.bonusSwordDmg | 0;
       run.bonusStarDmg = d.bonusStarDmg | 0;
@@ -1246,6 +1330,13 @@ const screenMenu = document.getElementById("screen-menu");
       run.contagionCatalyst = (run.pickedUpgrades || []).includes("contagionCatalyst");
       run.corrosiveOverheal = (run.pickedUpgrades || []).includes("corrosiveOverheal");
       run.toxicFortitude = (run.pickedUpgrades || []).includes("toxicFortitude");
+      // Re-derive passive tree flags from the passive list
+      (run.passives || []).forEach(pid => {
+        if (typeof PASSIVE_TREES !== "undefined") {
+          const p = PASSIVE_TREES.find(x => x.id === pid);
+          if (p && p.apply) p.apply();
+        }
+      });
       run.pending = Object.assign(
         { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 },
         d.pending || {}
@@ -1284,9 +1375,9 @@ const screenMenu = document.getElementById("screen-menu");
       gameOverOverlay.classList.remove("open");
       combat.playerMaxHp = maxHp;
       combat.playerHp = maxHp;
-      combat.shield = Math.min(maxSh, hero.startShield + (run.floorShieldBonus || 0) + ((run.pending && run.pending.shield) || 0) + (run.fortifiedStart ? 4 + Math.floor(Math.random() * 3) : 0));
+      combat.shield = Math.min(maxSh, hero.startShield + (run.floorShieldBonus || 0) + ((run.pending && run.pending.shield) || 0) + (run.fortifiedStart ? 4 + Math.floor(Math.random() * 3) : 0) + (run.unbreakable ? 10 : 0));
       combat.enemyShield = 0;
-      combat.sigBank = 0;
+      combat.sigBank = (run.floorChargeBonus || 0);
       combat.ap = AP_MAX + ((run.pending && run.pending.bonusAp) || 0);
       combat.enemyAp = Math.min(AP_MAX, 3); // rival caps at base AP
       combat.tempSwordDmg = (run.pending && run.pending.swordBoost) || 0;
@@ -1391,6 +1482,11 @@ const screenMenu = document.getElementById("screen-menu");
       combat.enemyMaxHp = unitHp;
       combat.enemyHp = unitHp;
       combat.enemyShield = arch && arch.startShield ? arch.startShield : 0;
+      // Plague passive: carryover damage from previous enemy's poisoned death
+      if (run.plagueDmg && run.plagueDmg > 0) {
+        combat.enemyHp = Math.max(1, combat.enemyHp - run.plagueDmg);
+        run.plagueDmg = 0;
+      }
 
       if (opts.tutorial) {
         // Tutorial: weak passive dummy
@@ -1834,12 +1930,19 @@ const screenMenu = document.getElementById("screen-menu");
 
     function runUpgradeSection() {
       const picked = run.pickedUpgrades || [];
-      if (!picked.length) return "";
-      const names = picked.map(id => {
+      const passives = run.passives || [];
+      const upgradeNames = picked.map(id => {
         const u = RUN_UPGRADES.find(u => u.id === id);
         return u ? u.name : id;
       });
-      return `<div class="info-section">Permanent Upgrades</div><div class="info-body">${names.join(" · ")}</div>`;
+      const passiveNames = passives.map(id => {
+        const p = typeof PASSIVE_TREES !== "undefined" ? PASSIVE_TREES.find(x => x.id === id) : null;
+        return p ? p.icon + " " + p.name : id;
+      });
+      const sections = [];
+      if (upgradeNames.length) sections.push(`<div class="info-section">Permanent Upgrades</div><div class="info-body">${upgradeNames.join(" · ")}</div>`);
+      if (passiveNames.length) sections.push(`<div class="info-section">Passives</div><div class="info-body">${passiveNames.join(" · ")}</div>`);
+      return sections.join("");
     }
 
     function statusSummaryPlayer() {

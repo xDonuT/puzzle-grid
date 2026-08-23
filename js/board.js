@@ -999,9 +999,9 @@
       return count;
     };
 
-    // Consume (remove) all tiles of a given type from the board.
-    // Returns the number of tiles consumed. Board refs become null; visual is cleared.
-    window.consumeTilesOfType = function consumeTilesOfType(type) {
+    // Consume (remove) all tiles of a given type, then gravity-fill the board.
+    // Returns the number of tiles consumed.
+    window.consumeTilesOfType = async function consumeTilesOfType(type) {
       let count = 0;
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
@@ -1014,6 +1014,9 @@
             el.style.opacity = "0";
           }
         }
+      }
+      if (count > 0) {
+        await applyGravityAndFill();
       }
       return count;
     };

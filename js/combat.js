@@ -1900,7 +1900,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
 
       // Count all signature tiles on board, then consume them
       const tilesOnBoard = typeof window.countTilesOfType === "function" ? window.countTilesOfType(sig) : 0;
-      const tilesConsumed = typeof window.consumeTilesOfType === "function" ? window.consumeTilesOfType(sig) : 0;
+      const tilesConsumed = typeof window.consumeTilesOfType === "function" ? await window.consumeTilesOfType(sig) : 0;
       const perTileDmg = sig === "sword" ? 6 : sig === "shield" ? 5 : 5;
       const baseDmg = 5;
       let ultDmg = baseDmg + tilesConsumed * perTileDmg;

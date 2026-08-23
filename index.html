@@ -2475,17 +2475,97 @@ body.ult-hitstop .board-wrap {
       .passport-spread { flex-direction: column; }
       .pp-page { max-height: 42vh; }
     }
-    /* ─── Tower ascent atmosphere ─── */
-    /* Floor bands shift the base parchment; phases override (defined after bands) */
-    body.tower-1 { --bg-base: #f2e8d6; }
-    body.tower-2 { --bg-base: #eddcc4; }
-    body.tower-3 { --bg-base: #e6d7d2; }
-    body.tower-4 { --bg-base: #ddd8e2; }
+    /* ─── Tower ascent atmosphere (act-themed skies) ─── */
+    body.tower-1 { --bg-base: #f0ecd8; } /* Sprout — fresh meadow cream */
+    body.tower-2 { --bg-base: #f4ecda; } /* Bloom — rose cream */
+    body.tower-3 { --bg-base: #e6d7d2; } /* legacy intermediate */
+    body.tower-4 { --bg-base: #f2ead2; } /* Flourish — golden hour */
     body.phase-fever { --bg-base: #f3e6bd; }
     body.phase-impact { --bg-base: #eed6c2; }
 
+    /* Per-act sky layer behind the parchment grain */
+    #actSky {
+      position: fixed; inset: 0; z-index: -2;
+      pointer-events: none; opacity: 0;
+      transition: opacity 1.5s ease;
+    }
+    body.tower-1 #actSky {
+      opacity: 1;
+      background: linear-gradient(180deg, #d7ebf3 0%, #e9f0dc 46%, #f0ecd8 100%);
+    }
+    body.tower-2 #actSky {
+      opacity: 1;
+      background: linear-gradient(180deg, #f6d7e2 0%, #f9eadb 48%, #f4ecda 100%);
+    }
+    body.tower-4 #actSky {
+      opacity: 1;
+      background: linear-gradient(180deg, #fce4bd 0%, #f9eeda 45%, #f2ead2 100%);
+    }
+    /* Sprout — drifting clouds + soft meadow tufts */
+    body.tower-1 #actSky::before {
+      content: ""; position: absolute; inset: 0;
+      background-image:
+        radial-gradient(ellipse 90px 26px at 15% 14%, rgba(255,255,255,0.9), transparent 70%),
+        radial-gradient(ellipse 60px 20px at 22% 12%, rgba(255,255,255,0.75), transparent 70%),
+        radial-gradient(ellipse 70px 22px at 72% 22%, rgba(255,255,255,0.65), transparent 70%),
+        radial-gradient(ellipse 50px 16px at 80% 19%, rgba(255,255,255,0.55), transparent 70%);
+      animation: skyDrift 46s ease-in-out infinite alternate;
+    }
+    body.tower-1 #actSky::after {
+      content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 64px;
+      background:
+        radial-gradient(ellipse 34px 30px at 8% 105%, rgba(150,190,110,0.5), transparent 70%),
+        radial-gradient(ellipse 44px 38px at 24% 108%, rgba(140,185,105,0.45), transparent 70%),
+        radial-gradient(ellipse 30px 26px at 47% 104%, rgba(155,195,115,0.42), transparent 70%),
+        radial-gradient(ellipse 40px 34px at 68% 107%, rgba(140,180,100,0.45), transparent 70%),
+        radial-gradient(ellipse 36px 30px at 88% 105%, rgba(150,190,110,0.4), transparent 70%);
+    }
+    @keyframes skyDrift { from { transform: translateX(-12px); } to { transform: translateX(18px); } }
+
+    /* Bloom — floating petals + warm rose glow */
+    body.tower-2 #actSky::before {
+      content: ""; position: absolute; inset: 0;
+      background-image:
+        radial-gradient(circle 7px at 10% 22%, rgba(236,150,170,0.5), transparent 70%),
+        radial-gradient(circle 5px at 84% 16%, rgba(240,160,178,0.45), transparent 70%),
+        radial-gradient(circle 6px at 30% 64%, rgba(236,150,170,0.35), transparent 70%),
+        radial-gradient(circle 4px at 62% 78%, rgba(240,160,178,0.4), transparent 70%),
+        radial-gradient(circle 5px at 92% 52%, rgba(236,150,170,0.35), transparent 70%),
+        radial-gradient(circle 6px at 18% 86%, rgba(240,160,178,0.3), transparent 70%);
+      animation: petalDrift 34s ease-in-out infinite alternate;
+    }
+    body.tower-2 #actSky::after {
+      content: ""; position: absolute; inset: 0;
+      background: radial-gradient(circle at 85% 8%, rgba(255,214,222,0.55), transparent 38%);
+    }
+    @keyframes petalDrift {
+      from { transform: translate(-10px, -6px) rotate(0deg); }
+      to { transform: translate(14px, 10px) rotate(6deg); }
+    }
+
+    /* Flourish — sun glow + shimmering rays */
+    body.tower-4 #actSky::before {
+      content: ""; position: absolute; inset: 0;
+      background: radial-gradient(circle at 50% -6%, rgba(255,220,150,0.8), rgba(255,220,150,0.25) 34%, transparent 52%);
+    }
+    body.tower-4 #actSky::after {
+      content: ""; position: absolute; inset: -10%;
+      background: conic-gradient(from 200deg at 50% -8%,
+        transparent 0deg, rgba(255,235,180,0.16) 8deg, transparent 16deg,
+        transparent 30deg, rgba(255,235,180,0.13) 38deg, transparent 46deg,
+        transparent 62deg, rgba(255,235,180,0.16) 70deg, transparent 78deg);
+      animation: rayShimmer 9s ease-in-out infinite alternate;
+    }
+    @keyframes rayShimmer { from { opacity: 0.55; } to { opacity: 0.95; } }
+
+    /* Map backdrop tinted per act */
+    body.tower-1 #mapOverlay { background: linear-gradient(180deg, rgba(58,82,66,0.88), rgba(40,52,38,0.9)); }
+    body.tower-2 #mapOverlay { background: linear-gradient(180deg, rgba(96,58,74,0.88), rgba(56,40,50,0.9)); }
+    body.tower-4 #mapOverlay { background: linear-gradient(180deg, rgba(120,84,40,0.88), rgba(70,52,32,0.9)); }
+
     @media (prefers-reduced-transparency: reduce) {
       body::before, body::after { display: none; }
+      #actSky, #actSky::before, #actSky::after { display: none; }
     }
 
     /* ─── Map overlay ─── */
@@ -2626,6 +2706,7 @@ body.ult-hitstop .board-wrap {
 </style>
 </head>
 <body>
+  <div id="actSky" aria-hidden="true"></div>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <defs>
       <linearGradient id="rainbow-star" x1="0" y1="0" x2="1" y2="1">

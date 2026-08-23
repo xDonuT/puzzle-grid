@@ -14,12 +14,15 @@ const screenMenu = document.getElementById("screen-menu");
       if (name === "game") resumeRunTimer(); else pauseRunTimer();
     }
 
-    // Tower ascent: background shifts as floors climb
+    // Tower ascent: act-themed sky (Sprout meadow / Bloom rose / Flourish golden)
     function updateTowerBand() {
       const b = document.body;
       b.classList.remove("tower-1", "tower-2", "tower-3", "tower-4");
       const f = run && typeof run.floor === "number" ? run.floor : 1;
-      b.classList.add(f >= 20 ? "tower-4" : f >= 13 ? "tower-3" : f >= 6 ? "tower-2" : "tower-1");
+      const act = run && run.gameMap
+        ? (run.gameMap.currentAct || 1)
+        : Math.min(3, Math.floor((Math.max(1, f) - 1) / 15) + 1);
+      b.classList.add(act >= 3 ? "tower-4" : act === 2 ? "tower-2" : "tower-1");
     }
 
     // ─── Run timer (pure stats; pauses in menus/settings/overlays) ───
@@ -613,7 +616,6 @@ const screenMenu = document.getElementById("screen-menu");
 
     // ===================== STS-STYLE MAP SYSTEM =====================
     const ACT_NAMES = ["", "\ud83c\udf31 The Sprout", "\ud83c\udf38 The Bloom", "\ud83c\udf3a The Flourish"];
-    const ACT_CLIMBS = ["", "tower-1", "tower-2", "tower-4"];
     // Story: the tower is a seed afraid to bloom; the Storm is its fear.
     const ACT_LORE = [
       "",
@@ -674,6 +676,7 @@ const screenMenu = document.getElementById("screen-menu");
         }
       }
       ov.classList.add("open");
+      updateTowerBand();
     }
 
     function hideMap() {

@@ -375,6 +375,7 @@
       pending: { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 },
       pendingModifier: null,
       pendingModifierRare: false,
+      pendingModifierEasy: null,
       elapsedMs: 0,
       floorElapsedMs: 0,
       gameMap: null,     // STS-style branching map

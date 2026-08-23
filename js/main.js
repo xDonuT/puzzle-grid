@@ -243,8 +243,8 @@ const screenMenu = document.getElementById("screen-menu");
         descEl.textContent = st.desc;
         btn.append(title, descEl);
         btn.addEventListener("click", () => {
-          // Apply the easy modifier immediately (on top of the hard one)
-          st.apply(combat);
+          // Store easy bonus as pending — will be applied in startBattle alongside the hard modifier
+          run.pendingModifierEasy = st;
           ov.classList.remove("open");
           onPick();
         });
@@ -1102,8 +1102,9 @@ const screenMenu = document.getElementById("screen-menu");
           feverEarly: run.feverEarly,
           enemyUltSlow: run.enemyUltSlow,
           pending: run.pending,
-          pendingModifier: run.pendingModifier,
+          pendingModifier: run.pendingModifier ? run.pendingModifier.id : null,
           pendingModifierRare: run.pendingModifierRare,
+          pendingModifierEasy: run.pendingModifierEasy ? run.pendingModifierEasy.id : null,
           playerClass: combat.playerClass,
           difficulty: settings.difficulty,
           elapsedMs: run.elapsedMs || 0,
@@ -1174,6 +1175,7 @@ const screenMenu = document.getElementById("screen-menu");
       run.pending = { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 };
       run.pendingModifier = null;
       run.pendingModifierRare = false;
+      run.pendingModifierEasy = null;
       run.elapsedMs = 0;
       run.floorElapsedMs = 0;
       run.gameMap = null;
@@ -1230,8 +1232,9 @@ const screenMenu = document.getElementById("screen-menu");
         d.pending || {}
       );
       AP_MAX = 3 + run.bonusApMax;
-      run.pendingModifier = d.pendingModifier || null;
+      run.pendingModifier = d.pendingModifier ? FLOOR_MODIFIERS.find(m => m.id === d.pendingModifier) || null : null;
       run.pendingModifierRare = !!d.pendingModifierRare;
+      run.pendingModifierEasy = d.pendingModifierEasy ? FLOOR_MODIFIERS.find(m => m.id === d.pendingModifierEasy) || null : null;
       if (d.playerClass && HERO_STATS[d.playerClass]) combat.playerClass = d.playerClass;
       if (d.difficulty) settings.difficulty = d.difficulty;
       run.gameMap = d.gameMap || null;
@@ -1339,6 +1342,11 @@ const screenMenu = document.getElementById("screen-menu");
         if (combat.shieldCapOverride) {
           combat.shield = Math.min(combat.shield, combat.shieldCapOverride);
         }
+      }
+      // Apply easy bonus modifier (challenge bonus from last fight)
+      if (run.pendingModifierEasy) {
+        run.pendingModifierEasy.apply(combat);
+        run.pendingModifierEasy = null;
       }
       run.pendingModifierRare = false;
       busy = false;

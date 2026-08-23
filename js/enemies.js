@@ -126,11 +126,11 @@
 
       // ---- Elite recolors (same shapes, themed palette) ----
       bracken:    { name: "Bracken",    role: "c-bracken",    svg: MONSTER_SVG.golem },
-      cinder:     { name: "Cinder",     role: "c-cinder",     svg: MONSTER_SVG.slime },
+      cinder:     { name: "Squall",     role: "c-cinder",     svg: MONSTER_SVG.slime },
       ironjaw:    { name: "Ironjaw",    role: "c-ironjaw",    svg: MONSTER_SVG.golem },
       bloodroot:  { name: "Bloodroot",  role: "c-bloodroot",  svg: MONSTER_SVG.slime },
       stormglass: { name: "Stormglass", role: "c-stormglass", svg: MONSTER_SVG.golem },
-      nightcoil:  { name: "Nightcoil",  role: "c-nightcoil",  svg: MONSTER_SVG.bat },
+      nightcoil:  { name: "Thorncoil",  role: "c-nightcoil",  svg: MONSTER_SVG.bat },
       ashcrown:   { name: "Ashcrown",   role: "c-ashcrown",   svg: MONSTER_SVG.skull },
 
       // ---- The three dark heroes (full kits) ----
@@ -238,14 +238,14 @@
     const BASE_HP = 100;
     const MAX_FLOOR = 45;
 
-    // Random enemy name pools
+    // Random enemy name pools — garden-storm themed
     const ENEMY_NAMES = [
-      "Ashfang", "Bramble", "Cinder", "Dusk", "Ember",
-      "Frost", "Grim", "Hollow", "Ironjaw", "Jinx",
-      "Krag", "Lurker", "Mire", "Nox", "Obsidian",
-      "Pox", "Quill", "Ravager", "Sable", "Thorn",
-      "Umbral", "Vex", "Wraith", "Xorn", "Yew", "Zephyr",
-      "Blight", "Cask", "Drift", "Fang", "Gloom"
+      "Gale", "Bramble", "Frost", "Mist", "Sleet",
+      "Jinx", "Clover", "Willow", "Ironjaw", "Quill",
+      "Pebble", "Puff", "Moss", "Nimbo", "Poppy",
+      "Petal", "Thistle", "Iris", "Sprig", "Thorn",
+      "Vex", "Wisp", "Xorn", "Yew", "Zephyr",
+      "Wilt", "Cask", "Drift", "Dew", "Rain"
     ];
 
     function randomEnemyName() {
@@ -262,14 +262,12 @@
 
     // Named encounters get a fixed portrait; normal floors cycle the 5 monsters.
     const ENEMY_VISUALS = {
-      4:  "bloodroot",
-      5:  "bracken",
-      9:  "stormglass",
-      10: "cinder",
-      14: "nightcoil",
-      15: "ironjaw",
-      19: "ashcrown",
-      20: "lastrival"
+      12: "bloodroot",
+      15: "bracken",
+      27: "stormglass",
+      30: "cinder",
+      42: "nightcoil",
+      45: "lastrival"
     };
     const MONSTER_POOL = ["slime", "bat", "mush", "golem", "skull"];
 
@@ -335,7 +333,7 @@
             onHit: () => { healEnemy(4); } },
       27: { name: "Stormglass", persona: "viper", bias: { star: 1.8 }, hpMul: 1.45, atkMul: 1.4, passive: "Chain shock (extra poke)",
             onHit: () => { dealDamageToPlayer(Math.max(2, Math.round(enemyAtkForFloor(run.floor) * 0.35))); } },
-      42: { name: "Nightcoil", persona: "bruiser", bias: { sword: 1.6 }, hpMul: 1.5, atkMul: 1.25, passive: "Applies poison + weaken",
+      42: { name: "Thorncoil", persona: "bruiser", bias: { sword: 1.6 }, hpMul: 1.5, atkMul: 1.25, passive: "Applies poison + weaken",
             onHit: () => {
               combat.poisonTurns = Math.max(combat.poisonTurns || 0, 2);
               flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "poison");
@@ -707,7 +705,7 @@
     const BOSS_KITS = {
       15: { id: "bracken", name: "Bracken the Rootbound", persona: "bruiser", bias: { sword: 1.5 }, ultName: "Root Snare", ultTurns: 4,
             ultFn: () => { combat.blindNext = true; dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.4)); setLog("Root Snare · blind + heavy hit"); } },
-      30: { id: "cinder", name: "Cinder Queen", persona: "viper", bias: { star: 1.5, sword: 1.2 }, ultName: "Ashstorm", ultTurns: 4,
+      30: { id: "cinder", name: "Squall Queen", persona: "viper", bias: { star: 1.5, sword: 1.2 }, ultName: "Ashstorm", ultTurns: 4,
             ultFn: () => { combat.poisonTurns = Math.max(combat.poisonTurns, 3); flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "poison"); dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.5)); setLog("Ashstorm · poison 3t + burst"); } },
       // The Last Rival = dark Knight kit: final boss at floor 45
       45: { id: "lastrival", name: "The Last Rival", persona: "mender", bias: { hp: 1.8, shield: 1.3 }, ultName: "Earthshatter", ultTurns: 5,

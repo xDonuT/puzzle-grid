@@ -164,8 +164,8 @@ const screenMenu = document.getElementById("screen-menu");
       const rr = document.getElementById("upgradeReroll");
       if (!ov || !wrap) { onPick(null); return; }
       if (rr) rr.style.display = "none";
-      const easy = FLOOR_MODIFIERS.filter(m => m.tier === "easy");
-      const hard = FLOOR_MODIFIERS.filter(m => m.tier === "hard");
+      const easy = FLOOR_MODIFIERS.filter(m => m.tier === "easy" && !(run.pickedModifierIds || []).includes(m.id));
+      const hard = FLOOR_MODIFIERS.filter(m => m.tier === "hard" && !(run.pickedModifierIds || []).includes(m.id));
       const poolE = easy.slice();
       const poolH = hard.slice();
       for (let i = poolE.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [poolE[i], poolE[j]] = [poolE[j], poolE[i]]; }
@@ -207,6 +207,8 @@ const screenMenu = document.getElementById("screen-menu");
           btn.appendChild(reward);
         }
         btn.addEventListener("click", () => {
+          if (!run.pickedModifierIds) run.pickedModifierIds = [];
+          run.pickedModifierIds.push(m.id);
           ov.classList.remove("open");
           onPick(m);
         });
@@ -226,7 +228,7 @@ const screenMenu = document.getElementById("screen-menu");
       if (t) t.textContent = "Challenge Bonus";
       if (s) s.textContent = "Pick a benefit — you earned it";
       wrap.innerHTML = "";
-      const easy = FLOOR_MODIFIERS.filter(m => m.tier === "easy");
+      const easy = FLOOR_MODIFIERS.filter(m => m.tier === "easy" && !(run.pickedModifierIds || []).includes(m.id));
       const pool = easy.slice();
       for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
       const picks = pool.slice(0, 3);
@@ -243,7 +245,8 @@ const screenMenu = document.getElementById("screen-menu");
         descEl.textContent = st.desc;
         btn.append(title, descEl);
         btn.addEventListener("click", () => {
-          // Store easy bonus as pending — will be applied in startBattle alongside the hard modifier
+          if (!run.pickedModifierIds) run.pickedModifierIds = [];
+          run.pickedModifierIds.push(st.id);
           run.pendingModifierEasy = st;
           ov.classList.remove("open");
           onPick();
@@ -929,6 +932,19 @@ const screenMenu = document.getElementById("screen-menu");
         const choices = pickUpgradeChoices(3 + extra);
         const hero = (combat.playerClass || "ninja").toUpperCase();
         wrap.innerHTML = "";
+        if (choices.length === 0) {
+          // All upgrades claimed — heal as consolation
+          const btn = document.createElement("button");
+          btn.type = "button";
+          buildRewardCard(btn, { name: "💚 Tower's Mercy", desc: "All upgrades claimed. Healed to full.", tier: "common" }, { permanent: true });
+          btn.addEventListener("click", () => {
+            combat.playerHp = combat.playerMaxHp;
+            ov.classList.remove("open");
+            onPick("Full Heal");
+          });
+          wrap.appendChild(btn);
+          return;
+        }
         choices.forEach(u => {
           const btn = document.createElement("button");
           btn.type = "button";
@@ -1094,6 +1110,7 @@ const screenMenu = document.getElementById("screen-menu");
           bonusApMax: run.bonusApMax,
           rewardsClaimed: run.rewardsClaimed,
           pickedUpgrades: run.pickedUpgrades,
+          pickedModifierIds: run.pickedModifierIds || [],
           ultChargeBonus: run.ultChargeBonus,
           bonusSwordDmg: run.bonusSwordDmg,
           bonusStarDmg: run.bonusStarDmg,
@@ -1156,6 +1173,7 @@ const screenMenu = document.getElementById("screen-menu");
       run.bonusApMax = 0;
       run.rewardsClaimed = {};
       run.pickedUpgrades = [];
+      run.pickedModifierIds = [];
       run.ultChargeBonus = 0;
       run.bonusSwordDmg = 0;
       run.bonusStarDmg = 0;
@@ -1192,6 +1210,7 @@ const screenMenu = document.getElementById("screen-menu");
       run.bonusApMax = d.bonusApMax | 0;
       run.rewardsClaimed = d.rewardsClaimed || {};
       run.pickedUpgrades = d.pickedUpgrades || [];
+      run.pickedModifierIds = d.pickedModifierIds || [];
       run.ultChargeBonus = d.ultChargeBonus | 0;
       run.bonusSwordDmg = d.bonusSwordDmg | 0;
       run.bonusStarDmg = d.bonusStarDmg | 0;
@@ -2062,6 +2081,9 @@ const screenMenu = document.getElementById("screen-menu");
     if (passportOverlay) passportOverlay.addEventListener("click", e => {
       if (e.target === passportOverlay) passportOverlay.classList.remove("open");
     });
+
+    const pickerInfoBtn = document.getElementById("pickerInfoBtn");
+    if (pickerInfoBtn) pickerInfoBtn.addEventListener("click", () => openInfo("player"));
 
     // Phase event pill → info
     const phasePillEl = document.getElementById("phasePill");

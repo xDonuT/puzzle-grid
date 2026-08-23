@@ -1911,6 +1911,19 @@ body.ult-hitstop .board-wrap {
       cursor: pointer;
     }
     .upgrade-reroll:hover { background: #efb09a; color: #6a3a2c; border-color: rgba(255,255,255,0.6); }
+    .picker-info-btn {
+      width: 100%;
+      margin-top: 8px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 8px;
+      background: rgba(100, 140, 180, 0.15);
+      color: #5a7a9a;
+      border: 1px solid rgba(100, 140, 180, 0.3);
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    .picker-info-btn:hover { background: rgba(100, 140, 180, 0.3); color: #3a5a7a; }
     .panel {
       width: min(92vw, 360px);
       max-height: 85dvh;
@@ -2439,6 +2452,7 @@ body.ult-hitstop .board-wrap {
    .action-btn.end-btn { width: 88px; height: 64px; font-size: 0.75rem; }
 }
     /* ─── Passport spread overlay (long-press portrait) ─── */
+    #passportOverlay { z-index: 2000; }
     .passport-spread-panel { max-width: 560px; width: 100%; background: transparent; box-shadow: none; }
     .passport-spread { display: flex; gap: 10px; perspective: 1000px; }
     .pp-page {
@@ -2905,6 +2919,7 @@ body.ult-hitstop .board-wrap {
       <p id="upgradeSub" style="color:#7a6e64;font-size:0.9rem;margin:6px 0 4px;font-weight:600">Boss defeated — pick one</p>
       <div id="upgradeCards" class="upgrade-cards"></div>
       <button type="button" class="upgrade-reroll" id="upgradeReroll" style="display:none">Reroll</button>
+      <button type="button" class="picker-info-btn" id="pickerInfoBtn">📋 Character</button>
     </div>
   </div>
 

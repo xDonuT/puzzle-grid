@@ -674,7 +674,7 @@ const screenMenu = document.getElementById("screen-menu");
         // Connector between layers (not above layer 0)
         if (li > 0) {
           const conn = document.createElement("div");
-          conn.className = "map-connector";
+          conn.className = "map-connector" + (Math.random() < 0.5 ? " alt" : "");
           layersEl.appendChild(conn);
         }
       }

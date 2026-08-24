@@ -857,32 +857,76 @@ const screenMenu = document.getElementById("screen-menu");
     }
 
     // ===================== MYSTERY NODE (Card Flip) =====================
-    const MYSTERY_EFFECTS = [
-      // Good (free)
-      { id: "mHeal", icon: "❤️", label: "Heal 30% HP", tier: "good", apply() {
+    // ─── Mystery nodes: blind luck, PERMANENT consequences ───
+    // Every effect outlives the battle. Icon-first, three words maximum.
+    const MYSTERY_BLESSINGS = [
+      { icon: "❤️", label: "+6 MAX HP", apply() { run.bonusMaxHp += 6; } },
+      { icon: "🛡️", label: "+2 SHIELD CAP", apply() { run.bonusShieldMax += 2; } },
+      { icon: "⚡", label: "+1 CHARGE AHEAD", apply() { run.floorChargeBonus = (run.floorChargeBonus || 0) + 1; } },
+      { icon: "⚔️", label: "+1 SWORD, ALWAYS", apply() { run.bonusSwordDmg += 1; } },
+      { icon: "⭐", label: "+1 STAR, ALWAYS", apply() { run.bonusStarDmg += 1; } },
+      { icon: "✨", label: "FULL HEAL", apply() {
         const hero = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
-        const max = hero.hp + run.bonusMaxHp;
-        combat.playerHp = Math.min(max, combat.playerHp + Math.floor(max * 0.3));
-      }, cost: null },
-      { id: "mShield", icon: "🛡️", label: "+8 Shield next fight", tier: "good", apply() { run.pending.shield += 8; }, cost: null },
-      { id: "mSword", icon: "⚔️", label: "+3 Sword dmg next fight", tier: "good", apply() { run.pending.swordBoost += 3; }, cost: null },
-      { id: "mCharge", icon: "⭐", label: "+3 Ult charge next fight", tier: "good", apply() { run.pending.feverBoost += 3; }, cost: null },
-      { id: "mMaxHp", icon: "❤️", label: "+6 Max HP", tier: "good", apply() { run.bonusMaxHp += 6; }, cost: null },
-      { id: "mBlessing", icon: "🌸", label: "Cosmos Blessing — +12 Max HP & full heal", tier: "good", rare: true, apply() {
-        run.bonusMaxHp += 12;
-        const hero = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
-        combat.playerHp = hero.hp + run.bonusMaxHp; // full heal
-      }, cost: null },
-      // Paid (cost HP)
-      { id: "mBigShield", icon: "🏰", label: "+15 Shield next fight", tier: "neutral", apply() { run.pending.shield += 15; }, cost: { type: "hp", amount: 10, label: "−10 HP" } },
-      { id: "mAp", icon: "⚡", label: "+2 AP next fight", tier: "neutral", apply() { run.pending.bonusAp += 2; }, cost: { type: "hp", amount: 8, label: "−8 HP" } },
-      { id: "mSacrifice", icon: "💀", label: "+4 All stats next fight", tier: "neutral", apply() { run.pending.swordBoost += 2; run.pending.feverBoost += 2; run.pending.shield += 4; }, cost: { type: "hp", amount: 12, label: "−12 HP" } },
-      { id: "mCrit", icon: "🎯", label: "+15% Crit next fight", tier: "neutral", apply() { run.pending.critChance += 15; }, cost: { type: "shield", amount: 6, label: "−6 Shield" } },
-      // Bad (free)
-      { id: "mPoison", icon: "🧪", label: "Enemy starts poisoned 3t", tier: "good", apply() { run.pending.enemyPoison += 3; }, cost: null },
-      { id: "mWound", icon: "💔", label: "−8 Max HP", tier: "bad", apply() { run.bonusMaxHp = Math.max(0, run.bonusMaxHp - 8); }, cost: null },
-      { id: "mDebuff", icon: "⛓️", label: "Enemy ult −1 turn sooner", tier: "bad", apply() { run.pending.enemySlow -= 1; }, cost: null },
+        combat.playerHp = hero.hp + run.bonusMaxHp;
+      } }
     ];
+    const MYSTERY_TWISTS = [
+      { icon: "🔮", label: "+8 SHIELD · LOSE 4 HP", apply() {
+        run.pending.shield += 8;
+        combat.playerHp = Math.max(1, combat.playerHp - 4);
+      } },
+      { icon: "🌀", label: "+2 AP · LOSE 6 HP", apply() {
+        run.pending.bonusAp += 2;
+        combat.playerHp = Math.max(1, combat.playerHp - 6);
+      } },
+      { icon: "🎯", label: "+15% CRIT · RIVAL ULT SOONER", apply() {
+        run.pending.critChance += 15;
+        run.pending.enemySlow -= 1;
+      } },
+      { icon: "💥", label: "+5 SWORD NOW · −6 SHIELD CAP", apply() {
+        run.pending.swordBoost += 5;
+        run.bonusShieldMax = Math.max(0, run.bonusShieldMax - 1);
+      } }
+    ];
+    const MYSTERY_CURSES = [
+      { icon: "💔", label: "−4 MAX HP", apply() { run.bonusMaxHp = Math.max(0, run.bonusMaxHp - 4); } },
+      { icon: "⛓️", label: "−1 AP NEXT FLOOR", apply() { run.pending.bonusAp -= 1; } },
+      { icon: "🥀", label: "WILTED · HEALS HALVED 3 FLOORS", apply() { run.healBlockFloors = 3; } },
+      { icon: "🩸", label: "LOSE 12 HP NOW", apply() { combat.playerHp = Math.max(1, combat.playerHp - 12); } }
+    ];
+    const MYSTERY_JACKPOT = { icon: "🌸", label: "COSMOS BLESSING · +10 MAX HP & FULL HEAL", kind: "bless", apply() {
+      run.bonusMaxHp += 10;
+      const hero = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
+      combat.playerHp = hero.hp + run.bonusMaxHp;
+    } };
+
+    function dealMysteryHand() {
+      // Weighted luck: ~56% blessing / 24% twist / 20% curse per card,
+      // softened so a hand is never all-curses. ~8% jackpot swap.
+      const rollKind = () => {
+        const r = Math.random();
+        return r < 0.56 ? "bless" : r < 0.80 ? "twist" : "curse";
+      };
+      const pickFrom = kind => {
+        if (kind === "bless") return MYSTERY_BLESSINGS[Math.floor(Math.random() * MYSTERY_BLESSINGS.length)];
+        if (kind === "twist") return MYSTERY_TWISTS[Math.floor(Math.random() * MYSTERY_TWISTS.length)];
+        return MYSTERY_CURSES[Math.floor(Math.random() * MYSTERY_CURSES.length)];
+      };
+      const hand = [];
+      let curses = 0;
+      for (let i = 0; i < 3; i++) {
+        let kind = rollKind();
+        // Never more than one curse per hand, never all-nothing hands
+        if (kind === "curse" && curses >= 1) kind = "bless";
+        if (kind === "curse") curses++;
+        hand.push({ ...pickFrom(kind), kind });
+      }
+      // Cosmos jackpot
+      if (Math.random() < 0.08) hand[Math.floor(Math.random() * 3)] = { ...MYSTERY_JACKPOT };
+      // Shuffle positions
+      for (let i = hand.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [hand[i], hand[j]] = [hand[j], hand[i]]; }
+      return hand;
+    }
 
     function openMysteryNode(onDone) {
       const ov = document.getElementById("mysteryOverlay");
@@ -893,26 +937,16 @@ const screenMenu = document.getElementById("screen-menu");
       const subEl = document.getElementById("mysterySub");
       if (!ov || !cardsEl) { if (onDone) onDone(); return; }
 
-      // Draw 3: guarantee at least one free "good", with a rare Cosmos Blessing jackpot
-      const shuffle = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
-      const freeGoods = MYSTERY_EFFECTS.filter(e => e.tier === "good" && !e.cost && !e.rare);
-      const blessing = MYSTERY_EFFECTS.find(e => e.rare);
-      const rest = shuffle(MYSTERY_EFFECTS.filter(e => !(e.tier === "good" && !e.cost) ).slice());
-      const choices = rest.slice(0, 2);
-      // ~12% jackpot: swap in the Cosmos Blessing
-      if (blessing && Math.random() < 0.12) choices[Math.floor(Math.random() * choices.length)] = blessing;
-      // Guaranteed free good rounds out the hand
-      choices.push(freeGoods[Math.floor(Math.random() * freeGoods.length)]);
-      shuffle(choices);
+      const hand = dealMysteryHand();
 
       cardsEl.innerHTML = "";
       resultEl.textContent = "";
       resultEl.style.opacity = 0;
       if (btnDone) btnDone.style.display = "none";
       if (titleEl) titleEl.textContent = "❓ Mystery Node";
-      if (subEl) subEl.textContent = "Pick a card — risk or reward?";
+      if (subEl) subEl.textContent = "Pick a card — the tower decides";
 
-      choices.forEach((effect, i) => {
+      hand.forEach(effect => {
         const card = document.createElement("div");
         card.className = "mystery-card reachable";
         const inner = document.createElement("div");
@@ -920,41 +954,21 @@ const screenMenu = document.getElementById("screen-menu");
         const front = document.createElement("div");
         front.className = "mystery-card-front";
         const back = document.createElement("div");
-        back.className = `mystery-card-back ${effect.tier}`;
-        const costLine = effect.cost ? `<div class="mc-cost">${effect.cost.label}</div>` : "";
-        back.innerHTML = `<div class="mc-icon">${effect.icon}</div><div class="mc-label">${effect.label}</div>${costLine}`;
+        back.className = `mystery-card-back kind-${effect.kind}`;
+        back.innerHTML = `<div class="mc-icon">${effect.icon}</div><div class="mc-label">${effect.label}</div>`;
         inner.appendChild(front);
         inner.appendChild(back);
         card.appendChild(inner);
 
         card.addEventListener("click", () => {
-          // Can't afford?
-          if (effect.cost) {
-            if (effect.cost.type === "hp" && combat.playerHp <= effect.cost.amount) {
-              resultEl.innerHTML = `<span style="color:#c88080">Not enough HP!</span>`;
-              resultEl.style.opacity = 1;
-              return;
-            }
-            if (effect.cost.type === "shield" && combat.shield < effect.cost.amount) {
-              resultEl.innerHTML = `<span style="color:#80a0c8">Not enough shield!</span>`;
-              resultEl.style.opacity = 1;
-              return;
-            }
-          }
-          // Flip all cards
           cardsEl.querySelectorAll(".mystery-card").forEach(c => c.classList.add("flipped"));
           card.style.zIndex = 10;
-          // Pay cost
-          if (effect.cost) {
-            if (effect.cost.type === "hp") combat.playerHp = Math.max(1, combat.playerHp - effect.cost.amount);
-            if (effect.cost.type === "shield") combat.shield = Math.max(0, combat.shield - effect.cost.amount);
-          }
-          // Apply effect
+          if (effect.kind === "curse") card.classList.add("cursed");
+          if (effect.kind === "bless") card.classList.add("blessed");
           effect.apply();
-          const tierLabel = effect.tier === "good" ? "✨" : effect.tier === "bad" ? "💀" : "🔮";
-          resultEl.innerHTML = `${tierLabel} ${effect.label}`;
+          const mark = effect.kind === "bless" ? "✨" : effect.kind === "curse" ? "💀" : "🔮";
+          resultEl.innerHTML = `${mark} ${effect.label}`;
           resultEl.style.opacity = 1;
-          // Disable all cards
           cardsEl.querySelectorAll(".mystery-card").forEach(c => c.style.pointerEvents = "none");
           if (btnDone) btnDone.style.display = "";
         });
@@ -1404,6 +1418,7 @@ const screenMenu = document.getElementById("screen-menu");
           cumulative: run.cumulative || { dealt: 0, taken: 0, healed: 0, shield: 0, ults: 0 },
           mysteriesFlipped: run.mysteriesFlipped || 0,
           pickLog: run.pickLog || [],
+          healBlockFloors: run.healBlockFloors || 0,
           elitesSlain: run.elitesSlain || 0,
           bossesSlain: run.bossesSlain || 0,
           maxCombo: run.maxCombo || 0,
@@ -1485,6 +1500,7 @@ const screenMenu = document.getElementById("screen-menu");
       run.retribution = false; run.earthshatterPlus = false; run.devastation = false;
       run.floorChargeBonus = 0;
       run.plagueDmg = 0;
+      run.healBlockFloors = 0;
       run.pending = { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 };
       run.pendingModifier = null;
       run.pendingModifierRare = false;
@@ -1525,6 +1541,7 @@ const screenMenu = document.getElementById("screen-menu");
       run.cumulative = d.cumulative || { dealt: 0, taken: 0, healed: 0, shield: 0, ults: 0 };
       run.mysteriesFlipped = d.mysteriesFlipped | 0;
       run.pickLog = d.pickLog || [];
+      run.healBlockFloors = d.healBlockFloors | 0;
       run.elitesSlain = d.elitesSlain | 0;
       run.bossesSlain = d.bossesSlain | 0;
       run.maxCombo = d.maxCombo | 0;
@@ -1598,6 +1615,7 @@ const screenMenu = document.getElementById("screen-menu");
           return;
         }
         run.floor += 1;
+        if (run.healBlockFloors > 0) run.healBlockFloors -= 1; // 🥀 wilt fades each floor
         // Tutorial ends after floor 1
         if (combat.tutorial) combat.tutorial = false;
       }

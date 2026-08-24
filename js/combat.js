@@ -1865,6 +1865,10 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (combat.playerMortalWoundTurns > 0 && amount > 0) {
         amount = Math.floor(amount / 2);
       }
+      // 🥀 Wilted (mystery curse): healing halved while it lingers
+      if ((run.healBlockFloors || 0) > 0 && amount > 0) {
+        amount = Math.floor(amount / 2);
+      }
       const healed = Math.min(amount, combat.playerMaxHp - combat.playerHp);
       combat.playerHp += healed;
       if (combat.stats) combat.stats.healed += healed;

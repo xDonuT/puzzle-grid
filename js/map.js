@@ -3,7 +3,7 @@
 // Node types: "normal", "elite", "mystery" (card flip), "boss"
 
 const MAP_LAYERS_PER_ACT = [
-  [2, 3, 2, 3, 2, 1, 1], // layer 0..6 node counts per act (14 battle nodes + boss)
+  [3, 4, 3, 5, 4, 3, 2], // wider, STS-style branching (24 battle nodes + boss)
 ];
 
 const NODE_ICONS = {
@@ -40,7 +40,8 @@ function generateActMap(act) {
   // Boss node
   layers.push([{ type: "boss", layer: counts.length, index: 0, id: `a${act}boss` }]);
 
-  // Generate connections: each node in layer li connects to 1-2 nodes in li+1
+  // Generate connections: each node in layer li connects to 1-3 nodes in li+1.
+  // Wider layers + braided links = genuine route decisions (STS-style).
   const connections = [];
   for (let li = 0; li < layers.length - 1; li++) {
     const cur = layers[li];
@@ -50,11 +51,18 @@ function generateActMap(act) {
       const ratio = nxt.length / cur.length;
       const primary = Math.min(nxt.length - 1, Math.floor(ni * ratio));
       const connections_for_node = [primary];
-      // Add a second connection sometimes (always into the pre-boss funnel)
-      if (li < layers.length - 2 && nxt.length > 1 && Math.random() < 0.6) {
+      // Add a second connection often (always into the pre-boss funnel)
+      if (li < layers.length - 2 && nxt.length > 1 && Math.random() < 0.75) {
         const secondary = primary + 1 < nxt.length ? primary + 1 : primary - 1;
         if (secondary >= 0 && secondary < nxt.length && secondary !== primary) {
           connections_for_node.push(secondary);
+        }
+        // Occasional third link — the braid that makes detours possible
+        if (Math.random() < 0.22) {
+          const tertiary = Math.random() < 0.5 ? primary - 1 : secondary + 1;
+          if (tertiary >= 0 && tertiary < nxt.length && !connections_for_node.includes(tertiary)) {
+            connections_for_node.push(tertiary);
+          }
         }
       }
       connections.push({ from: cur[ni].id, to: connections_for_node.map(i => nxt[i].id) });
@@ -105,8 +113,8 @@ function assignNodeTypes(layers, connections, counts) {
     }
   }
 
-  // --- Layer 0: gentle start (one mystery + one normal) ---
-  layers[0][0].type = "mystery";
+  // --- Layer 0: gentle start — open every act with a battle ---
+  // (the old guaranteed entrance mystery is gone; mysteries are earned mid-act)
 
   // --- Elites: 2 per act on middle layers, reachable + avoidable ---
   const eliteLayers = [
@@ -122,17 +130,18 @@ function assignNodeTypes(layers, connections, counts) {
     pool[Math.floor(Math.random() * pool.length)].type = "elite";
   }
 
-  // --- Mysteries: sprinkle 2-3 on remaining middle nodes ---
-  const mid = [];
-  for (let li = 1; li < counts.length - 2; li++) {
-    for (const n of layers[li]) {
-      if (n.type === "normal") mid.push(n);
-    }
-  }
-  shuffle(mid);
-  const mysteryCount = 2 + Math.floor(Math.random() * 2);
-  for (let i = 0; i < Math.min(mysteryCount, mid.length); i++) {
-    mid[i].type = "mystery";
+  // --- Mysteries: exactly 3 per act, mid-act only, always reachable ---
+  // Rare enough that each flip matters — pairs with the permanent effects.
+  const mysteryCount = 3;
+  let placed = 0;
+  const mysteryLayerOrder = [2, 3, 4].sort(() => Math.random() - 0.5);
+  for (const li of mysteryLayerOrder) {
+    if (placed >= mysteryCount) break;
+    const frontier = reachableEntering(li);
+    const cands = layers[li].filter(n => n.type === "normal" && frontier.has(n.id));
+    if (!cands.length) continue;
+    cands[Math.floor(Math.random() * cands.length)].type = "mystery";
+    placed++;
   }
 }
 
@@ -184,7 +193,7 @@ function isNodeReachable(map, nodeId, visited) {
 }
 
 // Bump when MAP_LAYERS_PER_ACT / node structure changes so old saves regenerate.
-const MAP_VERSION = 2;
+const MAP_VERSION = 3; // v3: wider braided layers, fixed 3 mysteries/act, no entrance mystery
 
 function generateFullMap() {
   return {

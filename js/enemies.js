@@ -248,8 +248,17 @@
       "Wilt", "Cask", "Drift", "Dew", "Rain"
     ];
 
-    function randomEnemyName() {
-      return ENEMY_NAMES[Math.floor(Math.random() * ENEMY_NAMES.length)];
+    function randomEnemyName(type) {
+      // Nicknames matched to the mob's shape so a mushroom never gets a flower's name
+      const BY_TYPE = {
+        slime: ["Dew", "Rain", "Mist", "Drizzle", "Puddle", "Sprinkle"],
+        bat:   ["Flit", "Wisp", "Glimmer", "Dusk", "Moonwing", "Flutter"],
+        mush:  ["Puff", "Spore", "Morel", "Bracket", "Toadstool", "Truffle"],
+        golem: ["Pebble", "Clod", "Loam", "Boulder", "Sod", "Mossy"],
+        skull: ["Wilt", "Thorn", "Rattle", "Dryleaf", "Bramble", "Stub"]
+      };
+      const pool = (type && BY_TYPE[type]) || ENEMY_NAMES;
+      return pool[Math.floor(Math.random() * pool.length)];
     }
 
     function displayEnemyName(full) {

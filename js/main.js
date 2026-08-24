@@ -1670,7 +1670,7 @@ const screenMenu = document.getElementById("screen-menu");
         combat.enemyFullName = elite.name;
         combat.enemyName = displayEnemyName(elite.name);
       } else {
-        const nm = randomEnemyName();
+        const nm = randomEnemyName(combat.enemyClass);
         combat.enemyFullName = nm;
         combat.enemyName = nm;
       }

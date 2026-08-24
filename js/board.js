@@ -645,7 +645,6 @@
         if (combo >= 2) {
           setComboTheater(combo);
           playCombo(combo);
-          if (combo >= 3) playChimeCascade(combo); // 🎐 mystic chimes ride the cascade
         } else {
           playMatch(count);
         }

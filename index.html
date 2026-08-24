@@ -2856,7 +2856,7 @@ body.ult-hitstop .board-wrap {
       left: 50%;
       bottom: calc(18px + env(safe-area-inset-bottom, 0px));
       transform: translateX(-50%) translateY(12px);
-      z-index: 900;
+      z-index: 2500; /* above every overlay — hints must never be buried */
       max-width: min(88vw, 380px);
       padding: 9px 16px;
       background: linear-gradient(160deg, rgba(255,252,244,0.97), rgba(246,238,222,0.97));

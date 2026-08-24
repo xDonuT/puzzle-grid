@@ -1590,9 +1590,17 @@ const screenMenu = document.getElementById("screen-menu");
 
     // ─── One-time hint toasts (per account) + system-unlock announcements ───
     let _hintTimer = null;
+    let _hintRetryTimer = null;
     function showHint(text, ms = 3400) {
       const el = document.getElementById("hintToast");
       if (!el) return;
+      // If a reward/banner/overlay is on screen, wait politely and show after —
+      // a hint nobody can read is worse than no hint
+      if (document.querySelector(".overlay.open")) {
+        if (_hintRetryTimer) clearTimeout(_hintRetryTimer);
+        _hintRetryTimer = setTimeout(() => showHint(text, ms), 700);
+        return;
+      }
       el.textContent = text;
       el.classList.add("show");
       if (_hintTimer) clearTimeout(_hintTimer);

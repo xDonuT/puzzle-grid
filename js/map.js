@@ -61,7 +61,7 @@ function generateActMap(act) {
     }
   }
 
-  assignNodeTypes(layers, connections, counts, act);
+  assignNodeTypes(layers, connections, counts);
 
   // Guarantee every node past the first layer has an incoming edge — the
   // fan-out above can strand nodes (unreachable mysteries/loot)
@@ -83,11 +83,7 @@ function generateActMap(act) {
 // Post-placement pass: decide node types AFTER the graph exists so we can
 // guarantee (a) elites are reachable, (b) elites always have a normal
 // alternative on their layer => genuine safe-vs-risky route decisions.
-function assignNodeTypes(layers, connections, counts, act) {
-  // Act I early floors keep the mystery node dormant (ladder reveals it ~floor 5);
-  // Golden loops treat everything as live from the start
-  const mysteriesLive = !(act === 1 && typeof run !== "undefined" && (run.ngLoop || 0) === 0);
-  const earlyAct1 = act === 1 && typeof run !== "undefined" && (run.ngLoop || 0) === 0;
+function assignNodeTypes(layers, connections, counts) {
   // Set of node ids reachable when entering layer li
   const reachableEntering = (li) => {
     let frontier = new Set(layers[0].map(n => n.id));
@@ -110,9 +106,7 @@ function assignNodeTypes(layers, connections, counts, act) {
   }
 
   // --- Layer 0: gentle start (one mystery + one normal) ---
-  if (mysteriesLive) {
-    layers[0][0].type = "mystery";
-  }
+  layers[0][0].type = "mystery";
 
   // --- Elites: 2 per act on middle layers, reachable + avoidable ---
   const eliteLayers = [
@@ -131,14 +125,12 @@ function assignNodeTypes(layers, connections, counts, act) {
   // --- Mysteries: sprinkle 2-3 on remaining middle nodes ---
   const mid = [];
   for (let li = 1; li < counts.length - 2; li++) {
-    // Early act-I layers keep the map quiet (mystery nodes unlock ~floor 5)
-    if (earlyAct1 && li <= 1) continue;
     for (const n of layers[li]) {
       if (n.type === "normal") mid.push(n);
     }
   }
   shuffle(mid);
-  const mysteryCount = mysteriesLive ? 2 + Math.floor(Math.random() * 2) : 0;
+  const mysteryCount = 2 + Math.floor(Math.random() * 2);
   for (let i = 0; i < Math.min(mysteryCount, mid.length); i++) {
     mid[i].type = "mystery";
   }

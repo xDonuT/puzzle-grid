@@ -27,8 +27,7 @@
       clearedOnce: false,  // 🌟 Golden Cosmos unlocked after first final victory
       ngLoopsDone: 0,      // completed Golden Cosmos loops
       bestFloor: 0,        // career-best floor reached (unlocks global skills)
-      skills: { shuffleSurge: true }, // global skill toggles
-      seenHints: {}        // one-time tutorial hints, per account
+      skills: { shuffleSurge: true } // global skill toggles
     };
 
     // ---- Global skills (account-wide, unlock via milestones) ----
@@ -46,31 +45,6 @@
     }
     function skillEnabled(id) {
       return skillUnlocked(id) && (!settings.skills || settings.skills[id] !== false);
-    }
-
-    // ─── Progressive system unlocks ("the slow unboxing") ───
-    // The campaign reveals its mechanics floor by floor; Golden Cosmos loops
-    // assume mastery and unlock everything from floor 1.
-    const SYS_LADDER = {
-      bloom: 3,        // 🌸 bloom tiles appear
-      shuffle: 4,      // 🔀 manual shuffle button
-      mysteryNodes: 5, // 🎲 mystery nodes on the map
-      enemyStatus: 5,  // 🐍 viper/hexer archetypes (debuffs)
-      sig: 7,          // ⚡ sig tiles + ultimate charge
-      log: 9,          // 📜 action log bar
-      seals: 11,       // ✳️ cross/X seals
-      phases: 16       // ☀️ Sun Surge / Full Bloom (act II opener)
-    };
-    function sysUnlocked(what) {
-      if ((typeof run !== "undefined" && (run.ngLoop || 0) > 0)) return true;
-      const need = SYS_LADDER[what];
-      if (!need) return true;
-      const f = (typeof run !== "undefined" && run.floor) || 1;
-      return f >= need;
-    }
-    function activeTileTypes() {
-      const t = TYPES.filter(k => k !== "question" || sysUnlocked("sig"));
-      return t.length ? t : TYPES;
     }
 
     function persistSettings() {
@@ -95,8 +69,7 @@
           clearedOnce: settings.clearedOnce,
           ngLoopsDone: settings.ngLoopsDone,
           bestFloor: settings.bestFloor || 0,
-          skills: settings.skills || { shuffleSurge: true },
-          seenHints: settings.seenHints || {}
+          skills: settings.skills || { shuffleSurge: true }
         }));
       } catch (_) {}
     }
@@ -125,7 +98,6 @@
             if (typeof o.skills[k] === "boolean") settings.skills[k] = o.skills[k];
           });
         }
-        if (o.seenHints && typeof o.seenHints === "object") settings.seenHints = o.seenHints;
       } catch (_) {}
     }
     loadSettings();

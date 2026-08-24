@@ -105,11 +105,7 @@
     let pointer = null; // {row, col, x, y, startX, startY}
 
     // ---------- Soft Web Audio ----------
-    const rand = () => {
-      // Early campaign floors use a smaller tile pool (no sig tiles yet)
-      const pool = typeof activeTileTypes === "function" ? activeTileTypes() : TYPES;
-      return pool[Math.floor(Math.random() * pool.length)];
-    };
+    const rand = () => TYPES[Math.floor(Math.random() * TYPES.length)];
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     const idx = (r, c) => r * COLS + c;
 
@@ -437,8 +433,6 @@
     // Also collects runs of length >= 4 so we can spawn bloom specials
     function findMatches() {
       const mark = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
-      // Blooms stay locked until the ladder reveals them
-      const bloomsLive = typeof sysUnlocked !== "function" || sysUnlocked("bloom");
       const specialSpawns = []; // {r, c, type}
       let any = false;
 
@@ -451,7 +445,7 @@
             if (n >= MIN_MATCH) {
               any = true;
               for (let k = 0; k < n; k++) mark[r][c-1-k] = true;
-              if (n >= 4 && bloomsLive) {
+              if (n >= 4) {
                 const mid = c - 1 - Math.floor((n - 1) / 2);
                 specialSpawns.push({ r, c: mid, type: board[r][mid], kind: "bloom" });
                 // 5+ in a line: drop TWO bloom tiles so it visibly beats a 4-line
@@ -474,7 +468,7 @@
             if (n >= MIN_MATCH) {
               any = true;
               for (let k = 0; k < n; k++) mark[r-1-k][c] = true;
-              if (n >= 4 && bloomsLive) {
+              if (n >= 4) {
                 const mid = r - 1 - Math.floor((n - 1) / 2);
                 specialSpawns.push({ r: mid, c, type: board[mid][c], kind: "bloom" });
                 // 5+ in a line: drop TWO bloom tiles so it visibly beats a 4-line
@@ -730,7 +724,7 @@
         }
 
         // Place a seal on the crossing cell of a cross clear (T/+ → row+col, L → diagonals)
-        if (shape.isCross && shape.crossCell && (typeof sysUnlocked !== "function" || sysUnlocked("seals"))) {
+        if (shape.isCross && shape.crossCell) {
           const { r, c } = shape.crossCell;
           if (specials[r][c] === false) {
             const entry = matchedList.find(m => m.r === r && m.c === c);

@@ -380,9 +380,7 @@
 
     // Star phases (user-specified thresholds)
     // Normal 1–5 · Sun Surge 6–10 · Full Bloom 11+
-    // Phases stay dormant until act II of the campaign ladder
     function getPhase() {
-      if (typeof sysUnlocked === "function" && !sysUnlocked("phases")) return "normal";
       if (combat.turn >= (settings.impactTurn || 11)) return "impact";
       if (combat.turn >= Math.max(2, (settings.feverTurn || 6) - (run.feverEarly || 0) - (combat.feverBoost || 0))) return "fever";
       return "normal";
@@ -558,10 +556,6 @@
         return `<span class="status-icon ${c.key}" data-status="${c.key}" role="button" title="${info ? info.name : c.key}">${label}</span>`;
       }).join("");
       box.style.display = chips.length ? "" : "none";
-      // First time any status appears, teach the chip row (once per account)
-      if (chips.length && typeof hintOnce === "function") {
-        hintOnce("statusChips", "☠️ Statuses gather here — tap a chip to learn what it does");
-      }
       box.querySelectorAll(".status-icon").forEach(span => {
         span.addEventListener("click", e => {
           e.stopPropagation();
@@ -656,10 +650,6 @@
         turnNumEl.textContent = `Turn ${combat.turn} \u00b7 F${run.floor}`;
       }
       if (btnShuffle) {
-        // The tower withholds manual shuffling until floor 4 (auto-shuffle still saves you)
-        const shuffleLive = typeof sysUnlocked !== "function" || sysUnlocked("shuffle");
-        btnShuffle.style.display = shuffleLive ? "" : "none";
-        if (shuffleLive) {
         const free = (combat.freeShuffles || 0) > 0;
         const extraFree = (combat.extraFreeShuffles || 0) > 0;
         const anyFree = free || extraFree;
@@ -685,13 +675,7 @@
           badgeHtml += `<span class="shuffle-badge surge live">🌀${surgeNow}</span>`;
         }
         btnShuffle.innerHTML = (anyFree ? "Shuffle FREE" : "Shuffle (1AP)") + badgeHtml;
-        }
       }
-      // Action log bar stays hidden until the ladder reveals it (floor 9)
-      if (typeof actionLogBar !== "undefined" && actionLogBar) {
-        actionLogBar.style.display = (typeof sysUnlocked === "function" && !sysUnlocked("log")) ? "none" : "";
-      }
-
       // End button: AP ring shows the active side's AP for the current turn
       if (endWrap) {
         const activeAp = combat.playerTurn ? combat.ap : (combat.enemyAp ?? 0);
@@ -718,23 +702,10 @@
         }
       }
 
-      const sigLive = typeof sysUnlocked !== "function" || sysUnlocked("sig");
       const filled = Math.min(combat.ultMax, Math.floor((combat.sigBank / settings.ultMaxCharge) * combat.ultMax));
       ultPipsEl.querySelectorAll(".ult-pip").forEach((pip, i) => {
         pip.classList.toggle("filled", i < filled);
       });
-      // The charge meter stays hidden until the ladder reveals ultimates
-      const chargeWrap = ultPipsEl.closest ? ultPipsEl.closest(".ult-charge-wrap") : null;
-      if (!sigLive) {
-        ultPipsEl.style.visibility = "hidden";
-        if (chargeWrap) chargeWrap.style.visibility = "hidden";
-      } else {
-        ultPipsEl.style.visibility = "";
-        if (chargeWrap) chargeWrap.style.visibility = "";
-        if (typeof hintOnce === "function" && ultReady() && combat.playerTurn) {
-          hintOnce("ultReady", "⚡ Fully charged — tap your portrait to unleash!");
-        }
-      }
       const chargeNumEl = document.getElementById("chargeNum");
       if (chargeNumEl) {
         chargeNumEl.textContent = `${combat.sigBank}/${settings.ultMaxCharge}`;

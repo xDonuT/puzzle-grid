@@ -955,7 +955,7 @@ const screenMenu = document.getElementById("screen-menu");
         { icon: "⚡", name: "Surge", desc: "+1 max AP", costType: "hp", cost: 15, apply() { combat.ap = Math.min(AP_MAX + 1, combat.ap + 1); } },
         { icon: "🔮", name: "Enchant", desc: "Add a special tile to board", costType: "shield", cost: 5, apply() { if (typeof window.placeRandomSpecial === "function") window.placeRandomSpecial(); } },
         { icon: "💀", name: "Fracture Shard", desc: "Apply 2 Fracture to enemy", costType: "hp", cost: 12, apply() { combat.fractureStacks = Math.min(5, combat.fractureStacks + 2); combat.fractureTurns = Math.max(combat.fractureTurns, 3); } },
-        { icon: "🌟", name: "Star Surge", desc: "+4 ult charge", costType: "shield", cost: 6, apply() { combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + 4); } },
+        { icon: "🌟", name: "Golden Nectar", desc: "+4 ult charge", costType: "shield", cost: 6, apply() { combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + 4); } },
       ];
       // Pick 4 random items
       const shuffled = items.slice();
@@ -2008,7 +2008,7 @@ const screenMenu = document.getElementById("screen-menu");
         shapes = "⭐ +2 AP + 4→Sword · 💥 +2 Mark (+15% dmg each) + 1 AP · ⚡ True dmg = Swords×4 (min 8, max 24)";
       } else if (cls === "wizard") {
         passive = "Arcane Reflection: 30%+ of damage taken reflected as true dmg (scales with floor). Shield matches deal Runic damage equal to shield gained.";
-        ult = "Meteor: Consumes ALL 🛡️ on board — 5 + 5 dmg per 🛡️, true. Also steals up to 3 enemy Shield.";
+        ult = "Moonbloom: Consumes ALL 🛡️ on board — 5 + 5 dmg per 🛡️, true. Also steals up to 3 enemy Shield.";
         shapes = "⭐ +12 Shield + 3→Shield · 💥 Mana Lock 2t · ⚡ Steal up to 3 Shield";
       } else {
         passive = "Regen +3 HP each turn. Iron Will: survive a lethal hit once per battle at 1 HP, gain +5 Fracture. Fracture stacks deal true dmg at enemy turn start — or cash them in early with a Charged match (Shatter: stacks×3).";

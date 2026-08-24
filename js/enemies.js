@@ -467,7 +467,7 @@
         apply() { run.runicEdge = true; } },
       { id: "rnc2", path: "runic", tier: 2, cls: "WIZARD", icon: "🔮", name: "Runic Burst", desc: "Shield matches deal ×2 damage.",
         apply() { run.runicShield = true; } },
-      { id: "rnc3", path: "runic", tier: 3, cls: "WIZARD", icon: "🔮", name: "Runic Nova", desc: "Shield matches also deal 5 splash.",
+      { id: "rnc3", path: "runic", tier: 3, cls: "WIZARD", icon: "🔮", name: "Thornburst", desc: "Shield matches also deal 5 splash.",
         apply() { run.runicNova = true; } },
       // Path: Mana (AP/charge/economy)
       { id: "mna1", path: "mana", tier: 1, cls: "WIZARD", icon: "💎", name: "Arcane Pool", desc: "Start each floor +3 ult charge.",
@@ -481,7 +481,7 @@
         apply() { run.bonusStarDmg += 3; } },
       { id: "arc2", path: "arcana", tier: 2, cls: "WIZARD", icon: "⭐", name: "Mystic Insight", desc: "Mystery tiles are 100% buffs.",
         apply() { run.mysticInsight = true; } },
-      { id: "arc3", path: "arcana", tier: 3, cls: "WIZARD", icon: "⭐", name: "Celestial", desc: "Star matches also heal 3 + shield 1.",
+      { id: "arc3", path: "arcana", tier: 3, cls: "WIZARD", icon: "⭐", name: "Sun-Kissed", desc: "Star matches also heal 3 + shield 1.",
         apply() { run.celestial = true; } },
       // Path: Aegis (defense)
       { id: "aeg1", path: "aegis", tier: 1, cls: "WIZARD", icon: "🛡️", name: "Arcane Barrier", desc: "+8 max shield.",
@@ -639,7 +639,7 @@
         apply(c) { c.fractureStacks = Math.min(5, c.fractureStacks + 3); c.fractureTurns = Math.max(c.fractureTurns, 5); } },
       { id: "toxicMist", tier: "hard", icon: "☠️", name: "Toxic Mist", desc: "Both fighters start poisoned 3 turns.", color: "#5a8a3a",
         apply(c) { c.poisonTurns = Math.max(c.poisonTurns || 0, 3); c.enemyPoisonTurns = Math.max(c.enemyPoisonTurns || 0, 3); } },
-      { id: "volatileFloor", tier: "hard", icon: "🌋", name: "Volatile Floor", desc: "Every match deals 1 damage to you.", color: "#d44a2a",
+      { id: "volatileFloor", tier: "hard", icon: "🌋", name: "Scorched Soil", desc: "Every match deals 1 damage to you.", color: "#d44a2a",
         apply(c) { c.volatileFloor = true; } },
       { id: "bloodPrice", tier: "hard", icon: "🩸", name: "Blood Price", desc: "Enemy heals 3 HP per turn.", color: "#b83030",
         apply(c) { c.enemyRegen = (c.enemyRegen || 0) + 3; } },

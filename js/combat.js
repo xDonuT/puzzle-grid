@@ -165,12 +165,12 @@
     }
 
     function classifyLog(text) {
-      if (/Ultimate|Meteor|Earthshatter|Starfall/i.test(text)) return "ult";
+      if (/Ultimate|Moonbloom|Earthshatter|Starfall/i.test(text)) return "ult";
       if (/Fracture|Sunder|Earthquake|Bulwark/i.test(text)) return "fracture";
       if (/Poison|☠|Miasma|Venom|Acid|Corrosive|Toxic/i.test(text)) return "poison";
       if (/to you|on you|Void Reflection/i.test(text)) return "taken";
       if (/Heal|\+\d+ HP|Shadow Strike/i.test(text)) return "heal";
-      if (/shield|Shield|Arcane Nova|Mana Steal/i.test(text)) return "shield";
+      if (/shield|Shield|Petal Ward|Mana Steal/i.test(text)) return "shield";
       if (/dmg|CRIT|\d+ true/i.test(text)) return "dmg";
       return "voice";
     }
@@ -1213,7 +1213,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           if (isStar) {
             sh += 12;
             const n = convertRandomTiles(3, "shield");
-            bitsExtra.push(`Arcane Nova +12 shield · ${n}→🛡️`);
+            bitsExtra.push(`Petal Ward +12 shield · ${n}→🛡️`);
           }
           if (isCross) {
             combat.manaLockTurns = Math.max(combat.manaLockTurns, 2);
@@ -1369,11 +1369,11 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           dealDamageToEnemy(runic, { trueDmg: true, source: "runic" });
           dmgPop("enemy", `🔮${runic}`, "true");
           bitsExtra.push(`Runic ${runic}`);
-          // Runic Nova passive: shield matches also deal 5 splash
+          // Thornburst passive: shield matches also deal 5 splash
           if (run.runicNova) {
             dealDamageToEnemy(5, { trueDmg: true, source: "runic" });
             dmgPop("enemy", `🔮+5`, "true");
-            bitsExtra.push("Nova +5");
+            bitsExtra.push("Thorns +5");
           }
         }
         // Bulwark (Knight): shield matches apply 1 Fracture stack (once per turn)
@@ -2019,7 +2019,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         bits.push("Assassinate", `${ultDmg} true`, enemyPct < 0.3 ? "Execute!" : "", `${tilesConsumed} ⚔️ consumed`, "Afterglow", "-3 HP");
         refreshCombatUI();
       } else if (cls === "wizard") {
-        bits.push("Meteor", `${ultDmg} true`, `${tilesConsumed} 🛡️ consumed`);
+        bits.push("Moonbloom", `${ultDmg} true`, `${tilesConsumed} 🛡️ consumed`);
         // Mana steal if enemy has shield
         if (combat.enemyShield > 0) {
           const steal = Math.min(3, combat.enemyShield);

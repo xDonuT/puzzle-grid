@@ -2927,7 +2927,8 @@ body.ult-hitstop .board-wrap {
         <path d="M-27 -11 C -29 -13 -30 -15 -31 -18.5" stroke="#8fbc6e" stroke-width="0.9"/>
       </g>
       <!-- Flower head: ray florets (back + front rings), tufted disc florets, involucre -->
-      <symbol id="cosmosHead" viewBox="-33 -33 66 66">
+      <!-- Plain <g> (not <symbol>): <use> then honors transforms literally, no viewport remap -->
+      <g id="cosmosHead">
         <g fill="#f3b7c6">
           <use href="#cosmosRay" transform="rotate(22.5) scale(0.92)"/>
           <use href="#cosmosRay" transform="rotate(67.5) scale(0.92)"/>
@@ -2969,13 +2970,13 @@ body.ult-hitstop .board-wrap {
         </g>
         <circle cx="-1.8" cy="-1.8" r="0.5" fill="#ffe08a"/>
         <circle cx="2.2" cy="1.4" r="0.5" fill="#ffe08a"/>
-      </symbol>
+      </g>
       <!-- Curling vine tendril (board corners / connectors) -->
-      <symbol id="vineCurl" viewBox="0 0 34 34">
+      <g id="vineCurl">
         <path d="M2 32 C 12 30 20 24 19 14 C 18.4 8.6 23 4.6 28 6.4 C 31 7.5 31.6 11 29.4 13 C 27.8 14.4 25.4 13.8 24.6 11.8"
               fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
         <path d="M8 27 c 4 -.6 6.4 -2.8 7 -6.2 c -3.6 .6 -6 2.8 -7 6.2 z" fill="currentColor" opacity="0.85"/>
-      </symbol>
+      </g>
     </defs>
   </svg>
   <!-- MAIN MENU -->

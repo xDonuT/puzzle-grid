@@ -2712,9 +2712,51 @@ body.ult-hitstop .board-wrap {
       bottom: 2px; right: 2px;
     }
 
+    /* ===== Hanging vines & roots ===== */
+    .hanging {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .strand {
+      position: absolute;
+      top: -6px;
+      transform-origin: 50% 0;
+      color: #7aa65e;
+      filter: drop-shadow(0 2px 2px rgba(50, 60, 30, 0.18));
+      animation: vineSway var(--sway-dur, 7s) ease-in-out var(--sway-delay, 0s) infinite alternate;
+    }
+    .strand.root { color: #97815f; opacity: 0.8; }
+    @keyframes vineSway {
+      from { transform: rotate(-2.4deg); }
+      to { transform: rotate(2.4deg); }
+    }
+    /* Menu arrangement — lush drape */
+    .hL1 { left: 4%;  width: 25px; height: 152px; --sway-dur: 7.5s; }
+    .hL2 { left: 13%; width: 19px; height: 104px; opacity: 0.9; --sway-dur: 6.2s; --sway-delay: -3s; }
+    .hR1 { right: 9%; width: 22px; height: 122px; --sway-dur: 9s; --sway-delay: -1.5s; }
+    .hL3 { right: 17%; width: 16px; height: 78px; opacity: 0.85; --sway-dur: 5.6s; --sway-delay: -2s; }
+    .hR2 { right: 3%; width: 18px; height: 88px; opacity: 0.75; --sway-dur: 8.2s; --sway-delay: -4.5s; }
+    /* Game arrangement — short corner-huggers that spare the HUD */
+    .gL1 { left: 1.5%; width: 20px; height: 96px; --sway-dur: 7s; }
+    .gR1 { right: 2%; width: 20px; height: 84px; --sway-dur: 8.5s; --sway-delay: -3.5s; }
+    .gL2 { left: 10%; width: 14px; height: 62px; opacity: 0.8; --sway-dur: 6s; --sway-delay: -1.8s; }
+    /* Root curls peeking at the bottom of the arena */
+    .rootlet {
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      color: #8a6f4e;
+      opacity: 0.38;
+    }
+    .rootlet.btl { left: 8px; bottom: 6px; transform: rotate(200deg); }
+    .rootlet.bbr { right: 10px; bottom: 8px; transform: rotate(160deg); }
+
     @media (prefers-reduced-motion: reduce) {
       /* Pause all decorative loops; keep functional transitions instant */
       #actFlora .sway, .menu-sprout .ms-sway, .menu-sprout .ms-bloom,
+      .strand.leafy, .strand.root,
       body.tower-1 #actSky::before, body.tower-2 #actSky::before,
       body.tower-4 #actSky::before, body.tower-4 #actSky::after,
       body.tower-1 .board-wrap, body.tower-2 .board-wrap,
@@ -3093,10 +3135,35 @@ body.ult-hitstop .board-wrap {
               fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
         <path d="M8 27 c 4 -.6 6.4 -2.8 7 -6.2 c -3.6 .6 -6 2.8 -7 6.2 z" fill="currentColor" opacity="0.85"/>
       </g>
+      <!-- Long hanging vine strand (leafy, pink bud tip) -->
+      <g id="hangVine">
+        <path d="M18 2 C 13 38 23 74 15 112 C 10 142 21 172 16 212" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+        <path d="M17 30 C 8 26 4 17 6 8 C 15 11 19 19 17 30 Z" fill="currentColor" opacity=".85"/>
+        <path d="M16 64 C 25 60 30 51 28 42 C 19 45 14 53 16 64 Z" fill="currentColor" opacity=".72"/>
+        <path d="M15 102 C 7 97 3 88 5 79 C 14 82 18 91 15 102 Z" fill="currentColor" opacity=".8"/>
+        <path d="M17 142 C 26 137 31 128 29 119 C 20 122 15 131 17 142 Z" fill="currentColor" opacity=".7"/>
+        <path d="M16 178 C 9 174 5 166 7 158 C 15 161 18 169 16 178 Z" fill="currentColor" opacity=".75"/>
+        <circle cx="16" cy="206" r="3.4" fill="#e79ab0"/>
+        <circle cx="16" cy="201" r="1.6" fill="#f3c1cf"/>
+      </g>
+      <!-- Bare drooping root-tendril -->
+      <g id="hangRoot">
+        <path d="M16 2 C 20 34 12 62 18 94 C 22 118 14 138 17 162" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M17 44 C 24 40 27 33 26 26 C 19 29 16 36 17 44 Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M18 84 C 11 80 8 73 9 66 C 16 69 19 76 18 84 Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M17 124 C 23 121 26 115 25 109 C 19 111 16 117 17 124 Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </g>
     </defs>
   </svg>
   <!-- MAIN MENU -->
   <div class="screen active" id="screen-menu">
+    <div class="hanging" aria-hidden="true">
+      <svg class="strand leafy hL1" viewBox="0 0 36 220"><use href="#hangVine"/></svg>
+      <svg class="strand leafy hL2" viewBox="0 0 36 220"><use href="#hangVine"/></svg>
+      <svg class="strand root hR1" viewBox="0 0 36 170"><use href="#hangRoot"/></svg>
+      <svg class="strand leafy hL3" viewBox="0 0 36 220"><use href="#hangVine"/></svg>
+      <svg class="strand root hR2" viewBox="0 0 36 170"><use href="#hangRoot"/></svg>
+    </div>
     <svg class="menu-sprout" viewBox="0 0 64 64" aria-hidden="true">
       <g class="ms-sway">
         <path d="M32 58 C 32 48 32 41 32 34" stroke="#7aa65e" stroke-width="3.4" fill="none" stroke-linecap="round"/>
@@ -3122,6 +3189,13 @@ body.ult-hitstop .board-wrap {
 
   <!-- GAME -->
   <div class="screen" id="screen-game">
+    <div class="hanging" aria-hidden="true">
+      <svg class="strand leafy gL1" viewBox="0 0 36 220"><use href="#hangVine"/></svg>
+      <svg class="strand root gR1" viewBox="0 0 36 170"><use href="#hangRoot"/></svg>
+      <svg class="strand leafy gL2" viewBox="0 0 36 220"><use href="#hangVine"/></svg>
+      <svg class="rootlet btl" viewBox="0 0 34 34"><use href="#vineCurl"/></svg>
+      <svg class="rootlet bbr" viewBox="0 0 34 34"><use href="#vineCurl"/></svg>
+    </div>
   <div class="combat">
     <div class="top-game-bar" style="justify-content:center;align-items:center">
        <div class="phase-pill" id="phasePill"></div>

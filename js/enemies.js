@@ -118,11 +118,11 @@
       },
 
       // ---- Monster portraits ----
-      slime:    { name: "Slime",    role: "eslime",    svg: MONSTER_SVG.slime },
-      bat:      { name: "Bat",      role: "ebat",      svg: MONSTER_SVG.bat },
+      slime:    { name: "Dewdrop",   role: "eslime",    svg: MONSTER_SVG.slime },
+      bat:      { name: "Moth",      role: "ebat",      svg: MONSTER_SVG.bat },
       mush:     { name: "Fungling", role: "emush",     svg: MONSTER_SVG.mush },
-      golem:    { name: "Golem",    role: "egolem",    svg: MONSTER_SVG.golem },
-      skull:    { name: "Bones",    role: "eskull",    svg: MONSTER_SVG.skull },
+      golem:    { name: "Mudwarden", role: "egolem",    svg: MONSTER_SVG.golem },
+      skull:    { name: "Husk",      role: "eskull",    svg: MONSTER_SVG.skull },
 
       // ---- Elite recolors (same shapes, themed palette) ----
       bracken:    { name: "Bracken",    role: "c-bracken",    svg: MONSTER_SVG.golem },
@@ -241,7 +241,7 @@
     // Random enemy name pools — garden-storm themed
     const ENEMY_NAMES = [
       "Gale", "Bramble", "Frost", "Mist", "Sleet",
-      "Jinx", "Clover", "Willow", "Ironjaw", "Quill",
+      "Jinx", "Clover", "Willow", "Burr", "Quill",
       "Pebble", "Puff", "Moss", "Nimbo", "Poppy",
       "Petal", "Thistle", "Iris", "Sprig", "Thorn",
       "Vex", "Wisp", "Xorn", "Yew", "Zephyr",

@@ -297,8 +297,24 @@
     .tile.potential-match {
       z-index: 9;
       border: 2px solid rgba(255, 255, 255, 0.85);
-      box-shadow: 0 0 8px rgba(255, 255, 255, 0.5), inset 0 0 4px rgba(255, 255, 255, 0.2);
-      animation: potentialPulse 0.65s ease-in-out infinite alternate;
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.7), inset 0 0 6px rgba(255, 255, 255, 0.3);
+    }
+    /* Pulsing glow lives on a pre-rendered layer — we fade OPACITY, never
+       re-paint box-shadows every frame (compositor-only = phone friendly) */
+    .tile.potential-match::after,
+    .tile.highlight::after {
+      content: "";
+      position: absolute;
+      inset: -5px;
+      border-radius: inherit;
+      box-shadow: 0 0 16px rgba(255, 255, 255, 0.65);
+      pointer-events: none;
+      opacity: 0.25;
+      animation: pulseFade 0.65s ease-in-out infinite alternate;
+    }
+    @keyframes pulseFade {
+      from { opacity: 0.25; }
+      to { opacity: 1; }
     }
 
     /* Soft land when you release */
@@ -314,9 +330,8 @@
 
     .tile.highlight {
       z-index: 9;
-      animation: potentialPulse 0.65s ease-in-out infinite alternate;
       border: 2px solid rgba(255, 255, 255, 0.9);
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.6), inset 0 0 5px rgba(255, 255, 255, 0.25);
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.7), inset 0 0 6px rgba(255, 255, 255, 0.3);
       filter: brightness(1.08) saturate(1.06);
     }
 
@@ -408,11 +423,6 @@
       30%  { transform: scale(1.12); }
       60%  { transform: scale(1.06); }
       100% { transform: scale(1.1); }
-    }
-
-    @keyframes potentialPulse {
-      0%   { box-shadow: 0 0 6px rgba(255, 255, 255, 0.4), inset 0 0 3px rgba(255, 255, 255, 0.15); }
-      100% { box-shadow: 0 0 12px rgba(255, 255, 255, 0.7), inset 0 0 6px rgba(255, 255, 255, 0.3); }
     }
 
     /* Inflate then pop – more weight before release */
@@ -3112,13 +3122,25 @@ body.ult-hitstop .board-wrap {
     body.tower-1 .board-wrap,
     body.tower-2 .board-wrap,
     body.tower-4 .board-wrap {
-      outline: 2px solid rgb(var(--frame-c) / 0.55);
+      outline: 2px solid rgb(var(--frame-c) / 0.4);
       outline-offset: 3px;
-      animation: frameBreath 5s ease-in-out infinite;
     }
-    @keyframes frameBreath {
-      0%, 100% { outline-color: rgb(var(--frame-c) / 0.35); }
-      50% { outline-color: rgb(var(--frame-c) / 0.8); }
+    /* Breathing aura is a pre-rendered ring fading by opacity (no repaints) */
+    body.tower-1 .board-wrap::after,
+    body.tower-2 .board-wrap::after,
+    body.tower-4 .board-wrap::after {
+      content: "";
+      position: absolute;
+      inset: -8px;
+      border-radius: inherit;
+      border: 2px solid rgb(var(--frame-c) / 0.75);
+      pointer-events: none;
+      opacity: 0.35;
+      animation: frameBreathFade 5s ease-in-out infinite;
+    }
+    @keyframes frameBreathFade {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 0.9; }
     }
     /* Vine tendrils curling off the board corners */
     .board-corner {

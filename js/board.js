@@ -61,7 +61,7 @@
       // Combo text personality + scale
       comboTextEl.classList.remove("level-2", "level-3", "level-4", "level-5", "show");
       if (level >= 2) {
-        const labels = { 2: "Yay!", 3: "Eyyyy!", 4: "Ayoo!", 5: "Sheeesh!", 6: "Let's Gooo!", 7: "BLOOM!" };
+        const labels = { 2: "Yay!", 3: "Eyyyy!", 4: "Okaaay!", 5: "Sheeesh!", 6: "Let's Gooo!", 7: "BLOOM!" };
         comboTextEl.textContent = labels[Math.min(level, 7)] || "Divine!";
         const lv = Math.min(level, 5);
         comboTextEl.classList.add("show", `level-${lv}`);

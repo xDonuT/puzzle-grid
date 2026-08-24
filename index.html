@@ -111,7 +111,7 @@
       left: 50%;
       top: 30%;
       transform: translate(-50%, -50%) scale(0.85);
-      z-index: 20;
+      z-index: 60; /* shouts ride above board FX on both fighters' turns */
       pointer-events: none;
       font-family: "Arial Black", Impact, system-ui, sans-serif;
       font-size: 1.05rem;
@@ -1633,6 +1633,7 @@
     .ult-flash.ninja { background: radial-gradient(circle, rgba(79, 111, 158, 0.55), transparent 70%); }
     .ult-flash.wizard { background: radial-gradient(circle, rgba(47, 141, 126, 0.6), transparent 70%); }
     .ult-flash.knight { background: radial-gradient(circle, rgba(194, 80, 106, 0.55), transparent 70%); }
+    .ult-flash.enemy { background: radial-gradient(circle, rgba(150, 60, 60, 0.6), transparent 72%); }
     .ult-flash.go {
       animation: ultFlashAnim 0.55s cubic-bezier(0.22, 0.9, 0.3, 1) forwards;
     }

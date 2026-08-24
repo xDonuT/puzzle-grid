@@ -1540,7 +1540,11 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           sayVoice("enemySpecial", { force: true });
           await sleep(320);
           setLog(`${combat.enemyName}: ${combat.bossKit.ultName}!`);
-          await sleep(400);
+          // 🎬 Boss ultimate cinematics — screen flash, mega projectile, shake
+          runUltFlash("enemy");
+          flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "enemy", { mega: true });
+          shakeBoard("strong");
+          await sleep(650);
           combat.bossKit.ultFn();
           combat.enemyUltCharge = 0;
           refreshCombatUI();
@@ -1566,13 +1570,17 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         if (combat.enemySpecialCharge >= combat.enemySpecialNeed) {
           combat.enemySpecialCharge = 0;
           combat.enemySpecialNeed = 4 + Math.floor(Math.random() * 2);
-          // Use special: Heavy Strike (150% damage)
+          // Use special: Heavy Strike (150% damage) — full cinematics
           sayVoice("enemySpecial", { force: true });
           await sleep(280);
+          setLog(`${combat.enemyName} uses Power Strike!`, `${combat.enemyName} uses Power Strike!`);
+          runUltFlash("enemy");
+          flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "enemy", { mega: true });
+          shakeBoard("strong");
+          await sleep(420);
           const spDmg = Math.max(1, Math.round(enemyAtkForFloor(run.floor) * diffStats().atkMul * 1.5));
           dealDamageToPlayer(spDmg);
           applyArchetypePassiveOnHit();
-          setLog(`${combat.enemyName} uses Power Strike!`, `${combat.enemyName} uses Power Strike! ${spDmg} dmg`);
           refreshCombatUI();
           if (combat.playerHp <= 0) { checkGameOver(); return; }
           maybePlayerLowVoice();

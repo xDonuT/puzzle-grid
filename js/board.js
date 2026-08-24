@@ -91,9 +91,16 @@
       setTimeout(() => wrap.classList.remove("shake", "shake-strong"), 480);
     }
 
-    function clearComboTheater() {
-      comboTextEl.classList.remove("show", "level-2", "level-3", "level-4", "level-5");
-      boardWrapEl.classList.remove("combo-glow-1", "combo-glow-2", "combo-glow-3", "combo-glow-4");
+    let _comboClearTimer = null;
+    function clearComboTheater(now) {
+      // Let shouts linger briefly so they stay readable through animations
+      const doClear = () => {
+        comboTextEl.classList.remove("show", "level-2", "level-3", "level-4", "level-5");
+        boardWrapEl.classList.remove("combo-glow-1", "combo-glow-2", "combo-glow-3", "combo-glow-4");
+      };
+      if (_comboClearTimer) { clearTimeout(_comboClearTimer); _comboClearTimer = null; }
+      if (now) doClear();
+      else _comboClearTimer = setTimeout(doClear, 850);
     }
 
     let board = [];
@@ -573,7 +580,7 @@
         if (!any) {
           combo = 0;
           comboEl.textContent = "0";
-          clearComboTheater();
+          clearComboTheater(); // lingers ~850ms, cancelled by a new shout
           break;
         }
 

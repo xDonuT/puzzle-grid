@@ -2755,14 +2755,16 @@ body.ult-hitstop .board-wrap {
       left: -12%; right: -12%; bottom: -6px;
       height: 170px;
       pointer-events: none;
+      /* soft alpha gradients instead of blur() — a blurred drifting layer
+         forces expensive re-rasterization and heats up mobile GPUs */
       background-image:
-        radial-gradient(ellipse 150px 46px at 10% 100%, rgba(104,122,146,0.75), transparent 72%),
-        radial-gradient(ellipse 190px 54px at 32% 102%, rgba(96,114,138,0.7), transparent 74%),
-        radial-gradient(ellipse 130px 44px at 55% 100%, rgba(110,128,152,0.65), transparent 72%),
-        radial-gradient(ellipse 180px 58px at 78% 103%, rgba(98,116,140,0.7), transparent 74%),
-        radial-gradient(ellipse 120px 40px at 94% 101%, rgba(108,126,150,0.6), transparent 70%);
-      filter: blur(2px);
+        radial-gradient(ellipse 150px 46px at 10% 100%, rgba(104,122,146,0.5), transparent 66%),
+        radial-gradient(ellipse 190px 54px at 32% 102%, rgba(96,114,138,0.46), transparent 68%),
+        radial-gradient(ellipse 130px 44px at 55% 100%, rgba(110,128,152,0.42), transparent 66%),
+        radial-gradient(ellipse 180px 58px at 78% 103%, rgba(98,116,140,0.46), transparent 68%),
+        radial-gradient(ellipse 120px 40px at 94% 101%, rgba(108,126,150,0.38), transparent 64%);
       animation: stormDrift 64s ease-in-out infinite alternate;
+      will-change: transform;
       transition: opacity 3s ease, height 3s ease;
     }
     @keyframes stormDrift { from { transform: translateX(-22px); } to { transform: translateX(26px); } }
@@ -2784,28 +2786,36 @@ body.ult-hitstop .board-wrap {
       border-radius: 50%;
       background: radial-gradient(circle, rgba(244,222,150,0.9), rgba(244,222,150,0) 70%);
       opacity: 0.35;
-      animation: moteRise var(--mote-dur, 24s) linear var(--mote-delay, 0s) infinite,
-                 moteSway var(--mote-sway, 5s) ease-in-out var(--mote-delay, 0s) infinite alternate;
+      will-change: transform;
+      /* Single composited transform animation (rise + gentle sway baked in).
+         Two drift variants alternate so the field doesn't look uniform. */
+      animation: moteRiseA var(--mote-dur, 24s) linear var(--mote-delay, 0s) infinite;
     }
-    #pollen i:nth-child(1)  { left: 6%;  --mote-dur: 26s; --mote-delay: 0s;    --mote-sway: 4.4s; width: 5px; height: 5px; }
-    #pollen i:nth-child(2)  { left: 14%; --mote-dur: 31s; --mote-delay: -7s;   --mote-sway: 5.6s; }
-    #pollen i:nth-child(3)  { left: 23%; --mote-dur: 22s; --mote-delay: -13s;  --mote-sway: 4s;   opacity: 0.28; }
-    #pollen i:nth-child(4)  { left: 31%; --mote-dur: 34s; --mote-delay: -3s;   --mote-sway: 6.2s; width: 6px; height: 6px; }
-    #pollen i:nth-child(5)  { left: 39%; --mote-dur: 27s; --mote-delay: -18s;  --mote-sway: 4.8s; opacity: 0.3; }
-    #pollen i:nth-child(6)  { left: 48%; --mote-dur: 29s; --mote-delay: -9s;   --mote-sway: 5.2s; }
-    #pollen i:nth-child(7)  { left: 56%; --mote-dur: 23s; --mote-delay: -21s;  --mote-sway: 4.2s; width: 5px; height: 5px; opacity: 0.3; }
-    #pollen i:nth-child(8)  { left: 64%; --mote-dur: 33s; --mote-delay: -5s;   --mote-sway: 6s; }
-    #pollen i:nth-child(9)  { left: 73%; --mote-dur: 25s; --mote-delay: -15s;  --mote-sway: 4.6s; opacity: 0.32; }
-    #pollen i:nth-child(10) { left: 81%; --mote-dur: 30s; --mote-delay: -11s;  --mote-sway: 5.4s; width: 5px; height: 5px; }
-    #pollen i:nth-child(11) { left: 89%; --mote-dur: 28s; --mote-delay: -19s;  --mote-sway: 5s;   opacity: 0.3; }
-    #pollen i:nth-child(12) { left: 95%; --mote-dur: 24s; --mote-delay: -2s;   --mote-sway: 4.4s; }
-    @keyframes moteRise {
-      from { transform: translateY(0); }
-      to { transform: translateY(-110vh); }
+    #pollen i:nth-child(even) { animation-name: moteRiseB; }
+    #pollen i:nth-child(1)  { left: 6%;  --mote-dur: 26s; --mote-delay: 0s;    width: 5px; height: 5px; }
+    #pollen i:nth-child(2)  { left: 14%; --mote-dur: 31s; --mote-delay: -7s; }
+    #pollen i:nth-child(3)  { left: 23%; --mote-dur: 22s; --mote-delay: -13s;  opacity: 0.28; }
+    #pollen i:nth-child(4)  { left: 31%; --mote-dur: 34s; --mote-delay: -3s;   width: 6px; height: 6px; }
+    #pollen i:nth-child(5)  { left: 39%; --mote-dur: 27s; --mote-delay: -18s;  opacity: 0.3; }
+    #pollen i:nth-child(6)  { left: 48%; --mote-dur: 29s; --mote-delay: -9s; }
+    #pollen i:nth-child(7)  { left: 56%; --mote-dur: 23s; --mote-delay: -21s;  width: 5px; height: 5px; opacity: 0.3; }
+    #pollen i:nth-child(8)  { left: 64%; --mote-dur: 33s; --mote-delay: -5s; }
+    #pollen i:nth-child(9)  { left: 73%; --mote-dur: 25s; --mote-delay: -15s;  opacity: 0.32; }
+    #pollen i:nth-child(10) { left: 81%; --mote-dur: 30s; --mote-delay: -11s;  width: 5px; height: 5px; }
+    #pollen i:nth-child(11) { left: 89%; --mote-dur: 28s; --mote-delay: -19s;  opacity: 0.3; }
+    #pollen i:nth-child(12) { left: 95%; --mote-dur: 24s; --mote-delay: -2s; }
+    @keyframes moteRiseA {
+      from { transform: translate(0, 0); }
+      25%  { transform: translate(-10px, -28vh); }
+      50%  { transform: translate(8px, -55vh); }
+      75%  { transform: translate(-8px, -82vh); }
+      to   { transform: translate(12px, -110vh); }
     }
-    @keyframes moteSway {
-      from { margin-left: -14px; }
-      to { margin-left: 14px; }
+    @keyframes moteRiseB {
+      from { transform: translate(0, 0); }
+      30%  { transform: translate(9px, -32vh); }
+      60%  { transform: translate(-7px, -64vh); }
+      to   { transform: translate(-13px, -110vh); }
     }
     /* Sun Surge: the air fills with golden pollen */
     body.phase-fever #pollen i {
@@ -2832,9 +2842,11 @@ body.ult-hitstop .board-wrap {
     }
     body.golden #goldenGlow {
       opacity: 1;
+      /* opacity breathing instead of filter — filter repaints the full screen
+         every frame and cooks phones; opacity is compositor-only */
       animation: goldBreath 7s ease-in-out infinite alternate;
     }
-    @keyframes goldBreath { from { filter: brightness(0.88); } to { filter: brightness(1.18); } }
+    @keyframes goldBreath { from { opacity: 0.82; } to { opacity: 1; } }
     body.golden .tile { --skin: rgba(240, 190, 80, 0.19); }
     body.golden .recap-title { color: #b8912e; }
 

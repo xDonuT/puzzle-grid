@@ -2774,6 +2774,13 @@ body.ult-hitstop .board-wrap {
     .bv2 { left: 38%; width: 11px; height: 42px; opacity: 0.45; --sway-dur: 10s; --sway-delay: -4s; }
     .bv3 { right: 20%; width: 12px; height: 52px; opacity: 0.5; --sway-dur: 9.5s; --sway-delay: -2s; }
 
+    /* Map strands — lighter tones to read against the dark act backdrops */
+    #mapOverlay .strand.leafy { color: #b8c99a; opacity: 0.75; }
+    #mapOverlay .strand.root { color: #a89a7c; opacity: 0.65; }
+    .mL1 { left: 6%; width: 22px; height: 118px; --sway-dur: 8s; }
+    .mL2 { right: 7%; width: 19px; height: 96px; --sway-dur: 9.5s; --sway-delay: -3s; }
+    .mR1 { right: 16%; width: 17px; height: 74px; opacity: 0.55; --sway-dur: 7s; --sway-delay: -1.5s; }
+
     @media (prefers-reduced-motion: reduce) {
       /* Pause all decorative loops; keep functional transitions instant */
       #actFlora .sway, .menu-sprout .ms-sway, .menu-sprout .ms-bloom,
@@ -2901,10 +2908,26 @@ body.ult-hitstop .board-wrap {
     .map-layers { display: flex; flex-direction: column-reverse; gap: 0; align-items: center; }
     .map-layer { display: flex; justify-content: center; gap: 10px; padding: 6px 0; width: 100%; position: relative; }
     .map-connector {
+      position: relative;
       width: 12px; height: 18px; margin: 0 auto;
+      opacity: 0.4; filter: saturate(0.5);
       background: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2012%2020'%3E%3Cpath%20d='M6%200C3.4%204%208.6%207%206%2011C4%2014%206.6%2017%206%2020'%20stroke='%238fae72'%20stroke-width='1.5'%20fill='none'%20stroke-linecap='round'/%3E%3Cpath%20d='M6.8%206.2c1.9-.4%203-1.5%203.3-3.2c-1.9.4-3%201.5-3.3%203.2z'%20fill='%23a5c287'/%3E%3C/svg%3E") center / contain no-repeat;
+      transition: opacity 0.4s ease, filter 0.4s ease;
     }
     .map-connector.alt { transform: scaleX(-1); }
+    /* Walked paths bloom awake */
+    .map-connector.bloomed { opacity: 1; filter: none; }
+    .conn-bloom {
+      position: absolute; left: 50%; top: 50%;
+      width: 12px; height: 12px;
+      transform: translate(-50%, -50%) scale(1);
+      animation: connBloomIn 0.6s cubic-bezier(0.2, 1.2, 0.32, 1);
+      pointer-events: none;
+    }
+    @keyframes connBloomIn {
+      from { transform: translate(-50%, -50%) scale(0); }
+      to { transform: translate(-50%, -50%) scale(1); }
+    }
     .map-node {
       width: 52px; height: 52px; border-radius: 14px; border: 2px solid rgba(120,110,100,0.3);
       background: #ebe4d8; display: flex; flex-direction: column; align-items: center;
@@ -2914,7 +2937,7 @@ body.ult-hitstop .board-wrap {
     .map-node .node-icon { font-size: 1.3rem; line-height: 1; }
     .map-node .node-label { font-size: 0.45rem; font-weight: 700; color: #8a7a6a; margin-top: 1px; }
     .map-node.reachable { border-color: #b89420; box-shadow: 0 0 8px rgba(184,148,32,0.35); animation: nodePulse 1.5s infinite; }
-    .map-node.visited { opacity: 0.45; border-color: #999; pointer-events: none; }
+    .map-node.visited { opacity: 0.85; border-color: #8fae72; background: #e7eedd; pointer-events: none; }
     .map-node.locked { opacity: 0.3; pointer-events: none; }
     .map-node.current { border-color: #d4783c; box-shadow: 0 0 12px rgba(212,120,60,0.5); }
     .map-node.elite { border-color: #c04040; }
@@ -3435,6 +3458,11 @@ body.ult-hitstop .board-wrap {
 
   <!-- MAP OVERLAY -->
   <div class="overlay" id="mapOverlay">
+    <div class="hanging" aria-hidden="true">
+      <svg class="strand leafy mL1" viewBox="0 0 36 220"><use href="#hangVine"/></svg>
+      <svg class="strand leafy mL2" viewBox="0 0 36 220"><use href="#hangVine"/></svg>
+      <svg class="strand root mR1" viewBox="0 0 36 170"><use href="#hangRoot"/></svg>
+    </div>
     <div class="map-panel" id="mapPanel">
       <div class="map-act-label" id="mapActLabel">🌱 The Sprout</div>
       <div class="map-layers" id="mapLayers"></div>

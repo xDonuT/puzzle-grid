@@ -680,6 +680,8 @@ const screenMenu = document.getElementById("screen-menu");
       }
 
       // Render layers top-to-bottom (boss at top, layer 0 at bottom) using column-reverse
+      // Walked path blooms: a connector flowers once you've climbed through its lower layer
+      const walked = actData.layers.map(layer => layer.some(n => visitedSet.has(n.id)));
       for (let li = 0; li < actData.layers.length; li++) {
         const layer = actData.layers[li];
         const layerEl = document.createElement("div");
@@ -700,7 +702,10 @@ const screenMenu = document.getElementById("screen-menu");
         // Connector between layers (not above layer 0)
         if (li > 0) {
           const conn = document.createElement("div");
-          conn.className = "map-connector" + (Math.random() < 0.5 ? " alt" : "");
+          conn.className = "map-connector" + (Math.random() < 0.5 ? " alt" : "") + (walked[li - 1] ? " bloomed" : "");
+          if (walked[li - 1]) {
+            conn.innerHTML = '<svg class="conn-bloom" viewBox="-33 -33 66 66" aria-hidden="true"><use href="#cosmosHead"/></svg>';
+          }
           layersEl.appendChild(conn);
         }
       }

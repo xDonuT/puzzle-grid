@@ -2785,6 +2785,41 @@ body.ult-hitstop .board-wrap {
     body.tower-2 #stormBank { opacity: 0.26; height: 110px; }
     body.tower-4 #stormBank { opacity: 0.07; height: 60px; } /* the storm has all but parted */
 
+    /* ===== Ground — soil & grass anchoring the garden (static, no heat) ===== */
+    #ground {
+      position: fixed;
+      left: -4%; right: -4%; bottom: 0;
+      height: 74px;
+      z-index: -1;
+      pointer-events: none;
+      --g-grass-hi: #8fbf6a;
+      --g-grass: #79a854;
+      --g-soil: #7a5c40;
+      background:
+        /* sun-fleck texture on the grass */
+        repeating-linear-gradient(92deg, rgba(255,255,255,0.07) 0 2px, transparent 2px 11px),
+        /* grass body fading into soil */
+        linear-gradient(180deg,
+          var(--g-grass-hi) 0%,
+          var(--g-grass) 46%,
+          var(--g-soil) 62%,
+          color-mix(in srgb, var(--g-soil) 78%, #2c2016) 100%);
+      /* soft tufted lip */
+      border-radius: 18px 26px 0 0 / 16px 20px 0 0;
+      box-shadow: inset 0 3px 6px rgba(255,255,255,0.14), 0 -4px 10px rgba(90,120,60,0.12);
+    }
+    #ground::before {
+      content: "";
+      position: absolute;
+      left: 3%; right: 3%; top: -7px; height: 22px;
+      border-radius: 50%;
+      background: var(--g-grass-hi);
+      opacity: 0.85;
+      filter: none;
+    }
+    body.tower-2 #ground { --g-grass-hi: #9cbf72; --g-grass: #86a95c; --g-soil: #6f523c; }
+    body.tower-4 #ground { --g-grass-hi: #c8b96a; --g-grass: #ab9a54; --g-soil: #5f4634; }
+
     /* ===== Pollen & light motes — ambient drift, denser during Sun Surge ===== */
     #pollen {
       position: fixed; inset: 0;
@@ -3269,6 +3304,7 @@ body.ult-hitstop .board-wrap {
     <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
   </div>
   <div id="goldenGlow" aria-hidden="true"></div>
+  <div id="ground" aria-hidden="true"></div>
   <div id="actFlora" aria-hidden="true">
     <!-- Sprout: swaying seedlings -->
     <svg class="flora flora-1" viewBox="0 0 360 70" preserveAspectRatio="xMidYMax meet">

@@ -1988,6 +1988,8 @@ const screenMenu = document.getElementById("screen-menu");
       const feverEl = document.getElementById("admFever");
       const impactEl = document.getElementById("admImpact");
       if (feverEl) feverEl.value = settings.feverTurn || 6;
+      const floorInput = document.getElementById("admFloor");
+      if (floorInput) floorInput.value = String(run.floor || 1);
       if (impactEl) impactEl.value = settings.impactTurn || 11;
       document.getElementById("muteToggle").classList.toggle("on", settings.muted);
       renderSkillList();
@@ -2126,6 +2128,42 @@ const screenMenu = document.getElementById("screen-menu");
         document.getElementById("tabAdmin").style.display = tab === "admin" ? "" : "none";
       });
     });
+
+    // Debug floor jump — testing tool: land on any floor with a fresh battle
+    const btnFloorJump = document.getElementById("btnFloorJump");
+    if (btnFloorJump) {
+      btnFloorJump.addEventListener("click", () => {
+        const input = document.getElementById("admFloor");
+        const n = Math.max(1, Math.min(MAX_FLOOR, Math.floor(+input.value || 0)));
+        if (!n) return;
+        // No live run? Load the save into memory first (stays saved either way)
+        let loadedHere = false;
+        if (!screenGame.classList.contains("active")) {
+          const d = loadRun();
+          if (!d) { alert("No active run to jump — start one first."); return; }
+          applyLoadedRun(d);
+          loadedHere = true;
+        }
+        // Clear stale cross-floor perks so the jump starts clean
+        run.pending = { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 };
+        run.pendingModifier = null;
+        run.pendingModifierRare = false;
+        run.pendingModifierEasy = null;
+        run.floor = n;
+        const act = Math.min(3, Math.ceil(n / 15));
+        run.currentAct = act;
+        if (run.gameMap) run.gameMap.currentAct = act;
+        updateTowerBand();
+        if (loadedHere) {
+          saveRun();
+          refreshContinueBtn();
+          closeSettings();
+        } else {
+          closeSettings();
+          startBattle(); // fresh battle on the chosen floor
+        }
+      });
+    }
 
     const DIFFICULTY_OPTIONS = [
       { id: "easy", icon: "🌱", name: "Easy", desc: "Enemy deals 25% less damage. AI makes random moves — perfect for learning the ropes." },

@@ -167,10 +167,31 @@
     }
 
     // ---------- particles (soft blob-like bursts) ----------
+    // gridEl rect is cached per cascade wave: reading it per matched tile
+    // interleaved with appends forces synchronous layout on every tile.
+    let _gridRectCache = null;
+    function getGridRect() {
+      if (!_gridRectCache) _gridRectCache = gridEl.getBoundingClientRect();
+      return _gridRectCache;
+    }
+    function clearGridRectCache() { _gridRectCache = null; }
+
+    // Hard cap on live FX nodes (particles + petals + flashes). Big cascades
+    // would otherwise spawn 300+ animated nodes and cook mobile GPUs.
+    let fxNodeCount = 0;
+    function fxNodeAllowed() { return fxNodeCount < 140; }
+    function fxTrack(el, anim, dur) {
+      fxNodeCount++;
+      const done = () => { fxNodeCount = Math.max(0, fxNodeCount - 1); el.remove(); };
+      if (anim && anim.onfinish !== undefined) anim.onfinish = done;
+      else setTimeout(done, dur || 600);
+    }
+
     function spawnParticles(r, c, type, comboLevel) {
+      if (!fxNodeAllowed()) return;
       const el = getCell(r, c);
       const rect = el.getBoundingClientRect();
-      const gridRect = gridEl.getBoundingClientRect();
+      const gridRect = getGridRect();
       const cx = rect.left + rect.width / 2 - gridRect.left;
       const cy = rect.top + rect.height / 2 - gridRect.top;
       const color = COLORS[type]?.icon || "#c9b8a8";
@@ -211,16 +232,16 @@
           easing: "cubic-bezier(0.15, 0.75, 0.3, 1)",
           fill: "forwards"
         });
-
-        anim.onfinish = () => p.remove();
+        fxTrack(p, anim);
       }
     }
 
     // Golden plus-flash marking the crossing tile of a T / L / + clear
     function spawnCrossFlash(r, c) {
+      if (!fxNodeAllowed()) return;
       const el = getCell(r, c);
       const rect = el.getBoundingClientRect();
-      const gridRect = gridEl.getBoundingClientRect();
+      const gridRect = getGridRect();
       const fx = document.createElement("div");
       fx.className = "cross-flash";
       fx.style.left = rect.left + rect.width / 2 - gridRect.left + "px";
@@ -252,14 +273,14 @@
     let petalBudgetTimer = null;
     function spawnPetals(r, c, comboLevel) {
       if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-      if (petalBudget <= 0) return;
+      if (petalBudget <= 0 || !fxNodeAllowed()) return;
       if (!petalBudgetTimer) {
         petalBudgetTimer = setTimeout(() => { petalBudget = 26; petalBudgetTimer = null; }, 1200);
       }
       const cl = Math.min(comboLevel || 1, 5);
       const el = getCell(r, c);
       const rect = el.getBoundingClientRect();
-      const gridRect = gridEl.getBoundingClientRect();
+      const gridRect = getGridRect();
       const cx = rect.left + rect.width / 2 - gridRect.left;
       const cy = rect.top + rect.height * 0.35 - gridRect.top;
       let count = Math.min(petalBudget, (cl >= 3 ? 2 : 1) + (Math.random() < 0.5 ? 1 : 0));
@@ -288,7 +309,7 @@
           easing: "cubic-bezier(0.25, 0.6, 0.45, 1)",
           fill: "forwards"
         });
-        anim.onfinish = () => p.remove();
+        fxTrack(p, anim);
       }
     }
 
@@ -544,7 +565,10 @@
 
     // ---------- core loop ----------
     async function resolveBoard() {
+      clearGridRectCache(); // fresh layout each resolve (scroll/resize safe)
       while (true) {
+        // Battle already decided (overlay open) — stop resolving cascades
+        if (typeof gameOver !== "undefined" && gameOver) break;
         let { mark, any, specialSpawns } = findMatches();
         if (!any) {
           combo = 0;
@@ -719,9 +743,15 @@
 
         await applyGravityAndFill();
       }
-      // Deadlock: no existing matches and no valid swaps → auto-reshuffle
+      // Deadlock: no existing matches and no valid swaps → auto-reshuffle.
+      // A blind Fisher-Yates can still land deadlocked (or hand free matches),
+      // so retry until the board is both match-free and playable.
       if (!hasValidMove()) {
-        shuffleBoard({ animated: false });
+        for (let attempt = 0; attempt < 40; attempt++) {
+          shuffleBoard({ animated: false });
+          const hasMatch = findMatches().any;
+          if (!hasMatch && hasValidMove()) break;
+        }
       }
     }
 

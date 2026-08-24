@@ -1091,12 +1091,14 @@ const screenMenu = document.getElementById("screen-menu");
       if (rrBtn) {
         rrBtn.style.display = rerollLeft > 0 ? "" : "none";
         rrBtn.textContent = rerollLeft > 0 ? `Reroll (${rerollLeft})` : "Reroll";
-        rrBtn.addEventListener("click", () => {
+        // onclick (not addEventListener) — this button persists across pickers,
+        // so accumulating listeners would stack stale closures
+        rrBtn.onclick = () => {
           if (rerollLeft <= 0) return;
           rerollLeft--;
           render();
           if (rerollLeft <= 0) rrBtn.style.display = "none";
-        });
+        };
       }
       ov.classList.add("open");
     }
@@ -1151,9 +1153,6 @@ const screenMenu = document.getElementById("screen-menu");
         const title = document.createElement("div");
         title.className = "up-card-title";
         title.textContent = (p.icon || "") + " " + p.name;
-        const descEl = document.createElement("div");
-        title.className = "up-card-title";
-        title.textContent = (p.icon || "") + " " + p.name;
         const descEl2 = document.createElement("div");
         descEl2.className = "up-card-desc";
         descEl2.textContent = p.desc;
@@ -1176,6 +1175,7 @@ const screenMenu = document.getElementById("screen-menu");
       if (combat.enemyHp <= 0) {
         gameOver = true;
         busy = true;
+        pauseRunTimer(); // picker deliberation shouldn't count toward run time
         // Plague passive: if enemy died while poisoned, next floor's enemy takes 10 damage
         if (run.plague && combat.poisonStacks > 0) {
           run.plagueDmg = (run.plagueDmg || 0) + 10;
@@ -1192,8 +1192,13 @@ const screenMenu = document.getElementById("screen-menu");
           const perm = GAUNTLET_REWARDS[run.floor];
           let permanentLabel = null;
           if (perm) {
-            perm.apply();
-            permanentLabel = perm.label;
+            // Claim-once guard — a replayed elite floor must not re-grant
+            if (!run.rewardsClaimed) run.rewardsClaimed = {};
+            if (!run.rewardsClaimed[run.floor]) {
+              run.rewardsClaimed[run.floor] = true;
+              perm.apply();
+              permanentLabel = perm.label;
+            }
           }
           openPassivePicker(passiveLabel => {
             openRewardPicker(buildEliteTempChoices(), {
@@ -1352,6 +1357,7 @@ const screenMenu = document.getElementById("screen-menu");
 
     function recordRun(won) {
       if (won) accumulateBattleStats();
+      const s = combat.stats || {};
       const hero = CHARACTERS[combat.playerClass] || {};
       saveHistory({
         ts: Date.now(),
@@ -1397,6 +1403,7 @@ const screenMenu = document.getElementById("screen-menu");
           floorElapsedMs: run.floorElapsedMs || 0,
           cumulative: run.cumulative || { dealt: 0, taken: 0, healed: 0, shield: 0, ults: 0 },
           mysteriesFlipped: run.mysteriesFlipped || 0,
+          pickLog: run.pickLog || [],
           elitesSlain: run.elitesSlain || 0,
           bossesSlain: run.bossesSlain || 0,
           maxCombo: run.maxCombo || 0,
@@ -1468,6 +1475,16 @@ const screenMenu = document.getElementById("screen-menu");
       run.runicShield = false; run.manaSurge = false; run.mortalStrike = false; run.bulwark = false;
       run.venomousBlade = false; run.miasmaReflex = false; run.acidicBarrier = false; run.contagionCatalyst = false;
       run.corrosiveOverheal = false; run.toxicFortitude = false;
+      // Passive-tree flags (PASSIVE_TREES applies) — without these a "new run"
+      // would silently inherit powers from the previous run
+      run.blitz = false; run.toxicBlade = false; run.lethalPoison = false; run.plague = false;
+      run.criticalEdge = false; run.assassinate = false; run.shadowEcho = false; run.shadowArmy = false;
+      run.runicEdge = false; run.runicNova = false; run.infiniteMana = false; run.mysticInsight = false;
+      run.celestial = false; run.manaShield = false; run.reflectiveAura = false; run.shatterPlus = false;
+      run.earthquake = false; run.unbreakable = false; run.vengeance = false; run.counterStrike = false;
+      run.retribution = false; run.earthshatterPlus = false; run.devastation = false;
+      run.floorChargeBonus = 0;
+      run.plagueDmg = 0;
       run.pending = { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 };
       run.pendingModifier = null;
       run.pendingModifierRare = false;
@@ -1507,6 +1524,7 @@ const screenMenu = document.getElementById("screen-menu");
       run.floorElapsedMs = 0; // fresh floor timing on continue
       run.cumulative = d.cumulative || { dealt: 0, taken: 0, healed: 0, shield: 0, ults: 0 };
       run.mysteriesFlipped = d.mysteriesFlipped | 0;
+      run.pickLog = d.pickLog || [];
       run.elitesSlain = d.elitesSlain | 0;
       run.bossesSlain = d.bossesSlain | 0;
       run.maxCombo = d.maxCombo | 0;
@@ -1537,11 +1555,14 @@ const screenMenu = document.getElementById("screen-menu");
       run.contagionCatalyst = (run.pickedUpgrades || []).includes("contagionCatalyst");
       run.corrosiveOverheal = (run.pickedUpgrades || []).includes("corrosiveOverheal");
       run.toxicFortitude = (run.pickedUpgrades || []).includes("toxicFortitude");
-      // Re-derive passive tree flags from the passive list
+      // Re-derive passive tree flags from the passive list.
+      // Stat-granting passives are skipped: their bonuses are already baked
+      // into the saved bonus* numbers, so re-applying would stack them again.
+      const PASSIVE_STAT_ONLY = ["shd1", "bld1", "arc1", "aeg1", "frt1", "frt2", "vlr1"];
       (run.passives || []).forEach(pid => {
         if (typeof PASSIVE_TREES !== "undefined") {
           const p = PASSIVE_TREES.find(x => x.id === pid);
-          if (p && p.apply) p.apply();
+          if (p && p.apply && !PASSIVE_STAT_ONLY.includes(pid)) p.apply();
         }
       });
       run.pending = Object.assign(
@@ -1616,7 +1637,9 @@ const screenMenu = document.getElementById("screen-menu");
       combat.blindNext = false;
       combat.weakenNextSword = false;
       combat.poisonTurns = 0;
-      combat.enemyPoisonTurns = Math.max(combat.enemyPoisonTurns, (run.pending && run.pending.enemyPoison) || 0);
+      // Assign (not Math.max) — a leftover poison from the previous battle
+      // must never leak into the fresh rival
+      combat.enemyPoisonTurns = (run.pending && run.pending.enemyPoison) || 0;
       combat.poisonStacks = 0;
       combat.acidStacks = 0;
       combat.firstHitDodged = false;

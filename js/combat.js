@@ -537,13 +537,19 @@
       if (badge) el.appendChild(badge);
     }
 
-    // Rebuild the status-chip row between HP and AP (tap a chip for details)
+    // Rebuild the status-chip row between HP and AP (tap a chip for details).
+    // Skips the DOM rebuild when nothing changed — refreshCombatUI runs many
+    // times per cascade step, and innerHTML + listener reattach is expensive.
+    const _chipSig = new WeakMap();
     function syncPortraitChips(el, chips) {
       if (!el) return;
       const combatant = el.closest ? el.closest(".combatant") : el.parentElement.parentElement;
       if (!combatant) return;
       const box = combatant.querySelector(".status-row");
       if (!box) return;
+      const sig = chips.map(c => `${c.key}:${c.count || 0}`).join("|");
+      if (_chipSig.get(box) === sig) return;
+      _chipSig.set(box, sig);
       box.innerHTML = chips.map(c => {
         const info = STATUS_INFO[c.key];
         const label = c.count > 0 ? `${c.emoji}<span class="status-num">${c.count}</span>` : c.emoji;
@@ -657,7 +663,7 @@
           } else if (extraFree) {
             badgeHtml = `<span class="shuffle-badge free">${combat.extraFreeShuffles}</span>`;
           } else {
-            const turnsUntilFree = 3 - ((combat.turn - 1) % 3);
+            const turnsUntilFree = Math.max(1, 3 - (combat.turn % 3));
             badgeHtml = `<span class="shuffle-badge">${turnsUntilFree <= 1 ? "Next!" : turnsUntilFree}</span>`;
           }
         }
@@ -782,10 +788,11 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (combat.acidStacks > 0) eChips.push({ key: "acidStacks", emoji: "🩸", count: combat.acidStacks });
       syncPortraitChips(enemyPortraitEl, eChips);
 
-      // Enemy shield badge (mirror of the player's)
+      // Enemy shield badge (mirror of the player's) — the rival does NOT get
+      // the player's permanent shield-cap rewards
       const enemyShieldBadgeEl = document.getElementById("enemyShieldBadge");
       const enemyShieldNumEl = document.getElementById("enemyShieldNum");
-      const enemyShMax = settings.shieldMax + run.bonusShieldMax;
+      const enemyShMax = settings.shieldMax;
       if (enemyShieldBadgeEl) {
         enemyShieldBadgeEl.style.opacity = combat.enemyShield > 0 ? "1" : "0.4";
         enemyShieldBadgeEl.title = `Shield: ${combat.enemyShield}/${enemyShMax}`;
@@ -934,25 +941,41 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         playHit(Math.min(1.2, 0.5 + dmg / 12), { down: true });
         if (!opts.noFracture) animatePortraits("enemy");
         if (dmg >= 8) shakeBoard("light");
-        // Counter Strike (Knight Retaliate T2): deal 3 true damage when hit
-        if (run.counterStrike || run.retribution) {
-          const counterDmg = run.retribution
-            ? Math.min(15, combat.playerMaxHp - combat.playerHp)
-            : 3;
-          if (counterDmg > 0) {
-            dealDamageToEnemy(counterDmg, { trueDmg: true, source: "counter" });
-            dmgPop("enemy", `⚔${counterDmg}`, "true");
+      }
+      // Death check on EVERY path into this function (regular pokes and
+      // poison ticks previously skipped it → acting at 0 HP)
+      if (combat.playerHp <= 0 && !gameOver && typeof checkGameOver === "function") {
+        checkGameOver();
+        return;
+      }
+      if (lost > 0) {
+        // Reactive damage runs at depth 0 only — counters of counters would
+        // otherwise ping-pong between dealDamageToPlayer/Enemy unbounded
+        if (_reactiveDepth > 0) return;
+        _reactiveDepth++;
+        try {
+          // Counter Strike (Knight Retaliate T2): deal 3 true damage when hit
+          if (run.counterStrike || run.retribution) {
+            const counterDmg = run.retribution
+              ? Math.min(15, combat.playerMaxHp - combat.playerHp)
+              : 3;
+            if (counterDmg > 0) {
+              dealDamageToEnemy(counterDmg, { trueDmg: true, source: "counter" });
+              dmgPop("enemy", `⚔${counterDmg}`, "true");
+            }
           }
-        }
-        // Reflective Aura (Wizard Aegis T3): reflect 2 damage when hit
-        if (run.reflectiveAura && dmg > 0) {
-          dealDamageToEnemy(2, { trueDmg: true, source: "reflect" });
-          dmgPop("enemy", `🛡2`, "true");
-        }
-        // Thorn Aura modifier: spikes damage back when hit
-        if (combat.thornAura && dmg > 0) {
-          dealDamageToEnemy(combat.thornAura, { trueDmg: true, source: "thorns" });
-          dmgPop("enemy", `🌵${combat.thornAura}`, "true");
+          // Reflective Aura (Wizard Aegis T3): reflect 2 damage when hit
+          if (run.reflectiveAura && dmg > 0) {
+            dealDamageToEnemy(2, { trueDmg: true, source: "reflect" });
+            dmgPop("enemy", `🛡2`, "true");
+          }
+          // Thorn Aura modifier: spikes damage back when hit
+          if (combat.thornAura && dmg > 0) {
+            dealDamageToEnemy(combat.thornAura, { trueDmg: true, source: "thorns" });
+            dmgPop("enemy", `🌵${combat.thornAura}`, "true");
+          }
+        } finally {
+          _reactiveDepth--;
         }
         // The Last Rival (dark knight): every hit you take adds Fracture
         if (!opts.noFracture && combat.bossKit && combat.bossKit.id === "lastrival") {
@@ -962,6 +985,9 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         }
       }
     }
+
+    // Reactive damage (counters/reflect/thorns) depth guard — see dealDamageToPlayer
+    let _reactiveDepth = 0;
 
     function dealDamageToEnemy(raw, opts = {}) {
       let dmg = Math.max(0, raw | 0);
@@ -1327,7 +1353,9 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         }
       }
 
-      const maxSh = settings.shieldMax + run.bonusShieldMax;
+      // The rival's shield ceiling is the base cap only — the player's permanent
+      // "+X Max Shield" rewards must not inflate the enemy's cap
+      const maxSh = forEnemy ? settings.shieldMax : settings.shieldMax + run.bonusShieldMax;
 
       if (forEnemy) {
         if (dmg > 0) {
@@ -1709,7 +1737,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         combat.poisonTurns--;
       }
       if (combat.enemyPoisonTurns > 0) {
-        dealDamageToEnemy(3, { trueDmg: true, source: "poison" });
+        // Toxic Blade's Lethal Poison raises the per-tick damage (enemyPoisonDmg)
+        dealDamageToEnemy(combat.enemyPoisonDmg || 3, { trueDmg: true, source: "poison" });
         combat.enemyPoisonTurns--;
       }
 

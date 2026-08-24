@@ -81,7 +81,7 @@
         const o = JSON.parse(raw);
         if (typeof o.muted === "boolean") settings.muted = o.muted;
         if (typeof o.volume === "number") settings.volume = Math.max(0, Math.min(1, o.volume));
-        if (o.difficulty) settings.difficulty = o.difficulty;
+        if (["easy", "normal", "hard"].includes(o.difficulty)) settings.difficulty = o.difficulty;
         ["swordDmg","starDmg","healAmt","shieldOn3","shieldMax","enemyAtk","ultDmg","ultNeed","feverTurn","impactTurn"].forEach(k => {
           if (typeof o[k] === "number") settings[k] = o[k];
         });

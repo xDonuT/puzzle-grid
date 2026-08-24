@@ -645,7 +645,7 @@
     }
 
     .dmg-pop {
-      position: absolute;
+      position: fixed;
       pointer-events: none;
       z-index: 100;
       font-weight: 900;
@@ -803,19 +803,31 @@
      }
 
      .hp-bar {
-       width: 48px;
-       height: 6px;
-       background: rgba(60, 45, 30, 0.15);
-       border-radius: 3px;
-       overflow: hidden;
-     }
-     .hp-fill {
-       height: 100%;
-       width: 100%;
-       background: #d4785c;
-       border-radius: 3px;
-       transition: width 0.3s ease, background-color 0.3s ease;
-     }
+        width: 48px;
+        height: 6px;
+        background: rgba(60, 45, 30, 0.15);
+        border-radius: 3px;
+        overflow: hidden;
+        position: relative;
+      }
+      .hp-ghost {
+        position: absolute;
+        inset: 0 auto 0 0;
+        height: 100%;
+        width: 100%;
+        background: #f3d9cf;
+        border-radius: 3px;
+        /* lags behind the real fill: stays wide, then drains away */
+        transition: width 0.7s cubic-bezier(0.3, 0.6, 0.4, 1) 0.35s;
+      }
+      .hp-fill {
+        position: relative;
+        height: 100%;
+        width: 100%;
+        background: #d4785c;
+        border-radius: 3px;
+        transition: width 0.3s ease, background-color 0.3s ease;
+      }
      .hp-fill.low { background: #c23b2f; }
      .hp-fill.heal { background: #2e8b57; }
 
@@ -3433,7 +3445,7 @@ body.ult-hitstop .board-wrap {
           <div class="hp-row">
             <div class="heart-hp" id="enemyHeartHp">
               <span class="heart-icon">♥</span>
-              <div class="hp-bar"><div class="hp-fill" id="enemyHpFill"></div></div>
+              <div class="hp-bar"><div class="hp-ghost" id="enemyHpGhost"></div><div class="hp-fill" id="enemyHpFill"></div></div>
               <span class="hp-num" id="enemyHpText">30/30</span>
             </div>
           </div>
@@ -3470,7 +3482,7 @@ body.ult-hitstop .board-wrap {
           <div class="hp-row">
             <div class="heart-hp" id="playerHeartHp">
               <span class="heart-icon">♥</span>
-              <div class="hp-bar"><div class="hp-fill" id="playerHpFill"></div></div>
+              <div class="hp-bar"><div class="hp-ghost" id="playerHpGhost"></div><div class="hp-fill" id="playerHpFill"></div></div>
               <span class="hp-num" id="playerHpText">30/30</span>
             </div>
           </div>

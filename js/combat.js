@@ -164,6 +164,15 @@
       setTimeout(() => el.classList.remove("fx-shake", "fx-flash"), 450);
     }
 
+    // Heavy hits get the big ult-style tilt, not just a pulse
+    function heavyFlinch(el) {
+      if (!el) return;
+      el.classList.remove("ult-flinch");
+      void el.offsetWidth;
+      el.classList.add("ult-flinch");
+      setTimeout(() => el.classList.remove("ult-flinch"), 450);
+    }
+
     function classifyLog(text) {
       if (/Ultimate|Moonbloom|Earthshatter|Starfall/i.test(text)) return "ult";
       if (/Fracture|Sunder|Earthquake|Bulwark/i.test(text)) return "fracture";
@@ -625,6 +634,23 @@
       pushLog(msg, detail);
     }
 
+    // Ghost HP layer: heals snap up instantly; damage drains away on a delay
+    let _lastPPct = null, _lastEPct = null;
+    function syncHpGhost(el, pct, last) {
+      if (!el) return last;
+      if (last == null || pct >= last) {
+        el.style.transitionDuration = "0s";
+        el.style.transitionDelay = "0s";
+        el.style.width = pct + "%";
+        void el.offsetWidth;
+        el.style.transitionDuration = "";
+        el.style.transitionDelay = "";
+      } else {
+        el.style.width = pct + "%"; // CSS delay + slow ease do the chunk
+      }
+      return pct;
+    }
+
     function ultReady() {
       return combat.sigBank >= settings.ultNeed;
     }
@@ -638,6 +664,9 @@
       if (enemyHpText) enemyHpText.textContent = eHp;
       if (playerHpFill) { playerHpFill.style.width = pPct + "%"; playerHpFill.classList.toggle("low", pPct < 30); }
       if (enemyHpFill) { enemyHpFill.style.width = ePct + "%"; enemyHpFill.classList.toggle("low", ePct < 30); }
+      // Ghost layer drains late so big hits visibly "chunk" off the bar
+      _lastPPct = syncHpGhost(document.getElementById("playerHpGhost"), pPct, _lastPPct);
+      _lastEPct = syncHpGhost(document.getElementById("enemyHpGhost"), ePct, _lastEPct);
       if (playerHeartHp) playerHeartHp.classList.toggle("low", pPct < 30);
       if (enemyHeartHp) enemyHeartHp.classList.toggle("low", ePct < 30);
       if (turnNumEl) {
@@ -932,6 +961,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         dmgPop("player", `-${lost}`, "dmg");
         hpFlash("player", "down");
         playHit(Math.min(1.2, 0.5 + dmg / 12), { down: true });
+        if (lost >= 15) heavyFlinch(document.getElementById("playerPortrait"));
         if (!opts.noFracture) animatePortraits("enemy");
         if (dmg >= 8) shakeBoard("light");
         // Counter Strike (Knight Retaliate T2): deal 3 true damage when hit
@@ -1027,6 +1057,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         hpFlash("enemy", "down");
         animatePortraits("player");
         playHit(Math.min(1.2, 0.5 + dmg / 12), { down: false });
+        // Big hits deserve the big tilt (≥15 dmg or any crit)
+        if (lost >= 15 || isCrit) heavyFlinch(document.getElementById("enemyPortrait"));
       } else if (toShield > 0) {
         dmgPop("enemy", `🛡${toShield}`, "shielded");
         playShield();
@@ -1908,16 +1940,32 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       const pop = document.createElement("div");
       pop.className = `dmg-pop ${kind}`;
       pop.textContent = text;
-      const sideX = side === "enemy" ? 0.25 : 0.75;
       popCount++;
       if (popCountReset) clearTimeout(popCountReset);
       popCountReset = setTimeout(() => { popCount = 0; }, 600);
-      const stackOffset = Math.min(popCount - 1, 5) * 22;
-      const jitterX = Math.random() * 60 - 30;
-      const jitterY = Math.random() * 20 - 10;
-      pop.style.left = Math.round(br.width * sideX + jitterX) + "px";
-      pop.style.top = Math.round(br.height * 0.42 + jitterY + stackOffset) + "px";
-      board.appendChild(pop);
+      // Anchor at the portrait whose numbers actually changed — the causal
+      // link ("this happened to THAT fighter") reads instantly.
+      const target = document.getElementById(side === "enemy" ? "enemyPortrait" : "playerPortrait");
+      let x = null, y = null;
+      if (target) {
+        const tr = target.getBoundingClientRect();
+        if (tr.width > 0 && tr.top > -20) {
+          // Pops are viewport-fixed, so they can fly above the HUD portraits
+          x = tr.left + tr.width / 2 + (Math.random() * 30 - 15);
+          y = tr.top - 6; // just above the head
+        }
+      }
+      if (x == null || y == null) {
+        // Fallback: legacy board-side placement
+        const sideX = side === "enemy" ? 0.25 : 0.75;
+        x = br.left + br.width * sideX + (Math.random() * 60 - 30);
+        y = br.top + br.height * 0.42 + (Math.random() * 20 - 10);
+      }
+      // Stack repeats so simultaneous pops don't perfectly overlap
+      y -= Math.min(popCount - 1, 5) * 16;
+      pop.style.left = Math.round(x) + "px";
+      pop.style.top = Math.round(y) + "px";
+      document.body.appendChild(pop);
       const drift = 10 + Math.random() * 14;
       const anim = pop.animate([
         { transform: "translate(-50%, -50%) scale(0.6)", opacity: 0 },

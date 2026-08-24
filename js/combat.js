@@ -647,7 +647,10 @@
       if (playerHeartHp) playerHeartHp.classList.toggle("low", pPct < 30);
       if (enemyHeartHp) enemyHeartHp.classList.toggle("low", ePct < 30);
       if (turnNumEl) {
-        turnNumEl.textContent = `Turn ${combat.turn} \u00b7 F${run.floor}`;
+        // Phase rides inside the turn counter — the one place eyes already are
+        const ph = getPhase();
+        const phaseMark = ph === "fever" ? " ☀️" : ph === "impact" ? " 🌸" : "";
+        turnNumEl.textContent = `Turn ${combat.turn}${phaseMark} \u00b7 F${run.floor}`;
       }
       if (btnShuffle) {
         const free = (combat.freeShuffles || 0) > 0;

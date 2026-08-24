@@ -2596,6 +2596,17 @@ body.ult-hitstop .board-wrap {
       bottom: 2px; right: 2px;
     }
 
+    @media (prefers-reduced-motion: reduce) {
+      /* Pause all decorative loops; keep functional transitions instant */
+      #actFlora .sway, .menu-sprout .ms-sway, .menu-sprout .ms-bloom,
+      body.tower-1 #actSky::before, body.tower-2 #actSky::before,
+      body.tower-4 #actSky::before, body.tower-4 #actSky::after,
+      body.tower-1 .board-wrap, body.tower-2 .board-wrap,
+      body.tower-4 .board-wrap, .board-corner {
+        animation: none !important;
+      }
+    }
+
     @media (prefers-reduced-transparency: reduce) {
       body::before, body::after { display: none; }
       #actSky, #actSky::before, #actSky::after { display: none; }

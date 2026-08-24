@@ -821,13 +821,18 @@ const screenMenu = document.getElementById("screen-menu");
       { id: "mSword", icon: "⚔️", label: "+3 Sword dmg next fight", tier: "good", apply() { run.pending.swordBoost += 3; }, cost: null },
       { id: "mCharge", icon: "⭐", label: "+3 Ult charge next fight", tier: "good", apply() { run.pending.feverBoost += 3; }, cost: null },
       { id: "mMaxHp", icon: "❤️", label: "+6 Max HP", tier: "good", apply() { run.bonusMaxHp += 6; }, cost: null },
+      { id: "mBlessing", icon: "🌸", label: "Cosmos Blessing — +12 Max HP & full heal", tier: "good", rare: true, apply() {
+        run.bonusMaxHp += 12;
+        const hero = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
+        combat.playerHp = hero.hp + run.bonusMaxHp; // full heal
+      }, cost: null },
       // Paid (cost HP)
       { id: "mBigShield", icon: "🏰", label: "+15 Shield next fight", tier: "neutral", apply() { run.pending.shield += 15; }, cost: { type: "hp", amount: 10, label: "−10 HP" } },
       { id: "mAp", icon: "⚡", label: "+2 AP next fight", tier: "neutral", apply() { run.pending.bonusAp += 2; }, cost: { type: "hp", amount: 8, label: "−8 HP" } },
       { id: "mSacrifice", icon: "💀", label: "+4 All stats next fight", tier: "neutral", apply() { run.pending.swordBoost += 2; run.pending.feverBoost += 2; run.pending.shield += 4; }, cost: { type: "hp", amount: 12, label: "−12 HP" } },
       { id: "mCrit", icon: "🎯", label: "+15% Crit next fight", tier: "neutral", apply() { run.pending.critChance += 15; }, cost: { type: "shield", amount: 6, label: "−6 Shield" } },
       // Bad (free)
-      { id: "mPoison", icon: "☠️", label: "Enemy starts poisoned 3t", tier: "bad", apply() { run.pending.enemyPoison += 3; }, cost: null },
+      { id: "mPoison", icon: "🧪", label: "Enemy starts poisoned 3t", tier: "good", apply() { run.pending.enemyPoison += 3; }, cost: null },
       { id: "mWound", icon: "💔", label: "−8 Max HP", tier: "bad", apply() { run.bonusMaxHp = Math.max(0, run.bonusMaxHp - 8); }, cost: null },
       { id: "mDebuff", icon: "⛓️", label: "Enemy ult −1 turn sooner", tier: "bad", apply() { run.pending.enemySlow -= 1; }, cost: null },
     ];
@@ -841,10 +846,17 @@ const screenMenu = document.getElementById("screen-menu");
       const subEl = document.getElementById("mysterySub");
       if (!ov || !cardsEl) { if (onDone) onDone(); return; }
 
-      // Pick 3 random effects
-      const shuffled = MYSTERY_EFFECTS.slice();
-      for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; }
-      const choices = shuffled.slice(0, 3);
+      // Draw 3: guarantee at least one free "good", with a rare Cosmos Blessing jackpot
+      const shuffle = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
+      const freeGoods = MYSTERY_EFFECTS.filter(e => e.tier === "good" && !e.cost && !e.rare);
+      const blessing = MYSTERY_EFFECTS.find(e => e.rare);
+      const rest = shuffle(MYSTERY_EFFECTS.filter(e => !(e.tier === "good" && !e.cost) ).slice());
+      const choices = rest.slice(0, 2);
+      // ~12% jackpot: swap in the Cosmos Blessing
+      if (blessing && Math.random() < 0.12) choices[Math.floor(Math.random() * choices.length)] = blessing;
+      // Guaranteed free good rounds out the hand
+      choices.push(freeGoods[Math.floor(Math.random() * freeGoods.length)]);
+      shuffle(choices);
 
       cardsEl.innerHTML = "";
       resultEl.textContent = "";

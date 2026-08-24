@@ -266,6 +266,8 @@ const screenMenu = document.getElementById("screen-menu");
     }
 
     function showFloorBanner() {
+      // Boss floors get a dramatic intro splash instead of the quick banner
+      if (BOSS_KITS[run.floor]) { showBossIntro(BOSS_KITS[run.floor]); return; }
       const ov = document.getElementById("floorBannerOverlay");
       const kicker = document.getElementById("floorBannerKicker");
       const title = document.getElementById("floorBannerTitle");
@@ -276,10 +278,7 @@ const screenMenu = document.getElementById("screen-menu");
       let extra = "";
       if (card) card.style.background = "";
       if (card) card.style.boxShadow = "";
-      if (BOSS_KITS[run.floor]) {
-        kick = "Boss Floor";
-        extra = BOSS_KITS[run.floor].name;
-      } else if (isEliteFloor(run.floor)) {
+      if (isEliteFloor(run.floor)) {
         kick = "Elite Floor";
         extra = (ELITE_KITS[run.floor] && ELITE_KITS[run.floor].name) || "Powerful foe";
       }
@@ -302,6 +301,27 @@ const screenMenu = document.getElementById("screen-menu");
       }
       ov.classList.add("open");
       setTimeout(() => ov.classList.remove("open"), 1400);
+    }
+
+    function showBossIntro(kit) {
+      const ov = document.getElementById("bossIntroOverlay");
+      if (!ov || !kit) return;
+      const card = document.getElementById("bossIntroCard");
+      const actIdx = run.gameMap ? (run.gameMap.currentAct || 1) : (Math.ceil(run.floor / 15) || 1);
+      const k = document.getElementById("biKicker");
+      const n = document.getElementById("biName");
+      const e = document.getElementById("biEpithet");
+      const u = document.getElementById("biUlt");
+      const btn = document.getElementById("biFaceBtn");
+      if (k) k.textContent = `${actIdx === 3 ? "🌺" : actIdx === 2 ? "🌸" : "🌱"} The ${["Sprout", "Bloom", "Flourish"][actIdx - 1] || "Sprout"} · Floor ${run.floor}`;
+      if (n) n.textContent = kit.name;
+      if (e) e.textContent = kit.epithet || "A great trial stands in your way";
+      if (u) u.textContent = `⚡ Ultimate — ${kit.ultName || "???"}`;
+      if (card) card.style.setProperty("--bi-c", kit.introColor || "#7aa65e");
+      ov.classList.add("open");
+      if (btn) {
+        btn.onclick = () => ov.classList.remove("open");
+      }
     }
 
     // Reusable centered banner (floors, phases, big moments)

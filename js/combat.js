@@ -504,9 +504,10 @@
 
     function rollMysteryEffect() {
       const phase = getPhase();
+      // Eclipse modifier: mystery tiles are always debuffs this floor
       // Lucky Dice: mystery tiles are 70% buffs before Star Impact (Impact is always a buff)
       // Mystic Insight: mystery tiles are 100% buffs
-      const isBuff = run.mysticInsight || phase === "impact" || (run.luckyDice ? Math.random() < 0.7 : Math.random() < 0.5);
+      const isBuff = combat.eclipse ? false : (run.mysticInsight || phase === "impact" || (run.luckyDice ? Math.random() < 0.7 : Math.random() < 0.5));
       let pool = isBuff ? MYSTERY_BUFFS : MYSTERY_DEBUFFS;
       const pick = pool[Math.floor(Math.random() * pool.length)];
       let detail = pick.apply();
@@ -940,6 +941,11 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           dealDamageToEnemy(2, { trueDmg: true, source: "reflect" });
           dmgPop("enemy", `🛡2`, "true");
         }
+        // Thorn Aura modifier: spikes damage back when hit
+        if (combat.thornAura && dmg > 0) {
+          dealDamageToEnemy(combat.thornAura, { trueDmg: true, source: "thorns" });
+          dmgPop("enemy", `🌵${combat.thornAura}`, "true");
+        }
         // The Last Rival (dark knight): every hit you take adds Fracture
         if (!opts.noFracture && combat.bossKit && combat.bossKit.id === "lastrival") {
           combat.playerFractureStacks = Math.min(5, combat.playerFractureStacks + 1);
@@ -1344,6 +1350,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
                     document.getElementById("enemyPortrait"), kind);
         }
         let healApplied = 0, shieldApplied = 0;
+        // Wilt modifier: healing halved this floor (round up)
+        if (heal > 0 && combat.wilt) heal = Math.ceil(heal / 2);
         if (heal > 0) healApplied = applyHealing(heal, healCount);
         if (sh > 0) shieldApplied = applyShielding(sh, shieldCount);
         if (healApplied > 0 || shieldApplied > 0) {
@@ -1614,9 +1622,14 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       combat.ap = AP_MAX + unusedApBonus;
       unusedApBonus = 0; // Reset for this turn
       combat.enemyAp = Math.min(AP_MAX, 3); // rival caps at base AP
+      if (combat.twinStorm && combat.turn % 3 === 2) combat.enemyAp = Math.min(4, combat.enemyAp + 1);
       combat.turn += 1;
       combat.playerTurn = true;
       document.body.classList.add("your-turn");
+      // Per-turn floor modifiers: Gentle Rain / Deep Roots / Pollen Puff
+      if (combat.playerHealPerTurn) applyHealing(combat.playerHealPerTurn);
+      if (combat.shieldPerTurn) applyShielding(combat.shieldPerTurn);
+      if (combat.empowerEachTurn) combat.empowerNext = true;
       combat.cascadeApRefunded = false; // Cascade Refund: once per turn
       combat._bulwarkUsed = false; // Bulwark: once per turn
       combat.swordsClearedThisTurn = 0; // ninja Shadow Step

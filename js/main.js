@@ -167,8 +167,14 @@ const screenMenu = document.getElementById("screen-menu");
       const rr = document.getElementById("upgradeReroll");
       if (!ov || !wrap) { onPick(null); return; }
       if (rr) rr.style.display = "none";
-      const easy = FLOOR_MODIFIERS.filter(m => m.tier === "easy" && !(run.pickedModifierIds || []).includes(m.id));
-      const hard = FLOOR_MODIFIERS.filter(m => m.tier === "hard" && !(run.pickedModifierIds || []).includes(m.id));
+      const availE = () => FLOOR_MODIFIERS.filter(m => m.tier === "easy" && !(run.pickedModifierIds || []).includes(m.id));
+      const availH = () => FLOOR_MODIFIERS.filter(m => m.tier === "hard" && !(run.pickedModifierIds || []).includes(m.id));
+      // Pool exhausted → recycle (dedup only prevents repeats until full cycle)
+      let easy = availE();
+      let hard = availH();
+      if (!easy.length) easy = FLOOR_MODIFIERS.filter(m => m.tier === "easy");
+      if (!hard.length) hard = FLOOR_MODIFIERS.filter(m => m.tier === "hard");
+      if (!easy.length && !hard.length) { onPick(null); return; }
       const poolE = easy.slice();
       const poolH = hard.slice();
       for (let i = poolE.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [poolE[i], poolE[j]] = [poolE[j], poolE[i]]; }
@@ -231,8 +237,8 @@ const screenMenu = document.getElementById("screen-menu");
       if (t) t.textContent = "Challenge Bonus";
       if (s) s.textContent = "Pick a benefit — you earned it";
       wrap.innerHTML = "";
-      const easy = FLOOR_MODIFIERS.filter(m => m.tier === "easy" && !(run.pickedModifierIds || []).includes(m.id));
-      const pool = easy.slice();
+      const easyPool = FLOOR_MODIFIERS.filter(m => m.tier === "easy" && !(run.pickedModifierIds || []).includes(m.id));
+      const pool = (easyPool.length ? easyPool : FLOOR_MODIFIERS.filter(m => m.tier === "easy")).slice();
       for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
       const picks = pool.slice(0, 3);
       picks.forEach(st => {
@@ -1492,6 +1498,14 @@ const screenMenu = document.getElementById("screen-menu");
       combat.extraFreeShuffles = 0;
       combat.tileBloomPerTurn = false;
       combat.tempShieldCapBonus = 0;
+      // Per-turn / conditional modifier flags
+      combat.playerHealPerTurn = 0;
+      combat.shieldPerTurn = 0;
+      combat.empowerEachTurn = false;
+      combat.thornAura = 0;
+      combat.wilt = false;
+      combat.eclipse = false;
+      combat.twinStorm = false;
       if (combat.floorModifier) {
         combat.floorModifier.apply(combat);
         if (combat.enemySpeedMult && combat.enemySpeedMult !== 1) {

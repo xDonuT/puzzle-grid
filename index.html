@@ -2728,6 +2728,12 @@ body.ult-hitstop .board-wrap {
       animation: vineSway var(--sway-dur, 7s) ease-in-out var(--sway-delay, 0s) infinite alternate;
     }
     .strand.root { color: #97815f; opacity: 0.8; }
+    /* Act-tinted overgrowth: fresh green → rose-tinged → golden hour */
+    body.tower-1 .strand.leafy { color: #7aa65e; }
+    body.tower-2 .strand.leafy { color: #9d9c74; }
+    body.tower-4 .strand.leafy { color: #b9a853; }
+    body.tower-2 .strand.root { color: #9c7d6a; }
+    body.tower-4 .strand.root { color: #a38b56; }
     @keyframes vineSway {
       from { transform: rotate(-2.4deg); }
       to { transform: rotate(2.4deg); }

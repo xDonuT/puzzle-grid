@@ -2792,6 +2792,26 @@ body.ult-hitstop .board-wrap {
       background: radial-gradient(circle, rgba(250,196,150,0.9), rgba(250,196,150,0) 70%);
     }
 
+    /* ===== 🌟 Golden Cosmos NG+ — the tower bathed in gold ===== */
+    #goldenGlow {
+      position: fixed; inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 2.5s ease;
+      background:
+        radial-gradient(circle at 50% -12%, rgba(255,216,128,0.45), transparent 55%),
+        radial-gradient(circle at 88% 108%, rgba(255,200,105,0.28), transparent 46%),
+        radial-gradient(circle at 8% 92%, rgba(255,205,115,0.2), transparent 42%);
+    }
+    body.golden #goldenGlow {
+      opacity: 1;
+      animation: goldBreath 7s ease-in-out infinite alternate;
+    }
+    @keyframes goldBreath { from { filter: brightness(0.88); } to { filter: brightness(1.18); } }
+    body.golden .tile { --skin: rgba(240, 190, 80, 0.19); }
+    body.golden .recap-title { color: #b8912e; }
+
     /* ===== Tile skins — subtle act-tinted faces ===== */
     .tile::before {
       background:
@@ -2910,7 +2930,7 @@ body.ult-hitstop .board-wrap {
       /* Pause all decorative loops; keep functional transitions instant */
       #actFlora .sway, .menu-sprout .ms-sway, .menu-sprout .ms-bloom,
       .strand.leafy, .strand.root, .board-vine,
-      #stormBank, #pollen i,
+      #stormBank, #pollen i, #goldenGlow,
       body.tower-1 #actSky::before, body.tower-2 #actSky::before,
       body.tower-4 #actSky::before, body.tower-4 #actSky::after,
       body.tower-1 .board-wrap, body.tower-2 .board-wrap,
@@ -3177,6 +3197,7 @@ body.ult-hitstop .board-wrap {
   <div id="pollen" aria-hidden="true">
     <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
   </div>
+  <div id="goldenGlow" aria-hidden="true"></div>
   <div id="actFlora" aria-hidden="true">
     <!-- Sprout: swaying seedlings -->
     <svg class="flora flora-1" viewBox="0 0 360 70" preserveAspectRatio="xMidYMax meet">

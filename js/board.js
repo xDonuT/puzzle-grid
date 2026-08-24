@@ -242,6 +242,12 @@
       ["#f3a8c0", "#d97a98"], // deep rose
       ["#f8cdb4", "#eb9d7e"]  // hint of peach
     ];
+    const GOLDEN_PETALS = [ // 🌟 Golden Cosmos loops shed gold
+      ["#ffe9a8", "#eec25a"],
+      ["#fff3c8", "#f2cf74"],
+      ["#ffd98a", "#dfae42"],
+      ["#ffedbb", "#e8bd55"]
+    ];
     let petalBudget = 26;
     let petalBudgetTimer = null;
     function spawnPetals(r, c, comboLevel) {
@@ -264,7 +270,8 @@
         const size = 7 + Math.random() * 6;
         p.style.width = size + "px";
         p.style.height = size * 1.35 + "px";
-        const [c1, c2] = PETAL_COLORS[Math.floor(Math.random() * PETAL_COLORS.length)];
+        const palette = (typeof run !== "undefined" && run.ngLoop > 0) ? GOLDEN_PETALS : PETAL_COLORS;
+        const [c1, c2] = palette[Math.floor(Math.random() * palette.length)];
         p.style.background = `linear-gradient(135deg, ${c1}, ${c2})`;
         p.style.left = cx + (Math.random() - 0.5) * rect.width * 0.7 + "px";
         p.style.top = cy + "px";

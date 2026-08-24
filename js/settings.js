@@ -23,7 +23,9 @@
       // cosmetics: per-class costume + weapon choices
       costume: { ninja: "classic", wizard: "classic", knight: "classic" },
       weapon: { ninja: "katana", wizard: "staff", knight: "sword" },
-      tutorialCompleted: false
+      tutorialCompleted: false,
+      clearedOnce: false,  // 🌟 Golden Cosmos unlocked after first final victory
+      ngLoopsDone: 0       // completed Golden Cosmos loops
     };
 
     function persistSettings() {
@@ -44,7 +46,9 @@
           impactTurn: settings.impactTurn,
           costume: settings.costume,
           weapon: settings.weapon,
-          tutorialCompleted: settings.tutorialCompleted
+          tutorialCompleted: settings.tutorialCompleted,
+          clearedOnce: settings.clearedOnce,
+          ngLoopsDone: settings.ngLoopsDone
         }));
       } catch (_) {}
     }
@@ -65,6 +69,8 @@
           if (o.weapon && typeof o.weapon[cls] === "string") settings.weapon[cls] = o.weapon[cls];
         });
         if (typeof o.tutorialCompleted === "boolean") settings.tutorialCompleted = o.tutorialCompleted;
+        if (typeof o.clearedOnce === "boolean") settings.clearedOnce = o.clearedOnce;
+        if (typeof o.ngLoopsDone === "number") settings.ngLoopsDone = o.ngLoopsDone;
       } catch (_) {}
     }
     loadSettings();

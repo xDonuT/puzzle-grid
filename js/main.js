@@ -8,6 +8,7 @@ const screenMenu = document.getElementById("screen-menu");
     function showScreen(name) {
       screenMenu.classList.toggle("active", name === "menu");
       screenGame.classList.toggle("active", name === "game");
+      document.body.classList.toggle("golden", name === "game" && (run.ngLoop || 0) > 0);
       if (name !== "game") {
         document.body.classList.remove("phase-fever", "phase-impact", "tower-1", "tower-2", "tower-3", "tower-4");
       }
@@ -23,6 +24,7 @@ const screenMenu = document.getElementById("screen-menu");
         ? (run.gameMap.currentAct || 1)
         : Math.min(3, Math.floor((Math.max(1, f) - 1) / 15) + 1);
       b.classList.add(act >= 3 ? "tower-4" : act === 2 ? "tower-2" : "tower-1");
+      b.classList.toggle("golden", (run.ngLoop || 0) > 0);
     }
 
     // ─── Run timer (pure stats; pauses in menus/settings/overlays) ───
@@ -166,6 +168,15 @@ const screenMenu = document.getElementById("screen-menu");
       const s = document.getElementById("upgradeSub");
       const rr = document.getElementById("upgradeReroll");
       if (!ov || !wrap) { onPick(null); return; }
+      // 🌟 Golden Cosmos: the tower decrees the modifier itself — no picking
+      if ((run.ngLoop || 0) > 0) {
+        const pool = FLOOR_MODIFIERS.slice();
+        const mod = pool[Math.floor(Math.random() * pool.length)];
+        if (!run.pickedModifierIds) run.pickedModifierIds = [];
+        run.pickedModifierIds.push(mod.id);
+        onPick(mod);
+        return;
+      }
       if (rr) rr.style.display = "none";
       const availE = () => FLOOR_MODIFIERS.filter(m => m.tier === "easy" && !(run.pickedModifierIds || []).includes(m.id));
       const availH = () => FLOOR_MODIFIERS.filter(m => m.tier === "hard" && !(run.pickedModifierIds || []).includes(m.id));
@@ -402,8 +413,17 @@ const screenMenu = document.getElementById("screen-menu");
       gameOverOverlay.classList.add("win");
       if (isFinal) {
         if (payoff) payoff.hidden = false;
-        document.getElementById("gameOverTitle").textContent = "🌸 The Tower Blooms!";
-        document.getElementById("gameOverMsg").textContent = `All ${MAX_FLOOR} floors climbed. The Storm parts, sunlight floods the grid — and the tower, no longer afraid, blooms. · ⏱ ${fmtTime(run.elapsedMs)}`;
+        settings.clearedOnce = true;
+        const goldenWin = (run.ngLoop || 0) > 0;
+        if (goldenWin) settings.ngLoopsDone = Math.max(settings.ngLoopsDone || 0, run.ngLoop);
+        persistSettings();
+        if (goldenWin) {
+          document.getElementById("gameOverTitle").textContent = "🌟 The Golden Tower Blooms!";
+          document.getElementById("gameOverMsg").textContent = `Loop ${run.ngLoop} complete — the Cosmos burns brighter. Somewhere beyond the gold, another tower is waiting. · ⏱ ${fmtTime(run.elapsedMs)}`;
+        } else {
+          document.getElementById("gameOverTitle").textContent = "🌸 The Tower Blooms!";
+          document.getElementById("gameOverMsg").textContent = `All ${MAX_FLOOR} floors climbed. The Storm parts, sunlight floods the grid — and the tower, no longer afraid, blooms. · ⏱ ${fmtTime(run.elapsedMs)}`;
+        }
         rewardMsg.innerHTML = label
           ? (permanent ? `🎁 Permanent: ${label}` : `🎁 ${label}`)
           : "🏆 Victory";
@@ -1263,7 +1283,7 @@ const screenMenu = document.getElementById("screen-menu");
       const c = run.cumulative || {};
       const hero = CHARACTERS[combat.playerClass] || {};
       const lines = [
-        `🌸 Bloom Tower — ${hero.name || combat.playerClass} (${settings.difficulty || "normal"})`,
+        `🌸 Bloom Tower — ${hero.name || combat.playerClass} (${settings.difficulty || "normal"})${(run.ngLoop || 0) > 0 ? ` · 🌟 Loop ${run.ngLoop}` : ""}`,
         won
           ? `🌸 Tower cleared — all ${MAX_FLOOR} floors · ⏱ ${fmtTime(run.elapsedMs || 0)}`
           : `🥀 Fell on floor ${run.floor} · ⏱ ${fmtTime(run.elapsedMs || 0)}`,
@@ -1377,6 +1397,7 @@ const screenMenu = document.getElementById("screen-menu");
           elitesSlain: run.elitesSlain || 0,
           bossesSlain: run.bossesSlain || 0,
           maxCombo: run.maxCombo || 0,
+          ngLoop: run.ngLoop || 0,
           gameMap: run.gameMap || null,
           currentAct: run.currentAct || 1
         };
@@ -1414,8 +1435,12 @@ const screenMenu = document.getElementById("screen-menu");
       } else {
         btn.style.display = "none";
       }
-    }    function resetRun() {
+    }    let nextRunNg = 0; // 🌟 set by the Golden Cosmos card before resetRun()
+
+    function resetRun() {
       run.floor = 1;
+      run.ngLoop = nextRunNg;
+      nextRunNg = 0;
       combat.tutorial = false;
       run.bonusMaxHp = 0;
       run.bonusShieldMax = 0;
@@ -1482,6 +1507,7 @@ const screenMenu = document.getElementById("screen-menu");
       run.elitesSlain = d.elitesSlain | 0;
       run.bossesSlain = d.bossesSlain | 0;
       run.maxCombo = d.maxCombo | 0;
+      run.ngLoop = d.ngLoop | 0;
       // Re-derive transformative upgrades from the picked list (not stored as flags)
       run.cascadeAp = (run.pickedUpgrades || []).includes("cascadeAp");
       run.crossAp = (run.pickedUpgrades || []).includes("crossAp");
@@ -2039,6 +2065,7 @@ const screenMenu = document.getElementById("screen-menu");
         btn.addEventListener("click", () => {
           settings.difficulty = d.id;
           persistSettings();
+          nextRunNg = 0; // plain run — never inherit a pending Golden Cosmos loop
           ov.classList.remove("open");
           resetRun();
           startNewRunMap();
@@ -2046,12 +2073,54 @@ const screenMenu = document.getElementById("screen-menu");
         });
         wrap.appendChild(btn);
       });
+      // 🌟 Golden Cosmos NG+ — unlocked after the first final victory
+      if (settings.clearedOnce) {
+        const loop = (settings.ngLoopsDone || 0) + 1;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        const arch = detectArchetype("Golden Cosmos", "The tower blooms gold.", "🌟");
+        btn.className = "upgrade-card glow-" + arch.cls;
+        btn.style.borderColor = "#d8a832";
+        const top = document.createElement("div");
+        top.className = "up-card-top";
+        const tag = document.createElement("span");
+        tag.className = "up-card-archetype " + arch.cls;
+        tag.textContent = "NG+";
+        const badge = document.createElement("span");
+        badge.className = "reward-dur permanent";
+        badge.textContent = `LOOP ${loop}`;
+        top.append(tag, badge);
+        const title = document.createElement("div");
+        title.className = "up-card-title";
+        title.textContent = "🌟 Golden Cosmos";
+        const calloutBox = document.createElement("div");
+        calloutBox.className = "up-card-callout";
+        calloutBox.textContent = "THE TOWER'S GOLDEN WHIM";
+        const descEl = document.createElement("div");
+        descEl.className = "up-card-desc";
+        descEl.textContent = `Loop ${loop}: rivals are stronger (+${25 * loop}% HP, +${2 * loop} atk), and the Cosmos decrees every floor's modifier itself. The whole tower glows gold.`;
+        btn.append(top, title, calloutBox, descEl);
+        btn.addEventListener("click", () => {
+          nextRunNg = loop;
+          ov.classList.remove("open");
+          resetRun();
+          startNewRunMap();
+          refreshContinueBtn();
+        });
+        wrap.appendChild(btn);
+      }
       ov.classList.add("open");
     }
 
     document.getElementById("btnStart").addEventListener("click", () => {
       openDiffPicker();
     });
+
+    // 🌟 NG+ unlock badge on the menu once the tower has bloomed
+    if (settings.clearedOnce) {
+      const sub = document.querySelector(".menu-sub");
+      if (sub) sub.textContent += " · 🌟 Golden Cosmos unlocked";
+    }
 
     document.getElementById("btnDiffCancel").addEventListener("click", () => {
       document.getElementById("diffPickerOverlay").classList.remove("open");

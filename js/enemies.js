@@ -747,11 +747,15 @@
       let hp = Math.round(45 + 14 * f + 0.45 * (f - 1) * (f - 1));
       if (BOSS_REWARDS[f]) hp = Math.round(hp * 1.35);
       if (GAUNTLET_REWARDS[f]) hp = Math.round(hp * 1.2);
+      // 🌟 Golden Cosmos: rivals grow with each golden loop
+      const loop = (typeof run !== "undefined" && run.ngLoop) || 0;
+      if (loop > 0) hp = Math.round(hp * (1 + 0.25 * loop));
       return hp;
     }
 
     function enemyAtkForFloor(f) {
-      return Math.max(3, Math.round(settings.enemyAtk + (f - 1) * 0.9 + 0.04 * (f - 1) * (f - 1)));
+      const loop = (typeof run !== "undefined" && run.ngLoop) || 0;
+      return Math.max(3, Math.round(settings.enemyAtk + (f - 1) * 0.9 + 0.04 * (f - 1) * (f - 1)) + 2 * loop);
     }
 
     const combat = {

@@ -25,8 +25,27 @@
       weapon: { ninja: "katana", wizard: "staff", knight: "sword" },
       tutorialCompleted: false,
       clearedOnce: false,  // 🌟 Golden Cosmos unlocked after first final victory
-      ngLoopsDone: 0       // completed Golden Cosmos loops
+      ngLoopsDone: 0,      // completed Golden Cosmos loops
+      bestFloor: 0,        // career-best floor reached (unlocks global skills)
+      skills: { shuffleSurge: true } // global skill toggles
     };
+
+    // ---- Global skills (account-wide, unlock via milestones) ----
+    const GLOBAL_SKILLS = {
+      shuffleSurge: {
+        name: "🌀 Shuffle Surge",
+        desc: "Every shuffle empowers your next turn: +25% damage per shuffle used.",
+        unlockAt: 10,
+        unlockLabel: "Reach floor 10"
+      }
+    };
+    function skillUnlocked(id) {
+      const s = GLOBAL_SKILLS[id];
+      return !!s && (settings.bestFloor || 0) >= s.unlockAt;
+    }
+    function skillEnabled(id) {
+      return skillUnlocked(id) && (!settings.skills || settings.skills[id] !== false);
+    }
 
     function persistSettings() {
       try {
@@ -48,7 +67,9 @@
           weapon: settings.weapon,
           tutorialCompleted: settings.tutorialCompleted,
           clearedOnce: settings.clearedOnce,
-          ngLoopsDone: settings.ngLoopsDone
+          ngLoopsDone: settings.ngLoopsDone,
+          bestFloor: settings.bestFloor || 0,
+          skills: settings.skills || { shuffleSurge: true }
         }));
       } catch (_) {}
     }
@@ -71,6 +92,12 @@
         if (typeof o.tutorialCompleted === "boolean") settings.tutorialCompleted = o.tutorialCompleted;
         if (typeof o.clearedOnce === "boolean") settings.clearedOnce = o.clearedOnce;
         if (typeof o.ngLoopsDone === "number") settings.ngLoopsDone = o.ngLoopsDone;
+        if (typeof o.bestFloor === "number") settings.bestFloor = o.bestFloor;
+        if (o.skills && typeof o.skills === "object") {
+          Object.keys(settings.skills).forEach(k => {
+            if (typeof o.skills[k] === "boolean") settings.skills[k] = o.skills[k];
+          });
+        }
       } catch (_) {}
     }
     loadSettings();

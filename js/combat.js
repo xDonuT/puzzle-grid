@@ -661,6 +661,13 @@
             badgeHtml = `<span class="shuffle-badge">${turnsUntilFree <= 1 ? "Next!" : turnsUntilFree}</span>`;
           }
         }
+        const surgePending = combat.pendingSurge || 0;
+        const surgeNow = combat.surgeActive || 0;
+        if (surgePending > 0) {
+          badgeHtml += `<span class="shuffle-badge surge">🌀+${25 * surgePending}%</span>`;
+        } else if (surgeNow > 0) {
+          badgeHtml += `<span class="shuffle-badge surge live">🌀${surgeNow}</span>`;
+        }
         btnShuffle.innerHTML = (anyFree ? "Shuffle FREE" : "Shuffle (1AP)") + badgeHtml;
       }
       // End button: AP ring shows the active side's AP for the current turn
@@ -960,6 +967,12 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       let dmg = Math.max(0, raw | 0);
       if (dmg <= 0) return;
       const src = opts.source || "sword";
+
+      // 🌀 Shuffle Surge: empowered turns hit harder (not on reactive/true damage)
+      const surge = combat.surgeActive || 0;
+      if (surge > 0 && !opts.trueDmg && src !== "counter" && src !== "reflect" && src !== "thorns") {
+        dmg = Math.round(dmg * (1 + 0.25 * surge));
+      }
 
       // Critical Edge (temp reward): 1.5× on normal damage; true damage never crits
       const isCrit = !opts.trueDmg && (combat.critChance || 0) > 0 && Math.random() * 100 < combat.critChance;
@@ -1451,6 +1464,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       busy = true;
       combat.playerTurn = false;
       document.body.classList.remove("your-turn");
+      combat.surgeActive = 0; // 🌀 Shuffle Surge lasts exactly one turn
       combat.enemyAp = Math.min(AP_MAX, 3); // rival caps at base AP — player bonuses are pure upside
 
       // Boss turn-start passive (e.g. Last Rival regeneration)
@@ -1635,6 +1649,12 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       combat._bulwarkUsed = false; // Bulwark: once per turn
       combat.swordsClearedThisTurn = 0; // ninja Shadow Step
       combat.shadowStepUsed = false;     // ninja Shadow Step
+      // 🌀 Shuffle Surge: shuffles from last turn now empower this one
+      combat.surgeActive = combat.pendingSurge || 0;
+      combat.pendingSurge = 0;
+      if (combat.surgeActive > 0) {
+        setLog("Shuffle Surge", `🌀 Surge active · +${25 * combat.surgeActive}% damage this turn`);
+      }
       combat.sigTilesThisTurn = 0;       // sig tile charge accumulator (3 tiles = 1 charge)
       combat._sigMatchesThisTurn = 0;    // sig match counter (for ultChargeBonus)
       combat._lastSigChargeTotal = 0;
@@ -2156,6 +2176,11 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       }
       busy = true;
       playGooeyPlop(0.9, 0.5);
+      // 🌀 Shuffle Surge (global skill): shuffles empower the next turn
+      if (typeof skillEnabled === "function" && skillEnabled("shuffleSurge")) {
+        combat.pendingSurge = (combat.pendingSurge || 0) + 1;
+        setLog("Shuffle Surge", `🌀 Shuffle Surge · next turn +${25 * combat.pendingSurge}% damage`);
+      }
       shuffleBoard().finally(() => {
         busy = false;
         refreshCombatUI();

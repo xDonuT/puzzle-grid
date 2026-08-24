@@ -1598,6 +1598,13 @@ const screenMenu = document.getElementById("screen-menu");
       combat.critChance = (run.pending && run.pending.critChance) || 0;
       combat.shieldConvertPct = (run.pending && run.pending.shieldConvert) || 0;
       combat.cascadeApRefunded = false;
+      // 🌀 career tracking unlocks global skills
+      if (run.floor > (settings.bestFloor || 0)) {
+        settings.bestFloor = run.floor;
+        persistSettings();
+      }
+      combat.pendingSurge = 0;
+      combat.surgeActive = 0;
       combat.reflectPct = Math.min(0.65, (hero.reflectPct || 0) + 0.02 * (run.floor - 1) + (run.arcaneMirror ? 0.1 : 0));
       combat.turn = 1;
       combat.playerTurn = true;
@@ -1939,6 +1946,7 @@ const screenMenu = document.getElementById("screen-menu");
       if (feverEl) feverEl.value = settings.feverTurn || 6;
       if (impactEl) impactEl.value = settings.impactTurn || 11;
       document.getElementById("muteToggle").classList.toggle("on", settings.muted);
+      renderSkillList();
       const volSlider = document.getElementById("volSlider");
       const volLabel = document.getElementById("volLabel");
       if (volSlider) {
@@ -1958,6 +1966,47 @@ const screenMenu = document.getElementById("screen-menu");
       if (screenGame.classList.contains("active")) resumeRunTimer();
     }
 
+    // ---- Global skills UI (Settings ▸ Game tab) ----
+    function renderSkillList() {
+      const wrap = document.getElementById("skillList");
+      if (!wrap || typeof GLOBAL_SKILLS === "undefined") return;
+      wrap.innerHTML = "";
+      Object.keys(GLOBAL_SKILLS).forEach(id => {
+        const s = GLOBAL_SKILLS[id];
+        const unlocked = skillUnlocked(id);
+        const row = document.createElement("div");
+        row.className = "skill-row" + (unlocked ? "" : " locked");
+        const info = document.createElement("div");
+        info.className = "skill-info";
+        const nm = document.createElement("div");
+        nm.className = "skill-name";
+        nm.textContent = s.name;
+        const ds = document.createElement("div");
+        ds.className = "skill-desc";
+        ds.textContent = s.desc;
+        info.append(nm, ds);
+        if (!unlocked) {
+          const ul = document.createElement("div");
+          ul.className = "skill-unlock";
+          ul.textContent = `🔒 ${s.unlockLabel} (best: floor ${settings.bestFloor || 0})`;
+          info.appendChild(ul);
+        }
+        row.appendChild(info);
+        if (unlocked) {
+          const tgl = document.createElement("button");
+          tgl.type = "button";
+          tgl.className = "toggle" + (skillEnabled(id) ? " on" : "");
+          tgl.setAttribute("aria-label", s.name);
+          tgl.addEventListener("click", () => {
+            settings.skills[id] = !settings.skills[id];
+            persistSettings();
+            tgl.classList.toggle("on", settings.skills[id]);
+          });
+          row.appendChild(tgl);
+        }
+        wrap.appendChild(row);
+      });
+    }
     function saveSettings() {
       settings.swordDmg = +document.getElementById("admSword").value || 0;
       settings.starDmg = +document.getElementById("admStar").value || 0;

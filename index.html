@@ -548,6 +548,32 @@
       flex-shrink: 0;
     }
 
+    /* ===== Global skills (settings) + Shuffle Surge badge ===== */
+    .skill-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      background: rgba(255,252,244,0.7);
+      border: 1.5px solid rgba(112,76,43,0.16);
+      border-radius: 12px;
+      corner-shape: squircle;
+    }
+    .skill-row.locked { opacity: 0.55; }
+    .skill-info { flex: 1; text-align: left; }
+    .skill-name { font-size: 0.82rem; font-weight: 800; color: #4a3f34; }
+    .skill-desc { font-size: 0.72rem; font-weight: 600; color: #7a6e64; margin-top: 2px; }
+    .skill-unlock { font-size: 0.66rem; font-weight: 700; color: #b8912e; margin-top: 3px; letter-spacing: 0.04em; }
+    .shuffle-badge.surge {
+      background: linear-gradient(135deg, #e8c25a, #d8a832);
+      color: #fff;
+    }
+    .shuffle-badge.surge.live {
+      animation: surgePulse 1.2s ease-in-out infinite alternate;
+    }
+    @keyframes surgePulse { from { filter: brightness(0.92); } to { filter: brightness(1.12); } }
+
     .hint {
       margin-top: 16px;
       font-size: 0.78rem;
@@ -3544,6 +3570,9 @@ body.ult-hitstop .board-wrap {
           <input type="range" id="volSlider" min="0" max="100" value="80" style="flex:1;accent-color:#efb09a" />
           <span id="volLabel" style="min-width:2.2em;text-align:right;font-variant-numeric:tabular-nums">80</span>
         </div>
+
+        <h3>Global Skills</h3>
+        <div id="skillList"></div>
       </div>
 
       <div id="tabAdmin" style="display:none">

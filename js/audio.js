@@ -188,6 +188,46 @@
       hapticCombo(level);
     }
 
+    // 🎐 Soft/mystic wind-chime cascade — long sine bells with inharmonic real-bar
+    // partials (×2.76, ×5.4), rising a minor-pentatonic ladder as combos deepen.
+    // One note per combo link, alternating gentle stereo sides.
+    const CHIME_SCALE = [0, 3, 5, 7, 10, 12]; // minor pentatonic semitones
+    function playChimeCascade(level = 3) {
+      const volume = sfxVol(0.24);
+      if (volume <= 0) return;
+      if (!ensureAudio()) return;
+      const notes = Math.min(CHIME_SCALE.length, Math.max(2, level - 1));
+      const t0 = audioCtx.currentTime;
+      const root = 523.25; // C5 — airy, glassy register
+      const hasPan = typeof audioCtx.createStereoPanner === "function";
+      for (let i = 0; i < notes; i++) {
+        const f = root * Math.pow(2, CHIME_SCALE[i] / 12);
+        const at = t0 + i * 0.11;
+        const vol = volume * (1 - i * 0.06);
+        // Bell voice: fundamental rings longest; upper partials fade faster
+        [[1, vol, 1.6], [2.76, vol * 0.32, 1.0], [5.4, vol * 0.12, 0.55]].forEach(([ratio, v, dur]) => {
+          const o = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          o.type = "sine";
+          o.frequency.value = f * ratio;
+          g.gain.setValueAtTime(0.0001, at);
+          g.gain.exponentialRampToValueAtTime(v, at + 0.018);   // soft strike
+          g.gain.exponentialRampToValueAtTime(0.0001, at + dur); // long ring
+          o.connect(g);
+          let out = g;
+          if (hasPan) {
+            const pan = audioCtx.createStereoPanner();
+            pan.pan.value = (i % 2 === 0 ? -1 : 1) * 0.25;
+            g.connect(pan);
+            out = pan;
+          }
+          out.connect(audioCtx.destination);
+          o.start(at);
+          o.stop(at + dur + 0.05);
+        });
+      }
+    }
+
     function playSparkle(ratio = 3, vol = 0.3) {
       const volume = sfxVol(vol);
       if (volume <= 0) return;

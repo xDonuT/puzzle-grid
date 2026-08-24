@@ -510,6 +510,7 @@
       const isBuff = combat.eclipse ? false : (run.mysticInsight || phase === "impact" || (run.luckyDice ? Math.random() < 0.7 : Math.random() < 0.5));
       let pool = isBuff ? MYSTERY_BUFFS : MYSTERY_DEBUFFS;
       const pick = pool[Math.floor(Math.random() * pool.length)];
+      run.mysteriesFlipped = (run.mysteriesFlipped || 0) + 1;
       let detail = pick.apply();
       // Phase Attunement: mystery gets the best blessing during Full Bloom (+1 charge)
       let extra = "";
@@ -1980,6 +1981,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       }
       busy = true;
       combat.ap -= 1;
+      combat.stats.ultCasts = (combat.stats.ultCasts || 0) + 1;
       const cls = combat.playerClass;
       const sig = playerSignature(); // "sword" | "shield" | "hp"
       const bits = [];

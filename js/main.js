@@ -426,6 +426,7 @@ const screenMenu = document.getElementById("screen-menu");
           msg += `<br>${mod.icon} Modifier: ${mod.name}`;
         }
         rewardMsg.innerHTML = msg;
+        showRecap(null);
         if (run.gameMap) {
           document.getElementById("btnGoRetry").textContent = "View Map";
         } else {
@@ -445,6 +446,7 @@ const screenMenu = document.getElementById("screen-menu");
       playVictory();
       gameOverOverlay.classList.add("open");
       recordRun(true);
+      if (isFinal) showRecap(true); // after recordRun so final-battle stats are included
     }
 
     // --- Branch system (Whispering Staircase) ---
@@ -1159,12 +1161,14 @@ const screenMenu = document.getElementById("screen-menu");
           run.plagueDmg = (run.plagueDmg || 0) + 10;
         }
         if (isBossFloor(run.floor)) {
+          run.bossesSlain = (run.bossesSlain || 0) + 1;
           openUpgradePicker(upgradeLabel => {
             openPassivePicker(passiveLabel => {
               showVictoryOverlay({ label: upgradeLabel, permanent: true, passiveLabel });
             });
           });
         } else if (isEliteFloor(run.floor)) {
+          run.elitesSlain = (run.elitesSlain || 0) + 1;
           const perm = GAUNTLET_REWARDS[run.floor];
           let permanentLabel = null;
           if (perm) {
@@ -1219,6 +1223,7 @@ const screenMenu = document.getElementById("screen-menu");
         document.getElementById("victorySummary").innerHTML = "";
         document.getElementById("gameOverSubtitle").textContent = "";
         document.getElementById("btnGoRetry").textContent = "Retry Floor";
+        showRecap(false);
         saveRun(); // resume same floor
         sayVoice("defeat", { force: true });
         playDefeat();
@@ -1230,6 +1235,71 @@ const screenMenu = document.getElementById("screen-menu");
     const SAVE_KEY = "puzzleGridRun_v1";
     const HISTORY_KEY = "puzzleGridHistory_v1";
     const MAX_HISTORY = 20;
+
+    // ---------- Run Recap Card ----------
+    function buildRecapHtml(won) {
+      const c = run.cumulative || {};
+      const fmtN = n => (n || 0).toLocaleString();
+      const hero = CHARACTERS[combat.playerClass] || {};
+      const actName = run.gameMap ? (ACT_NAMES[run.gameMap.currentAct || 1] || "") : "";
+      const rows = [
+        [won ? "🌸" : "🥀", won ? `Tower cleared — all ${MAX_FLOOR} floors` : `Fell on floor ${run.floor}${actName ? ` · ${actName}` : ""}`],
+        ["⏱️", fmtTime(run.elapsedMs || 0)],
+        ["⚔️", `${fmtN(c.dealt)} damage dealt`],
+        ["🛡️", `${fmtN(c.shield)} shield raised`],
+        ["❤️", `${fmtN(c.healed)} HP healed`],
+        ["💥", `${fmtN(c.taken)} damage taken`],
+        ["⚡", `${c.ults || 0} ultimates cast`],
+        ["🎲", `${run.mysteriesFlipped || 0} mysteries flipped`],
+        ["🔗", `best chain ×${run.maxCombo || 0}`],
+        ["🏆", `${run.elitesSlain || 0} elites · ${run.bossesSlain || 0} bosses felled`]
+      ];
+      const title = won ? "The Climb Remembered" : "Where the petals fell";
+      return `<div class="recap-title">${title}</div>` +
+        rows.map(([ic, tx]) => `<div class="recap-row"><span class="recap-ic">${ic}</span><span>${tx}</span></div>`).join("");
+    }
+
+    function buildRecapShareText(won) {
+      const c = run.cumulative || {};
+      const hero = CHARACTERS[combat.playerClass] || {};
+      const lines = [
+        `🌸 Bloom Tower — ${hero.name || combat.playerClass} (${settings.difficulty || "normal"})`,
+        won
+          ? `🌸 Tower cleared — all ${MAX_FLOOR} floors · ⏱ ${fmtTime(run.elapsedMs || 0)}`
+          : `🥀 Fell on floor ${run.floor} · ⏱ ${fmtTime(run.elapsedMs || 0)}`,
+        `⚔️ ${(c.dealt || 0).toLocaleString()} dmg · 🛡️ ${(c.shield || 0).toLocaleString()} shield · ❤️ ${(c.healed || 0).toLocaleString()} healed`,
+        `⚡ ${c.ults || 0} ults · 🎲 ${run.mysteriesFlipped || 0} mysteries · 🔗 best chain ×${run.maxCombo || 0}`,
+        `🏆 ${run.elitesSlain || 0} elites · ${run.bossesSlain || 0} bosses`
+      ];
+      return lines.join("\n");
+    }
+
+    function showRecap(won) {
+      const card = document.getElementById("recapCard");
+      const btn = document.getElementById("btnCopyRecap");
+      if (!card) return;
+      if (won === null) { card.hidden = true; if (btn) btn.hidden = true; return; }
+      card.innerHTML = buildRecapHtml(won);
+      card.hidden = false;
+      if (btn) {
+        btn.hidden = false;
+        btn.onclick = async () => {
+          const text = buildRecapShareText(won);
+          try {
+            await navigator.clipboard.writeText(text);
+            btn.textContent = "✓ Copied!";
+          } catch (_) {
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand("copy"); btn.textContent = "✓ Copied!"; } catch (_) { btn.textContent = "Copy failed"; }
+            ta.remove();
+          }
+          setTimeout(() => { btn.textContent = "📋 Copy Recap"; }, 1600);
+        };
+      }
+    }
 
     function loadHistory() {
       try {
@@ -1249,6 +1319,16 @@ const screenMenu = document.getElementById("screen-menu");
 
     function recordRun(won) {
       const s = combat.stats || {};
+      // Accumulate run-cumulative recap stats on floor clears
+      if (won) {
+        run.cumulative = run.cumulative || { dealt: 0, taken: 0, healed: 0, shield: 0, ults: 0 };
+        const c = run.cumulative;
+        c.dealt += (s.sword || 0) + (s.star || 0) + (s.runic || 0) + (s.poison || 0) + (s.fracture || 0) + (s.ult || 0) + (s.reflect || 0);
+        c.taken += s.taken || 0;
+        c.healed += s.healed || 0;
+        c.shield += s.shield || 0;
+        c.ults += s.ultCasts || 0;
+      }
       const hero = CHARACTERS[combat.playerClass] || {};
       saveHistory({
         ts: Date.now(),
@@ -1292,6 +1372,11 @@ const screenMenu = document.getElementById("screen-menu");
           difficulty: settings.difficulty,
           elapsedMs: run.elapsedMs || 0,
           floorElapsedMs: run.floorElapsedMs || 0,
+          cumulative: run.cumulative || { dealt: 0, taken: 0, healed: 0, shield: 0, ults: 0 },
+          mysteriesFlipped: run.mysteriesFlipped || 0,
+          elitesSlain: run.elitesSlain || 0,
+          bossesSlain: run.bossesSlain || 0,
+          maxCombo: run.maxCombo || 0,
           gameMap: run.gameMap || null,
           currentAct: run.currentAct || 1
         };
@@ -1363,6 +1448,11 @@ const screenMenu = document.getElementById("screen-menu");
       run.floorElapsedMs = 0;
       run.gameMap = null;
       run.currentAct = 1;
+      run.cumulative = { dealt: 0, taken: 0, healed: 0, shield: 0, ults: 0 };
+      run.mysteriesFlipped = 0;
+      run.elitesSlain = 0;
+      run.bossesSlain = 0;
+      run.maxCombo = 0;
       timerRunning = false;
       AP_MAX = 3;
       clearSave();
@@ -1387,6 +1477,11 @@ const screenMenu = document.getElementById("screen-menu");
       run.enemyUltSlow = d.enemyUltSlow | 0;
       run.elapsedMs = d.elapsedMs | 0;
       run.floorElapsedMs = 0; // fresh floor timing on continue
+      run.cumulative = d.cumulative || { dealt: 0, taken: 0, healed: 0, shield: 0, ults: 0 };
+      run.mysteriesFlipped = d.mysteriesFlipped | 0;
+      run.elitesSlain = d.elitesSlain | 0;
+      run.bossesSlain = d.bossesSlain | 0;
+      run.maxCombo = d.maxCombo | 0;
       // Re-derive transformative upgrades from the picked list (not stored as flags)
       run.cascadeAp = (run.pickedUpgrades || []).includes("cascadeAp");
       run.crossAp = (run.pickedUpgrades || []).includes("crossAp");
@@ -1502,7 +1597,7 @@ const screenMenu = document.getElementById("screen-menu");
       combat.playerFractureTurns = 0;
       combat.playerMortalWoundTurns = 0;
       combat.logHistory = [];
-      combat.stats = { sword: 0, star: 0, runic: 0, poison: 0, fracture: 0, ult: 0, reflect: 0, taken: 0, healed: 0, shield: 0 };
+      combat.stats = { sword: 0, star: 0, runic: 0, poison: 0, fracture: 0, ult: 0, reflect: 0, taken: 0, healed: 0, shield: 0, ultCasts: 0 };
       combat.ultAnnounced = false;
       combat.enemyUltCharge = 0;
       combat.bossKit = BOSS_KITS[run.floor] || null;

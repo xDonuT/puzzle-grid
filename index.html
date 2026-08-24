@@ -512,6 +512,42 @@
       filter: drop-shadow(0 1px 1px rgba(120, 60, 80, 0.18));
     }
 
+    /* ===== Run Recap Card ===== */
+    .recap-card {
+      background: linear-gradient(170deg, rgba(255,252,244,0.85), rgba(243,236,220,0.9));
+      border: 1.5px solid rgba(112, 76, 43, 0.25);
+      border-radius: 16px;
+      corner-shape: squircle;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      text-align: left;
+    }
+    .recap-title {
+      font-size: 0.72rem;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #a86a8a;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .recap-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      font-size: 0.78rem;
+      font-weight: 650;
+      color: #5a4c3e;
+      padding: 2.5px 0;
+      border-bottom: 1px dashed rgba(112, 76, 43, 0.12);
+    }
+    .recap-row:last-child { border-bottom: none; }
+    .recap-ic {
+      width: 18px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
     .hint {
       margin-top: 16px;
       font-size: 0.78rem;
@@ -3571,6 +3607,8 @@ body.ult-hitstop .board-wrap {
       <div id="victorySummary" class="victory-summary"></div>
       <p id="rewardMsg" style="color:#8a6d1f;font-size:0.9rem;font-weight:800;margin:0 0 14px;min-height:1.2em"></p>
       <div id="victoryStats" class="victory-stats"></div>
+      <div id="recapCard" class="recap-card" hidden></div>
+      <button type="button" class="action-btn" id="btnCopyRecap" hidden style="width:100%;margin-bottom:10px">📋 Copy Recap</button>
       <div class="panel-actions">
         <button type="button" class="action-btn" id="btnGoMenu">Menu</button>
         <button type="button" class="action-btn primary" id="btnGoRetry">Next Floor</button>

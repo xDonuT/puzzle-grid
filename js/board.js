@@ -574,6 +574,7 @@
 
         combo++;
         comboEl.textContent = combo;
+        run.maxCombo = Math.max(run.maxCombo || 0, combo);
 
         let count = 0;
         const matchedList = [];

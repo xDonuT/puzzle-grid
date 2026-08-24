@@ -379,7 +379,7 @@
     }
 
     // Star phases (user-specified thresholds)
-    // Normal 1–5 · Star Fever 6–10 · Star Impact 11+
+    // Normal 1–5 · Sun Surge 6–10 · Full Bloom 11+
     function getPhase() {
       if (combat.turn >= (settings.impactTurn || 11)) return "impact";
       if (combat.turn >= Math.max(2, (settings.feverTurn || 6) - (run.feverEarly || 0) - (combat.feverBoost || 0))) return "fever";
@@ -388,8 +388,8 @@
 
     function phaseLabel() {
       const p = getPhase();
-      if (p === "fever") return "⭐ Star Fever";
-      if (p === "impact") return "☄️ Star Impact";
+      if (p === "fever") return "☀️ Sun Surge";
+      if (p === "impact") return "🌸 Full Bloom";
       return "Normal";
     }
 
@@ -400,8 +400,8 @@
       if (combat.lastPhase !== p) {
         const prev = combat.lastPhase;
         combat.lastPhase = p;
-        if (prev === "normal" && p === "fever") showBannerCard("Phase Up", "⭐ Star Fever", "Signature tiles hit harder");
-        else if (p === "impact") showBannerCard("Phase Up", "☄️ Star Impact", "Mystery tiles always buff");
+        if (prev === "normal" && p === "fever") showBannerCard("Phase Up", "☀️ Sun Surge", "Signature tiles hit harder");
+        else if (p === "impact") showBannerCard("Phase Up", "🌸 Full Bloom", "Mystery tiles always bless");
       }
       document.body.classList.remove("phase-fever", "phase-impact");
       if (wrap) {
@@ -417,11 +417,11 @@
         pill.classList.remove("show", "fever", "impact");
         pill.style.cursor = "pointer";
         if (p === "fever") {
-          pill.textContent = "⭐ Star Fever";
+          pill.textContent = "☀️ Sun Surge";
           pill.classList.add("show", "fever");
           pill.title = "Tap for event info";
         } else if (p === "impact") {
-          pill.textContent = "☄️ Star Impact";
+          pill.textContent = "🌸 Full Bloom";
           pill.classList.add("show", "impact");
           pill.title = "Tap for event info";
         } else {
@@ -437,13 +437,13 @@
       const it = settings.impactTurn || 11;
       if (p === "fever") {
         openStatusDetail(
-          "⭐ Star Fever",
-          `Active from turn ${ft}–${it - 1}.\n\n• Matching your signature tile is stronger (damage fully boosted; heals about +50%).\n• Board and background turn pastel yellow.\n• Plan signature clears for extra value.`
+          "☀️ Sun Surge",
+          `Active from turn ${ft}–${it - 1}.\n\n• The sun pours down — matching your signature tile is stronger (damage fully boosted; heals about +50%).\n• Plan signature clears for extra value.`
         );
       } else if (p === "impact") {
         openStatusDetail(
-          "☄️ Star Impact",
-          `Active from turn ${it} onward.\n\n• Mystery (🎲) tiles always give a buff — no debuffs.\n• Board and background turn pastel orange.\n• Safe to clear 🎲 tiles for heals, shield, charge, or empower.`
+          "🌸 Full Bloom",
+          `Active from turn ${it} onward.\n\n• The tower blooms — mystery (🎲) tiles always give a blessing, never a curse.\n• Safe to clear 🎲 tiles for heals, shield, charge, or empower.`
         );
       }
     }
@@ -505,13 +505,13 @@
     function rollMysteryEffect() {
       const phase = getPhase();
       // Eclipse modifier: mystery tiles are always debuffs this floor
-      // Lucky Dice: mystery tiles are 70% buffs before Star Impact (Impact is always a buff)
+      // Lucky Dice: mystery tiles are 70% buffs before Full Bloom (Bloom is always a blessing)
       // Mystic Insight: mystery tiles are 100% buffs
       const isBuff = combat.eclipse ? false : (run.mysticInsight || phase === "impact" || (run.luckyDice ? Math.random() < 0.7 : Math.random() < 0.5));
       let pool = isBuff ? MYSTERY_BUFFS : MYSTERY_DEBUFFS;
       const pick = pool[Math.floor(Math.random() * pool.length)];
       let detail = pick.apply();
-      // Phase Attunement: mystery gets the best buff during Star Impact (+1 charge)
+      // Phase Attunement: mystery gets the best blessing during Full Bloom (+1 charge)
       let extra = "";
       if (phase === "impact" && run.phasePower && isBuff) {
         combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + 1);
@@ -677,10 +677,10 @@
       if (turnPill) {
         const p = getPhase();
         if (p === "fever") {
-          turnPill.title = "⭐ Star Fever — signature effects ×2";
+          turnPill.title = "☀️ Sun Surge — signature effects ×2";
           turnPill.style.background = "rgba(239, 212, 138, 0.55)";
         } else if (p === "impact") {
-          turnPill.title = "☄️ Star Impact — mystery tiles always buff";
+          turnPill.title = "🌸 Full Bloom — mystery tiles always bless";
           turnPill.style.background = "rgba(200, 120, 140, 0.45)";
         } else {
           turnPill.title = "Normal phase";
@@ -1126,9 +1126,9 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         }
       }
 
-      // Star Fever: signature damage/shield boosted; heals only +50% (not full double)
+      // Sun Surge: signature damage/shield boosted; heals only +50% (not full double)
       if (!forEnemy && fever && hasSigMatch) {
-        // Phase Attunement: signature effects are stronger during Star Fever
+        // Phase Attunement: signature effects are stronger during Sun Surge
         const phBoost = run.phasePower ? 1.5 : 1;
         if (sigType === "sword") dmg += Math.round((settings.swordDmg + (run.bonusSwordDmg || 0)) * sigSwordCount * phBoost);
         if (sigType === "hp") heal += Math.round(6 * sigHpCount * 0.5 * phBoost);
@@ -1719,8 +1719,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
 
       refreshCombatUI();
       await sleep(450);
-      if (combat.turn === 6) setLog("⭐ Star Fever begins — signature ×2");
-      else if (combat.turn === 11) setLog("☄️ Star Impact — mystery always buffs");
+      if (combat.turn === 6) setLog("☀️ Sun Surge begins — signature ×2");
+      else if (combat.turn === 11) setLog("🌸 Full Bloom — mystery always blesses");
       else setLog("Your turn · " + phaseLabel());
       busy = false;
       refreshCombatUI();

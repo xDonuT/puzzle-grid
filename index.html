@@ -2483,8 +2483,6 @@ body.ult-hitstop .board-wrap {
     body.tower-2 { --bg-base: #f4ecda; } /* Bloom — rose cream */
     body.tower-3 { --bg-base: #e6d7d2; } /* legacy intermediate */
     body.tower-4 { --bg-base: #f2ead2; } /* Flourish — golden hour */
-    body.phase-fever { --bg-base: #f3e6bd; }
-    body.phase-impact { --bg-base: #eed6c2; }
 
     /* Per-act sky layer behind the parchment grain */
     #actSky {
@@ -3170,8 +3168,8 @@ body.ult-hitstop .board-wrap {
         <div class="row"><label>Ult base damage</label><input type="number" id="admUlt" min="0" max="99" /></div>
         <div class="row"><label>Charge to ult</label><input type="number" id="admUltNeed" min="1" max="30" /></div>
         <h3>Phases</h3>
-        <div class="row"><label>Star Fever turn</label><input type="number" id="admFever" min="1" max="30" /></div>
-        <div class="row"><label>Star Impact turn</label><input type="number" id="admImpact" min="1" max="40" /></div>
+        <div class="row"><label>Sun Surge turn</label><input type="number" id="admFever" min="1" max="30" /></div>
+        <div class="row"><label>Full Bloom turn</label><input type="number" id="admImpact" min="1" max="40" /></div>
       </div>
 
       <div class="panel-actions" style="flex-wrap:wrap">
@@ -3195,7 +3193,7 @@ body.ult-hitstop .board-wrap {
       <div class="help-line">Climb all <strong>20 floors</strong>. Match tiles on your board to damage the rival before it out-damages you. Bosses await on floors 5, 10, 15, 20.</div>
 
       <div class="help-sect">🎴 Tiles</div>
-      <div class="help-line">⚔️ Sword — damage the rival · ⭐ Star — damage · ❤️ Heart — heal you · 🛡️ Shield — shield you · 🎲 Mystery — random buff or debuff (always a buff during Star Impact).</div>
+      <div class="help-line">⚔️ Sword — damage the rival · ⭐ Star — damage · ❤️ Heart — heal you · 🛡️ Shield — shield you · 🎲 Mystery — random buff or debuff (always a buff during Full Bloom).</div>
 
       <div class="help-sect">🧩 Shapes</div>
       <div class="help-line">3 in a row clears normally · <strong>4 in a line</strong> = charged, double power · <strong>5+</strong> = star, extra strong · <strong>T/+</strong> = cross seal — clears the full row + column and refunds 1 AP · <strong>L</strong> = X-seal — clears both diagonals and refunds 1 AP. Long runs also drop a <strong>Bloom</strong> tile that clears a 3×3 area.</div>
@@ -3207,7 +3205,7 @@ body.ult-hitstop .board-wrap {
       <div class="help-line">Each hero has a signature tile: Ninja ⚔️, Wizard 🛡️, Knight ❤️. Matching it charges your ultimate — tap your portrait when it's ready. Matching more in one move charges more.</div>
 
       <div class="help-sect">🌌 Phases</div>
-      <div class="help-line"><strong>Star Fever</strong> (turn 6+): signature effects are doubled — the board turns yellow. <strong>Star Impact</strong> (turn 11+): mystery tiles always give a buff — the board turns orange.</div>
+      <div class="help-line"><strong>Sun Surge</strong> (turn 6+): the sun pours down — signature effects are doubled. <strong>Full Bloom</strong> (turn 11+): the tower blooms — mystery tiles always give a blessing.</div>
 
       <div class="help-sect">🎭 Heroes</div>
       <div class="help-line">Ninja — dodges, lifesteals, devastating single-hit ultimate. Wizard — reflects damage, locks enemy shields, ultimate hits hard. Knight — regenerates, fractures enemies over time, tanky. Tap a portrait in battle for full details.</div>

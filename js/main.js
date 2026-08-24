@@ -2337,11 +2337,11 @@ const screenMenu = document.getElementById("screen-menu");
       // Phase
       const phase = typeof getPhase === "function" ? getPhase() : "normal";
       if (phase === "fever") {
-        parts.push(`<div class="info-section">Star Fever</div>`);
-        parts.push(`<div class="info-body">⭐ Star tiles deal x2 damage. Push for big clears!</div>`);
+        parts.push(`<div class="info-section">Sun Surge</div>`);
+        parts.push(`<div class="info-body">☀️ Signature tiles hit harder. Push for big clears!</div>`);
       } else if (phase === "impact") {
-        parts.push(`<div class="info-section">Star Impact</div>`);
-        parts.push(`<div class="info-body">☄️ ⭐ tiles deal x2 AND 🎲 mystery tiles are always buffs!</div>`);
+        parts.push(`<div class="info-section">Full Bloom</div>`);
+        parts.push(`<div class="info-body">🌸 The tower blooms — 🎲 mystery tiles always give a blessing!</div>`);
       }
       // Progress
       parts.push(`<div class="info-section">Progress</div>`);

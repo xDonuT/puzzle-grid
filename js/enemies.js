@@ -398,7 +398,7 @@
       { id: "swordDmg", name: "⚔️ +1 Sword Damage", desc: "Permanently stronger swords", classRequirement: "ANY", apply: () => { run.bonusSwordDmg += 1; } },
       { id: "healAmt", name: "💚 +2 Heal Amount", desc: "Potions heal more", classRequirement: "ANY", apply: () => { run.bonusHeal += 2; } },
       { id: "floorShield", name: "🛡️ +1 Shield at Floor Start", desc: "Begin each floor shielded", classRequirement: "ANY", apply: () => { run.floorShieldBonus += 1; } },
-      { id: "feverEarly", name: "⭐ Fever 1 Turn Earlier", desc: "Star Fever arrives sooner", classRequirement: "ANY", apply: () => { run.feverEarly += 1; } },
+      { id: "feverEarly", name: "☀️ Surge 1 Turn Earlier", desc: "Sun Surge arrives sooner", classRequirement: "ANY", apply: () => { run.feverEarly += 1; } },
       { id: "enemyUltSlow", name: "⛓️ Enemy Ult +1 Turn", desc: "Rival ultimates charge slower", classRequirement: "ANY", apply: () => { run.enemyUltSlow += 1; } },
       // ---- Transformative upgrades (change how you play) ----
       { id: "crossAp", name: "✚ Seal Mastery", desc: "T/+ and L seals refund 1 additional AP", classRequirement: "ANY", apply: () => { run.crossAp = true; } },
@@ -412,7 +412,7 @@
       { id: "reflectBoost", name: "🪞 Arcane Mirror", desc: "Wizard reflection +10% (scales with floor)", classRequirement: "WIZARD", apply: () => { run.arcaneMirror = true; } },
       { id: "enemySlow2", name: "⛓️ Heavy Chains", desc: "Enemy specials/ults +1 additional turn", classRequirement: "ANY", apply: () => { run.heavyChains = true; } },
       { id: "apCarry", name: "⚡ Momentum", desc: "Unused AP carries over up to +2 next turn", classRequirement: "ANY", apply: () => { run.momentum = true; } },
-      { id: "mysteryBias", name: "🎲 Lucky Dice", desc: "Mystery tiles are 70% buffs before Star Impact", classRequirement: "ANY", apply: () => { run.luckyDice = true; } },
+      { id: "mysteryBias", name: "🎲 Lucky Dice", desc: "Mystery tiles are 70% buffs before Full Bloom", classRequirement: "ANY", apply: () => { run.luckyDice = true; } },
       // ---- Knight-specific ----
       { id: "mortalStrike", name: "⚔️ Mortal Strike", desc: "Knight: Ultimate also reduces enemy damage by 25% for 2 turns", classRequirement: "KNIGHT", apply: () => { run.mortalStrike = true; } },
       { id: "bulwark", name: "🛡️ Bulwark", desc: "Knight: Shield matches apply 1 Fracture stack (once per turn)", classRequirement: "KNIGHT", apply: () => { run.bulwark = true; } },
@@ -588,16 +588,16 @@
         grant() { run.pending.empower += 1; return { label: "Empower next floor" }; } },
       { id: "enemyPoison", tier: "uncommon", name: "Poison", desc: "The rival starts next floor poisoned for 2 turns.",
         grant() { run.pending.enemyPoison += 2; return { label: "Poison enemy 2 turns next floor" }; } },
-      { id: "starBlessing", tier: "uncommon", name: "Star Blessing", desc: "Start next floor with +2 Star Fever charge.",
-        grant() { run.pending.feverBoost += 2; return { label: "⭐ Start next floor with +2 Star Fever charge" }; } },
+      { id: "starBlessing", tier: "uncommon", name: "Sun Blessing", desc: "Start next floor with +2 ult charge.",
+        grant() { run.pending.feverBoost += 2; return { label: "☀️ Start next floor with +2 ult charge" }; } },
       { id: "critNext", tier: "uncommon", name: "Fated Edge", desc: "+15% Critical Chance next floor.",
         grant() { run.pending.critChance += 15; return { label: "⚔️ +15% Critical Chance next floor" }; } }
     ];
     const FLOOR_REWARDS_RARE = [
       { id: "shieldConvert", tier: "rare", name: "Blade Shield", desc: "25% of Shield gained becomes Sword Damage next floor.",
         grant() { run.pending.shieldConvert = 0.25; return { label: "🛡️⚔️ 25% of Shield gained becomes Sword Damage next floor" }; } },
-      { id: "starFever", tier: "rare", name: "Star Surge", desc: "Start next floor very close to Star Fever.",
-        grant() { run.pending.feverBoost += 4; return { label: "⭐ Start next floor significantly closer to Star Fever" }; } }
+      { id: "starFever", tier: "rare", name: "Golden Hour", desc: "Start next floor very close to Sun Surge.",
+        grant() { run.pending.feverBoost += 4; return { label: "☀️ Start next floor significantly closer to Sun Surge" }; } }
     ];
 
     // Floor modifiers — picked after the reward. Easy = benefits player (normal reward).

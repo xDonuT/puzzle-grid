@@ -2071,6 +2071,17 @@ const screenMenu = document.getElementById("screen-menu");
     if (btnSettingsHelp) btnSettingsHelp.addEventListener("click", openHelp);
     const btnHelpClose = document.getElementById("btnHelpClose");
     if (btnHelpClose) btnHelpClose.addEventListener("click", closeHelp);
+    // Guide tabs — same pattern as the settings tabs
+    const HELP_TAB_PANELS = { basics: "helpTabBasics", battle: "helpTabBattle", map: "helpTabMap", heroes: "helpTabHeroes" };
+    document.querySelectorAll("#helpTabs button").forEach(b => {
+      b.addEventListener("click", () => {
+        document.querySelectorAll("#helpTabs button").forEach(x => x.classList.toggle("on", x === b));
+        Object.entries(HELP_TAB_PANELS).forEach(([tab, id]) => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = tab === b.dataset.tab ? "" : "none";
+        });
+      });
+    });
     if (helpOverlay) helpOverlay.addEventListener("click", (e) => {
       if (e.target === helpOverlay) closeHelp();
     });

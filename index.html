@@ -2414,6 +2414,15 @@ body.ult-hitstop .board-wrap {
     }
 
     .settings-tabs button { flex: 1; }
+    /* Guide tabs share the settings tab look; panels scroll independently */
+    .help-tabs { margin-bottom: 10px; }
+    .help-tabs button { flex: 1; font-size: 0.7rem; }
+    .help-scroll {
+      max-height: 62vh;
+      overflow-y: auto;
+      padding-right: 4px;
+      -webkit-overflow-scrolling: touch;
+    }
 
     .ult-row {
       display: flex;
@@ -3619,6 +3628,16 @@ body.ult-hitstop .board-wrap {
         <button type="button" class="icon-btn" id="btnHelpClose" title="Close">✕</button>
       </div>
 
+      <div class="seg settings-tabs help-tabs" id="helpTabs" style="margin:10px 0 12px;width:100%;justify-content:center">
+        <button type="button" data-tab="basics" class="on">Basics</button>
+        <button type="button" data-tab="battle">Battle</button>
+        <button type="button" data-tab="map">Map</button>
+        <button type="button" data-tab="heroes">Heroes</button>
+      </div>
+
+      <div class="help-scroll">
+
+      <div id="helpTabBasics" class="help-tab-panel">
       <div class="help-sect">🎯 The Goal</div>
       <div class="help-line">Climb all <strong>45 floors</strong> of the tower across three acts — 🌱 <strong>The Sprout</strong> (1–15), 🌸 <strong>The Bloom</strong> (16–30) and 🌺 <strong>The Flourish</strong> (31–45). Match tiles on your board to damage the rival before it out-damages you. Bosses wait on floors <strong>15, 30 and 45</strong>.</div>
 
@@ -3633,8 +3652,10 @@ body.ult-hitstop .board-wrap {
 
       <div class="help-sect">🔀 Shuffling</div>
       <div class="help-line">Stuck? <strong>Shuffle</strong> re-deals the board — free every 3rd turn, otherwise 1 AP. If you own the <strong>🌀 Shuffle Surge</strong> skill (Settings ▸ Global Skills), every shuffle empowers your next turn with stacking damage.</div>
+      </div>
 
-      <div class="help-sect">⭐ Your Signature Tile &amp; Ultimate</div>
+      <div id="helpTabBattle" class="help-tab-panel" style="display:none">
+      <div class="help-sect">⭐ Signature Tile &amp; Ultimate</div>
       <div class="help-line">Each hero has a signature tile: Ninja ⚔️, Wizard 🛡️, Knight ❤️. Matching it charges your ultimate — when the pips fill, tap your portrait to unleash it. Matching more in one move charges more.</div>
 
       <div class="help-sect">🌌 Phases</div>
@@ -3643,9 +3664,10 @@ body.ult-hitstop .board-wrap {
       <div class="help-sect">💚 Statuses</div>
       <div class="help-line">Chips under each portrait show what's afflicting them — ☠️ poison ticks each turn, 🦴 fracture bites at turn start, plus blinds, weakens and blessings. <strong>Tap any chip</strong> to read exactly what it does.</div>
 
-      <div class="help-sect">🎭 Heroes</div>
-      <div class="help-line">Ninja — dodges, lifesteals, devastating single-hit ultimate. Wizard — reflects damage, locks enemy shields, ultimate hits hard. Knight — regenerates, fractures enemies over time, tanky. <strong>Hold a portrait</strong> in battle to open their full passport.</div>
+      <div class="help-note">Tip: open the Action Log any time to relive the fight turn by turn.</div>
+      </div>
 
+      <div id="helpTabMap" class="help-tab-panel" style="display:none">
       <div class="help-sect">🗺️ Between Battles</div>
       <div class="help-line">Each act is a small map — pick your path node by node. <strong>Mystery nodes</strong> flip risk-or-reward cards, shrines grant boons, and <strong>elites</strong> (floors 12, 27, 42) guard permanent boosts for those brave enough to fight them.</div>
 
@@ -3654,8 +3676,22 @@ body.ult-hitstop .board-wrap {
 
       <div class="help-sect">🌟 Golden Cosmos</div>
       <div class="help-line">Clear floor 45 once and the tower blooms gold forever. New Game+ offers <strong>Golden Loops</strong>: stronger rivals, richer recap stats, and an endless climb for glory. How far can the gold go?</div>
+      </div>
 
-      <div class="help-note">Tip: check any status chip mid-battle, open the Action Log to relive the fight, and copy your Run Recap after a victory to share the tale.</div>
+      <div id="helpTabHeroes" class="help-tab-panel" style="display:none">
+      <div class="help-sect">🥷 Ninja</div>
+      <div class="help-line">Blade-and-shadow duelist — dodges via Shadow Step, lifesteals on sword chains, and a devastating single-hit ultimate. Passive paths: Shadow, Venom, Blade, Afterglow.</div>
+
+      <div class="help-sect">🧙 Wizard</div>
+      <div class="help-line">Star-weaver — reflects damage back, locks enemy shields, and channels an arcane ultimate. Passive paths: Runic, Mana, Arcana, Aegis.</div>
+
+      <div class="help-sect">🛡️ Knight</div>
+      <div class="help-line">The unbroken wall — regenerates, fractures rivals over time, punishes every hit with counters. Passive paths: Fracture, Fortitude, Retaliate, Valor.</div>
+
+      <div class="help-note">Tip: hold any portrait mid-battle to open its full passport — stats, costumes and quirks.</div>
+      </div>
+
+      </div>
     </div>
   </div>
 

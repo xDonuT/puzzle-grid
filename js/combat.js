@@ -692,10 +692,10 @@
         const p = getPhase();
         if (p === "fever") {
           turnPill.title = "☀️ Sun Surge — signature effects ×2";
-          turnPill.style.background = "rgba(239, 212, 138, 0.55)";
+          turnPill.style.background = "";
         } else if (p === "impact") {
           turnPill.title = "🌸 Full Bloom — mystery tiles always bless";
-          turnPill.style.background = "rgba(200, 120, 140, 0.45)";
+          turnPill.style.background = "";
         } else {
           turnPill.title = "Normal phase";
           turnPill.style.background = "";

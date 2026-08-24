@@ -233,6 +233,58 @@
       anim.onfinish = () => fx.remove();
     }
 
+    // ---------- drifting petals (cascade juice) ----------
+    // Cosmos petals shear off matched tiles and flutter down; budget-capped so
+    // long cascades never flood the board.
+    const PETAL_COLORS = [
+      ["#f6bccb", "#e88aa4"], // soft pink
+      ["#f9d1dc", "#ef9db5"], // pale blush
+      ["#f3a8c0", "#d97a98"], // deep rose
+      ["#f8cdb4", "#eb9d7e"]  // hint of peach
+    ];
+    let petalBudget = 26;
+    let petalBudgetTimer = null;
+    function spawnPetals(r, c, comboLevel) {
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      if (petalBudget <= 0) return;
+      if (!petalBudgetTimer) {
+        petalBudgetTimer = setTimeout(() => { petalBudget = 26; petalBudgetTimer = null; }, 1200);
+      }
+      const cl = Math.min(comboLevel || 1, 5);
+      const el = getCell(r, c);
+      const rect = el.getBoundingClientRect();
+      const gridRect = gridEl.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2 - gridRect.left;
+      const cy = rect.top + rect.height * 0.35 - gridRect.top;
+      let count = Math.min(petalBudget, (cl >= 3 ? 2 : 1) + (Math.random() < 0.5 ? 1 : 0));
+      petalBudget -= count;
+      for (let i = 0; i < count; i++) {
+        const p = document.createElement("div");
+        p.className = "petal-fx";
+        const size = 7 + Math.random() * 6;
+        p.style.width = size + "px";
+        p.style.height = size * 1.35 + "px";
+        const [c1, c2] = PETAL_COLORS[Math.floor(Math.random() * PETAL_COLORS.length)];
+        p.style.background = `linear-gradient(135deg, ${c1}, ${c2})`;
+        p.style.left = cx + (Math.random() - 0.5) * rect.width * 0.7 + "px";
+        p.style.top = cy + "px";
+        gridEl.appendChild(p);
+        const drift = (Math.random() - 0.5) * 48;
+        const fall = 34 + Math.random() * 46;
+        const rot = (Math.random() < 0.5 ? -1 : 1) * (140 + Math.random() * 170);
+        const anim = p.animate([
+          { transform: "translate(0,0) rotate(0deg)", opacity: 0.95 },
+          { transform: `translate(${drift * 0.6}px, ${fall * 0.55}px) rotate(${rot * 0.6}deg)`, opacity: 0.85, offset: 0.45 },
+          { transform: `translate(${drift}px, ${fall}px) rotate(${rot}deg)`, opacity: 0 }
+        ], {
+          duration: 900 + Math.random() * 700,
+          easing: "cubic-bezier(0.25, 0.6, 0.45, 1)",
+          fill: "forwards"
+        });
+        anim.onfinish = () => p.remove();
+      }
+    }
+
     // ---------- build ----------
     function build() {
       gridEl.innerHTML = "";
@@ -603,6 +655,7 @@
           el.classList.add("matching");
           if (comboClass) el.classList.add(comboClass);
           spawnParticles(r, c, type, combo);
+          spawnPetals(r, c, combo);
         }
         if (shape.isCross && shape.crossCell) {
           spawnCrossFlash(shape.crossCell.r, shape.crossCell.c);

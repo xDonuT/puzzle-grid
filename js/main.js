@@ -1243,6 +1243,7 @@ const screenMenu = document.getElementById("screen-menu");
         document.getElementById("victorySummary").innerHTML = "";
         document.getElementById("gameOverSubtitle").textContent = "";
         document.getElementById("btnGoRetry").textContent = "Retry Floor";
+        accumulateBattleStats(); // the losing battle still counts toward the story
         showRecap(false);
         saveRun(); // resume same floor
         sayVoice("defeat", { force: true });
@@ -1337,18 +1338,20 @@ const screenMenu = document.getElementById("screen-menu");
       } catch (_) {}
     }
 
-    function recordRun(won) {
+    // Fold the finished battle's stats into the run-cumulative recap totals
+    function accumulateBattleStats() {
       const s = combat.stats || {};
-      // Accumulate run-cumulative recap stats on floor clears
-      if (won) {
-        run.cumulative = run.cumulative || { dealt: 0, taken: 0, healed: 0, shield: 0, ults: 0 };
-        const c = run.cumulative;
-        c.dealt += (s.sword || 0) + (s.star || 0) + (s.runic || 0) + (s.poison || 0) + (s.fracture || 0) + (s.ult || 0) + (s.reflect || 0);
-        c.taken += s.taken || 0;
-        c.healed += s.healed || 0;
-        c.shield += s.shield || 0;
-        c.ults += s.ultCasts || 0;
-      }
+      run.cumulative = run.cumulative || { dealt: 0, taken: 0, healed: 0, shield: 0, ults: 0 };
+      const c = run.cumulative;
+      c.dealt += (s.sword || 0) + (s.star || 0) + (s.runic || 0) + (s.poison || 0) + (s.fracture || 0) + (s.ult || 0) + (s.reflect || 0);
+      c.taken += s.taken || 0;
+      c.healed += s.healed || 0;
+      c.shield += s.shield || 0;
+      c.ults += s.ultCasts || 0;
+    }
+
+    function recordRun(won) {
+      if (won) accumulateBattleStats();
       const hero = CHARACTERS[combat.playerClass] || {};
       saveHistory({
         ts: Date.now(),

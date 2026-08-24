@@ -296,6 +296,12 @@
 
     function pickEnemyArchetype(floor) {
       if (BOSS_KITS && BOSS_KITS[floor]) return null;
+      // Early campaign: pure-damage rivals only — debuffers (viper/hexer)
+      // arrive once the ladder teaches statuses
+      if (typeof sysUnlocked === "function" && !sysUnlocked("enemyStatus")) {
+        const calm = [ENEMY_ARCHETYPES[0], ENEMY_ARCHETYPES[2], ENEMY_ARCHETYPES[3]];
+        return calm[Math.floor(Math.random() * calm.length)];
+      }
       // Weight by floor: later floors lean meaner
       const pool = ENEMY_ARCHETYPES.slice();
       if (floor >= 8) pool.push(ENEMY_ARCHETYPES[0], ENEMY_ARCHETYPES[4]);

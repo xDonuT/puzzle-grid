@@ -1588,6 +1588,55 @@ const screenMenu = document.getElementById("screen-menu");
       }
     }
 
+    // ─── One-time hint toasts (per account) + system-unlock announcements ───
+    let _hintTimer = null;
+    function showHint(text, ms = 3400) {
+      const el = document.getElementById("hintToast");
+      if (!el) return;
+      el.textContent = text;
+      el.classList.add("show");
+      if (_hintTimer) clearTimeout(_hintTimer);
+      _hintTimer = setTimeout(() => el.classList.remove("show"), ms);
+    }
+    function hintOnce(key, text, ms) {
+      try {
+        settings.seenHints = settings.seenHints || {};
+        if (settings.seenHints[key]) return;
+        settings.seenHints[key] = true;
+        persistSettings();
+      } catch (_) { return; }
+      showHint(text, ms);
+    }
+
+    // Flavor lines fired when a ladder gate first opens this run
+    const SYS_ANNOUNCE = {
+      bloom: "🌸 The tower grants a gift — Bloom tiles now appear in matches",
+      shuffle: "🔀 Reshape fate — the Shuffle button is yours",
+      mysteryNodes: "🎲 Mystery nodes have sprouted on the map",
+      enemyStatus: "🐍 Rivals with tricks join the climb — watch for status chips",
+      sig: "⚡ Power stirs — Signature tiles charge your ultimate",
+      log: "📜 The Action Log awakens — tap it to relive the battle",
+      seals: "✳️ The garden learns new shapes — Cross & X seals join blooms",
+      phases: "☀️ The sun strengthens — Phases have awakened"
+    };
+    function announceNewSystems(prevFloor) {
+      const f = run.floor || 1;
+      if ((run.ngLoop || 0) > 0) return; // golden loops skip the unboxing
+      // Portrait info rides floor 2 — after the first victory, before new mechanics
+      if (f >= 2 && (prevFloor || 0) < 2) {
+        hintOnce("portraitInfo", "👆 Hold any portrait to study your fighter (or the rival's)");
+      }
+      let delay = 800;
+      Object.keys(SYS_ANNOUNCE).forEach(k => {
+        const at = SYS_LADDER[k];
+        if (f >= at && (prevFloor || 0) < at) {
+          const text = SYS_ANNOUNCE[k];
+          setTimeout(() => showHint(text, 3600), delay);
+          delay += 4200; // queue overlapping reveals
+        }
+      });
+    }
+
     function startBattle(opts = {}) {
       // opts.fromVictory = true → advance floor; opts.retry = stay on floor
       if (opts.fromVictory) {
@@ -1598,6 +1647,7 @@ const screenMenu = document.getElementById("screen-menu");
           return;
         }
         run.floor += 1;
+        announceNewSystems(run.floor - 1);
         // Tutorial ends after floor 1
         if (combat.tutorial) combat.tutorial = false;
       }
@@ -1766,6 +1816,15 @@ const screenMenu = document.getElementById("screen-menu");
       if (floorActEl && run.gameMap) {
         const actIdx = run.gameMap.currentAct || 1;
         floorActEl.textContent = ACT_NAMES[actIdx] || "";
+      }
+      // Compact floor chip: "F7 · 🌸 The Bloom"
+      const chip = document.getElementById("floorChip");
+      if (chip) {
+        const actIdx = run.gameMap ? (run.gameMap.currentAct || 1) : Math.min(3, Math.floor((Math.max(1, run.floor) - 1) / 15) + 1);
+        const actIcon = actIdx >= 3 ? "🌺" : actIdx === 2 ? "🌸" : "🌱";
+        const actName = ACT_NAMES[actIdx] || `Act ${actIdx}`;
+        chip.textContent = `F${run.floor} · ${actIcon} ${actName.split(" ").pop()}`;
+        chip.title = `Floor ${run.floor} of ${MAX_FLOOR} — ${ACT_NAMES[actIdx] || ""}`;
       }
 
       build();

@@ -2850,6 +2850,33 @@ body.ult-hitstop .board-wrap {
     body.golden .tile { --skin: rgba(240, 190, 80, 0.19); }
     body.golden .recap-title { color: #b8912e; }
 
+    /* ===== One-time hint toast + unlock announcements ===== */
+    #hintToast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+      transform: translateX(-50%) translateY(12px);
+      z-index: 900;
+      max-width: min(88vw, 380px);
+      padding: 9px 16px;
+      background: linear-gradient(160deg, rgba(255,252,244,0.97), rgba(246,238,222,0.97));
+      border: 1.5px solid rgba(112,76,43,0.35);
+      border-radius: 14px;
+      corner-shape: squircle;
+      box-shadow: 0 6px 20px rgba(60,45,30,0.25);
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #5a4c3e;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.22, 0.9, 0.3, 1);
+    }
+    #hintToast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
     /* ===== Tile skins — subtle act-tinted faces ===== */
     .tile::before {
       background:
@@ -3236,6 +3263,7 @@ body.ult-hitstop .board-wrap {
     <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
   </div>
   <div id="goldenGlow" aria-hidden="true"></div>
+  <div id="hintToast" aria-live="polite"></div>
   <div id="actFlora" aria-hidden="true">
     <!-- Sprout: swaying seedlings -->
     <svg class="flora flora-1" viewBox="0 0 360 70" preserveAspectRatio="xMidYMax meet">
@@ -3515,6 +3543,7 @@ body.ult-hitstop .board-wrap {
     <!-- Actions (between portraits and board) -->
     <div class="action-bar">
       <div class="turn-indicator" id="turnNum">Turn 1</div>
+      <div id="floorChip" role="status" aria-label="Floor info" style="font-size:0.62rem;font-weight:800;letter-spacing:0.06em;color:#8a7a68;background:rgba(255,252,244,0.7);border:1px solid rgba(112,76,43,0.2);border-radius:9px;padding:3px 8px;white-space:nowrap">F1 · 🌱</div>
       <div class="action-bar-btns">
         <button type="button" class="action-btn" id="btnShuffle" title="Shuffle board">Shuffle</button>
         <div class="end-wrap" id="endWrap">

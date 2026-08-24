@@ -61,7 +61,21 @@ function generateActMap(act) {
     }
   }
 
-  assignNodeTypes(layers, connections, counts);
+  assignNodeTypes(layers, connections, counts, act);
+
+  // Guarantee every node past the first layer has an incoming edge — the
+  // fan-out above can strand nodes (unreachable mysteries/loot)
+  for (let li = 1; li < layers.length; li++) {
+    for (const n of layers[li]) {
+      const hasIn = connections.some(c => Array.isArray(c.to) ? c.to.includes(n.id) : c.to === n.id);
+      if (!hasIn) {
+        const prev = layers[li - 1][Math.floor(Math.random() * layers[li - 1].length)];
+        const existing = connections.find(c => c.from === prev.id);
+        if (existing) { if (!Array.isArray(existing.to)) existing.to = [existing.to]; existing.to.push(n.id); }
+        else connections.push({ from: prev.id, to: [n.id] });
+      }
+    }
+  }
 
   return { act, layers, connections };
 }
@@ -69,7 +83,11 @@ function generateActMap(act) {
 // Post-placement pass: decide node types AFTER the graph exists so we can
 // guarantee (a) elites are reachable, (b) elites always have a normal
 // alternative on their layer => genuine safe-vs-risky route decisions.
-function assignNodeTypes(layers, connections, counts) {
+function assignNodeTypes(layers, connections, counts, act) {
+  // Act I early floors keep the mystery node dormant (ladder reveals it ~floor 5);
+  // Golden loops treat everything as live from the start
+  const mysteriesLive = !(act === 1 && typeof run !== "undefined" && (run.ngLoop || 0) === 0);
+  const earlyAct1 = act === 1 && typeof run !== "undefined" && (run.ngLoop || 0) === 0;
   // Set of node ids reachable when entering layer li
   const reachableEntering = (li) => {
     let frontier = new Set(layers[0].map(n => n.id));
@@ -92,7 +110,9 @@ function assignNodeTypes(layers, connections, counts) {
   }
 
   // --- Layer 0: gentle start (one mystery + one normal) ---
-  layers[0][0].type = "mystery";
+  if (mysteriesLive) {
+    layers[0][0].type = "mystery";
+  }
 
   // --- Elites: 2 per act on middle layers, reachable + avoidable ---
   const eliteLayers = [
@@ -111,12 +131,14 @@ function assignNodeTypes(layers, connections, counts) {
   // --- Mysteries: sprinkle 2-3 on remaining middle nodes ---
   const mid = [];
   for (let li = 1; li < counts.length - 2; li++) {
+    // Early act-I layers keep the map quiet (mystery nodes unlock ~floor 5)
+    if (earlyAct1 && li <= 1) continue;
     for (const n of layers[li]) {
       if (n.type === "normal") mid.push(n);
     }
   }
   shuffle(mid);
-  const mysteryCount = 2 + Math.floor(Math.random() * 2);
+  const mysteryCount = mysteriesLive ? 2 + Math.floor(Math.random() * 2) : 0;
   for (let i = 0; i < Math.min(mysteryCount, mid.length); i++) {
     mid[i].type = "mystery";
   }

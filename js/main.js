@@ -16,14 +16,17 @@ const screenMenu = document.getElementById("screen-menu");
     }
 
     // Tower ascent: act-themed sky (Sprout meadow / Bloom rose / Flourish golden)
+    // plus altitude bands — low / mid / summit within each act's 15 floors
     function updateTowerBand() {
       const b = document.body;
-      b.classList.remove("tower-1", "tower-2", "tower-3", "tower-4");
+      b.classList.remove("tower-1", "tower-2", "tower-3", "tower-4", "alt-low", "alt-mid", "alt-top");
       const f = run && typeof run.floor === "number" ? run.floor : 1;
       const act = run && run.gameMap
         ? (run.gameMap.currentAct || 1)
         : Math.min(3, Math.floor((Math.max(1, f) - 1) / 15) + 1);
       b.classList.add(act >= 3 ? "tower-4" : act === 2 ? "tower-2" : "tower-1");
+      const inAct = ((Math.max(1, f) - 1) % 15) + 1;
+      b.classList.add(inAct <= 5 ? "alt-low" : inAct <= 10 ? "alt-mid" : "alt-top");
       b.classList.toggle("golden", (run.ngLoop || 0) > 0);
     }
 

@@ -659,7 +659,7 @@
         let badgeHtml = "";
         if (combat.playerTurn && !busy) {
           if (free) {
-            badgeHtml = '<span class="shuffle-badge free">FREE</span>';
+            // Label already reads "Shuffle FREE" — an extra FREE badge just overlaps
           } else if (extraFree) {
             badgeHtml = `<span class="shuffle-badge free">${combat.extraFreeShuffles}</span>`;
           } else {

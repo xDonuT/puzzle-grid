@@ -1995,6 +1995,8 @@ const screenMenu = document.getElementById("screen-menu");
       if (floorInput) floorInput.value = String(run.floor || 1);
       if (impactEl) impactEl.value = settings.impactTurn || 11;
       document.getElementById("muteToggle").classList.toggle("on", settings.muted);
+      const ltEl = document.getElementById("liteToggle");
+      if (ltEl) ltEl.classList.toggle("on", settings.liteMode === true);
       renderSkillList();
       const volSlider = document.getElementById("volSlider");
       const volLabel = document.getElementById("volLabel");
@@ -2114,6 +2116,27 @@ const screenMenu = document.getElementById("screen-menu");
       this.classList.toggle("on", settings.muted);
       persistSettings();
     });
+
+    // Lite mode toggle — applies body.lite-mode class which pauses all ambient CSS
+    function applyLiteMode() {
+      document.body.classList.toggle("lite-mode", settings.liteMode === true);
+    }
+    applyLiteMode();
+    const liteToggleEl = document.getElementById("liteToggle");
+    if (liteToggleEl) {
+      // Show current state on open
+      function syncLiteToggle() {
+        const isOn = settings.liteMode === true;
+        liteToggleEl.classList.toggle("on", isOn);
+      }
+      syncLiteToggle();
+      liteToggleEl.addEventListener("click", () => {
+        settings.liteMode = settings.liteMode === true ? false : true;
+        persistSettings();
+        syncLiteToggle();
+        applyLiteMode();
+      });
+    }
     const volSliderEl = document.getElementById("volSlider");
     if (volSliderEl) {
       volSliderEl.addEventListener("input", () => {

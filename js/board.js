@@ -186,7 +186,8 @@
     // Hard cap on live FX nodes (particles + petals + flashes). Big cascades
     // would otherwise spawn 300+ animated nodes and cook mobile GPUs.
     let fxNodeCount = 0;
-    function fxNodeAllowed() { return fxNodeCount < 140; }
+    function fxCap() { return (typeof settings !== "undefined" && settings.liteMode === true) ? 30 : 140; }
+    function fxNodeAllowed() { return fxNodeCount < fxCap(); }
     function fxTrack(el, anim, dur) {
       fxNodeCount++;
       const done = () => { fxNodeCount = Math.max(0, fxNodeCount - 1); el.remove(); };

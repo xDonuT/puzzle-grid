@@ -27,7 +27,8 @@
       clearedOnce: false,  // 🌟 Golden Cosmos unlocked after first final victory
       ngLoopsDone: 0,      // completed Golden Cosmos loops
       bestFloor: 0,        // career-best floor reached (unlocks global skills)
-      skills: { shuffleSurge: true } // global skill toggles
+      skills: { shuffleSurge: true }, // global skill toggles
+      liteMode: null        // null = auto-detect, true = forced lite, false = forced full
     };
 
     // ---- Global skills (account-wide, unlock via milestones) ----
@@ -69,7 +70,8 @@
           clearedOnce: settings.clearedOnce,
           ngLoopsDone: settings.ngLoopsDone,
           bestFloor: settings.bestFloor || 0,
-          skills: settings.skills || { shuffleSurge: true }
+          skills: settings.skills || { shuffleSurge: true },
+          liteMode: settings.liteMode
         }));
       } catch (_) {}
     }
@@ -98,6 +100,20 @@
             if (typeof o.skills[k] === "boolean") settings.skills[k] = o.skills[k];
           });
         }
+        if (typeof o.liteMode === "boolean" || o.liteMode === null) settings.liteMode = o.liteMode;
       } catch (_) {}
     }
     loadSettings();
+
+    // Auto-detect lite mode on first visit (null = undecided)
+    function autoDetectLite() {
+      if (settings.liteMode !== null) return; // user already chose
+      const cores = navigator.hardwareConcurrency || 4;
+      settings.liteMode = cores < 4;
+      persistSettings();
+    }
+    autoDetectLite();
+
+    function isLite() {
+      return settings.liteMode === true;
+    }

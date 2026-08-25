@@ -3079,6 +3079,27 @@ body.ult-hitstop .board-wrap {
       #actFlora { display: none; }
     }
 
+    /* ─── Lite mode: pause all ambient decoration to reduce GPU heat on low-end devices ─── */
+    body.lite-mode #stormBank,
+    body.lite-mode #pollen,
+    body.lite-mode #cloudSea,
+    body.lite-mode #goldenGlow,
+    body.lite-mode #actFlora,
+    body.lite-mode .board-vine,
+    body.lite-mode .strand.leafy,
+    body.lite-mode .strand.root {
+      animation: none !important;
+      opacity: 0 !important;
+      pointer-events: none;
+    }
+    body.lite-mode body::before,
+    body.lite-mode body::after,
+    body.lite-mode #actSky::before,
+    body.lite-mode #actSky::after {
+      animation: none !important;
+      opacity: 0 !important;
+    }
+
     /* ─── Act flora strip (grows OUT of the ground band, not under it) ─── */
     #actFlora {
       position: fixed; left: 0; right: 0; bottom: 54px;
@@ -3740,6 +3761,13 @@ body.ult-hitstop .board-wrap {
 
         <h3>Global Skills</h3>
         <div id="skillList"></div>
+
+        <h3>Performance</h3>
+        <div class="row">
+          <label>Lite mode</label>
+          <button type="button" class="toggle" id="liteToggle" aria-label="Lite mode"></button>
+        </div>
+        <div style="font-size:0.65rem;color:#a89a8c;margin-top:2px">Pauses ambient effects to reduce heat on low-end devices.</div>
       </div>
 
       <div id="tabAdmin" style="display:none">

@@ -1631,6 +1631,7 @@ const screenMenu = document.getElementById("screen-menu");
 
       gameOver = false;
       gameOverOverlay.classList.remove("open");
+      combat.boundTiles = new Set();
       combat.playerMaxHp = maxHp;
       // Partial heal between battles: restore ~45% of missing HP (not full)
       const prevHp = combat.playerHp || maxHp;

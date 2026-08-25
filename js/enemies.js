@@ -764,13 +764,29 @@
       // The Last Rival = dark Knight kit: final boss at floor 45
       45: { id: "lastrival", name: "The Last Rival", epithet: "The Tower's Final Fear", introColor: "#c86a5a", persona: "mender", bias: { hp: 1.8, shield: 1.3 }, ultName: "Earthshatter", ultTurns: 5,
             passive: "Regenerates 3 HP each turn · every hit applies Fracture (2 true dmg per stack at your turn start)",
-            ultDesc: "Massive hit + Mortal Wound (your healing -50% for 2 turns)",
+            ultDesc: "Massive hit + Mortal Wound (your healing -50% for 2 turns) + Root Bind (locks 50% of your signature tiles for 2 turns)",
             turnStart: () => { if (combat.enemyHp > 0) healEnemy(3); },
             ultFn: () => {
               const d = Math.round(enemyAtkForFloor(run.floor) * 1.8);
               combat.playerMortalWoundTurns = Math.max(combat.playerMortalWoundTurns, 2);
               dealDamageToPlayer(d);
-              setLog("Earthshatter", `Earthshatter · ${d} dmg + Mortal Wound 2t`);
+              // Root Bind: lock 50% of player's signature tiles
+              const sigType = typeof SIGNATURE !== "undefined" && SIGNATURE[combat.playerClass];
+              if (sigType && typeof board !== "undefined") {
+                const candidates = [];
+                for (let r = 0; r < ROWS; r++)
+                  for (let c = 0; c < COLS; c++)
+                    if (board[r][c] === sigType && !combat.boundTiles.has(`${r},${c}`))
+                      candidates.push(`${r},${c}`);
+                const toBind = Math.max(1, Math.floor(candidates.length * 0.5));
+                for (let i = candidates.length - 1; i > 0; i--) {
+                  const j = Math.floor(Math.random() * (i + 1));
+                  [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+                }
+                for (let i = 0; i < toBind; i++) combat.boundTiles.add(candidates[i]);
+                if (typeof syncBoundVisuals === "function") syncBoundVisuals();
+              }
+              setLog("Earthshatter", `Earthshatter · ${d} dmg + Mortal Wound 2t + Root Bind`);
             } }
     };
 
@@ -860,7 +876,8 @@
       extraFreeShuffles: 0,
       tileBloomPerTurn: false,
       tempShieldCapBonus: 0,
-      sigTilesThisTurn: 0
+      sigTilesThisTurn: 0,
+      boundTiles: new Set()   // "r,c" strings — tiles locked by Rival's Root Bind ult
     };
 
     // Track unused AP bonus from previous turn

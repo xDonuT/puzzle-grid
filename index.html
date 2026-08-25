@@ -318,6 +318,43 @@
     }
 
     /* Soft land when you release */
+    /* Root Bind: rival's ult locks signature tiles — root tendrils wrap the tile */
+    @keyframes rootWrap {
+      0%   { clip-path: polygon(0% 100%, 8% 85%, 4% 65%, 12% 50%, 6% 30%, 10% 10%); opacity: 0; }
+      100% { clip-path: polygon(0% 100%, 8% 85%, 4% 65%, 12% 50%, 6% 30%, 10% 10%); opacity: 0.9; }
+    }
+    @keyframes rootWrapR {
+      0%   { clip-path: polygon(100% 100%, 92% 82%, 96% 60%, 88% 45%, 94% 25%, 90% 8%); opacity: 0; }
+      100% { clip-path: polygon(100% 100%, 92% 82%, 96% 60%, 88% 45%, 94% 25%, 90% 8%); opacity: 0.9; }
+    }
+    .tile.bound {
+      pointer-events: none;
+      filter: saturate(0.5) brightness(0.82);
+    }
+    .tile.bound::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background:
+        linear-gradient(168deg, transparent 55%, rgba(90, 60, 30, 0.7) 100%),
+        linear-gradient(192deg, transparent 55%, rgba(70, 50, 25, 0.6) 100%);
+      z-index: 2;
+      pointer-events: none;
+    }
+    .tile.bound::after {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      border-radius: inherit;
+      border: 2px solid rgba(90, 60, 30, 0.55);
+      box-shadow:
+        inset 0 0 6px rgba(60, 40, 20, 0.35),
+        0 0 4px rgba(60, 40, 20, 0.25);
+      z-index: 3;
+      pointer-events: none;
+    }
+
     .tile.dropping {
       z-index: 15;
       animation: tileDrop 0.36s cubic-bezier(0.22, 1.15, 0.36, 1) forwards;

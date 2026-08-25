@@ -1728,6 +1728,18 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (combat.playerMortalWoundTurns > 0) combat.playerMortalWoundTurns--;
       if (combat.enemyWeakenTurns > 0) combat.enemyWeakenTurns--;
 
+      // Root Bind decay: 50% of remaining bindings break each turn
+      if (combat.boundTiles && combat.boundTiles.size > 0) {
+        const arr = Array.from(combat.boundTiles);
+        const toRemove = Math.ceil(arr.length * 0.5);
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        for (let i = 0; i < toRemove; i++) combat.boundTiles.delete(arr[i]);
+        if (typeof syncBoundVisuals === "function") syncBoundVisuals();
+      }
+
       // Knight Regeneration at start of own turn
       if (combat.playerClass === "knight" && combat.playerHp > 0) {
         applyHealing(3);

@@ -354,6 +354,16 @@
     }
 
     function shuffleBoard(opts = {}) {
+      // Root Bind: shuffle breaks 50% of bindings
+      if (combat.boundTiles && combat.boundTiles.size > 0) {
+        const arr = Array.from(combat.boundTiles);
+        const toRemove = Math.ceil(arr.length * 0.5);
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        for (let i = 0; i < toRemove; i++) combat.boundTiles.delete(arr[i]);
+      }
       const oldFaces = [];
       for (let i = 0; i < cells.length; i++) oldFaces.push(cells[i].innerHTML);
       const flat = [];
@@ -375,6 +385,7 @@
         }
       }
       rebuildVisual();
+      syncBoundVisuals();
       if (opts.animated === false || prefersReducedMotion()) return Promise.resolve();
       return flipCascade(oldFaces);
     }
@@ -443,12 +454,13 @@
       const mark = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
       const specialSpawns = []; // {r, c, type}
       let any = false;
+      const bound = (typeof combat !== "undefined" && combat.boundTiles) || new Set();
 
       // Horizontal runs
       for (let r = 0; r < ROWS; r++) {
         let n = 1;
         for (let c = 1; c <= COLS; c++) {
-          if (c < COLS && board[r][c] === board[r][c-1] && board[r][c] !== null) n++;
+          if (c < COLS && board[r][c] === board[r][c-1] && board[r][c] !== null && !bound.has(r + "," + c) && !bound.has(r + "," + (c-1))) n++;
           else {
             if (n >= MIN_MATCH) {
               any = true;
@@ -471,7 +483,7 @@
       for (let c = 0; c < COLS; c++) {
         let n = 1;
         for (let r = 1; r <= ROWS; r++) {
-          if (r < ROWS && board[r][c] === board[r-1][c] && board[r][c] !== null) n++;
+          if (r < ROWS && board[r][c] === board[r-1][c] && board[r][c] !== null && !bound.has(r + "," + c) && !bound.has((r-1) + "," + c)) n++;
           else {
             if (n >= MIN_MATCH) {
               any = true;
@@ -852,12 +864,28 @@
         }
       }
     }
+    // Root Bind: mark/unmark bound tiles with CSS class
+    function syncBoundVisuals() {
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const el = getCell(r, c);
+          if (typeof combat !== "undefined" && combat.boundTiles && combat.boundTiles.has(r + "," + c)) {
+            el.classList.add("bound");
+          } else {
+            el.classList.remove("bound");
+          }
+        }
+      }
+    }
+    window.syncBoundVisuals = syncBoundVisuals;
 
     // ---------- swap ----------
     async function trySwap(r1, c1, r2, c2) {
       if (busy || !combat.playerTurn) return;
       if (combat.ap <= 0) return;
       if (Math.abs(r1 - r2) + Math.abs(c1 - c2) !== 1) return;
+      // Root Bind: can't swap bound tiles
+      if (combat.boundTiles && (combat.boundTiles.has(r1 + "," + c1) || combat.boundTiles.has(r2 + "," + c2))) return;
 
       busy = true;
       try {
@@ -994,6 +1022,7 @@
       if (busy || combat.ap <= 0) return;
       const t = tileAt(e.clientX, e.clientY);
       if (!t) return;
+      if (combat.boundTiles && combat.boundTiles.has(t.row + "," + t.col)) return;
 
       ensureAudio();
 

@@ -1690,6 +1690,7 @@ const screenMenu = document.getElementById("screen-menu");
       combat.bossKit = BOSS_KITS[run.floor] || null;
       combat.eliteKit = ELITE_KITS[run.floor] || null;
       combat.enemyClass = pickEnemyVisual(run.floor);
+      combat.commonPassive = (!combat.bossKit && !combat.eliteKit) ? getCommonPassive(combat.enemyClass) : null;
       combat.enemyUltNeed = combat.bossKit ? combat.bossKit.ultTurns + (run.enemyUltSlow || 0) : 4 + (run.enemyUltSlow || 0);
       combat.enemyUltNeed += (run.pending && run.pending.enemySlow) || 0;
       combat.enemyUltNeed += run.heavyChains ? 1 : 0;
@@ -1774,6 +1775,7 @@ const screenMenu = document.getElementById("screen-menu");
         // Tutorial: weak passive dummy
         combat.bossKit = null;
         combat.eliteKit = null;
+        combat.commonPassive = null;
         combat.enemyArchetype = null;
         combat.enemyClass = "slime";
         combat.enemyFullName = "Training Dummy";

@@ -381,6 +381,28 @@
             } }
     };
 
+    // ---- Common enemy passives ----
+    const COMMON_PASSIVES = {
+      slime:  { name: "Water Shield",  desc: "When hit, gains 1 shield",
+                onHit: () => { combat.enemyShield = Math.min(settings.shieldMax, combat.enemyShield + 1); } },
+      bat:    { name: "Flutter",       desc: "25% chance to dodge your match",
+                onMatch: () => Math.random() < 0.25 },
+      mush:   { name: "Spore",         desc: "Attacks apply 1 poison",
+                onAttack: () => { combat.poisonTurns = Math.max(combat.poisonTurns, 1); flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "poison"); } },
+      golem:  { name: "Thick Skin",    desc: "Takes 1 less damage from all sources",
+                onDamaged: (dmg) => Math.max(1, dmg - 1) },
+      skull:  { name: "Desiccated",    desc: "Attacks strip 2 shield first",
+                onAttack: () => { if (combat.playerShield > 0) { const s = Math.min(2, combat.playerShield); combat.playerShield -= s; } } },
+      thorn:  { name: "Thorns",        desc: "Reflects 1 damage when hit",
+                onHit: () => { dealDamageToPlayer(1, { noFracture: true }); } },
+      wisp:   { name: "Drift",         desc: "At turn start, shifts one random tile",
+                onTurnStart: () => { if (typeof board !== "undefined" && typeof ROWS !== "undefined") { const r = Math.floor(Math.random() * ROWS); const c = Math.floor(Math.random() * COLS); const c2 = (c + 1) % COLS; const tmp = board[r][c]; board[r][c] = board[r][c2]; board[r][c2] = tmp; const ts = specials[r][c]; specials[r][c] = specials[r][c2]; specials[r][c2] = ts; rebuildVisual(); } } },
+      root:   { name: "Sprout",        desc: "Heals 1 HP each turn",
+                onTurnStart: () => { if (combat.enemyHp > 0) healEnemy(1); } },
+    };
+
+    function getCommonPassive(type) { return COMMON_PASSIVES[type] || null; }
+
     // Signature tile per class (charges ultimate)
     const SIGNATURE = {
       ninja: "sword",

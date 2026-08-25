@@ -857,6 +857,10 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       // Tutorial: the Training Dummy never harms the player.
       if (combat.tutorial) return;
       let dmg = Math.max(0, raw | 0);
+      // Common passive: Thick Skin (Mudwarden) reduces damage
+      if (combat.commonPassive && combat.commonPassive.name === "Thick Skin" && !opts.trueDmg && dmg > 0) {
+        dmg = Math.max(1, dmg - 1);
+      }
       if (dmg <= 0) return;
 
       // Ninja: first hit of battle always dodged; then 20% dodge
@@ -1073,6 +1077,10 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       }
       if (combat.enemyHp < before && combat.eliteKit && typeof combat.eliteKit.onDamaged === "function") {
         combat.eliteKit.onDamaged();
+      }
+      // Common passives: onHit (Water Shield, Thorns)
+      if (combat.enemyHp < before && combat.commonPassive && typeof combat.commonPassive.onHit === "function") {
+        combat.commonPassive.onHit();
       }
     }
 
@@ -1398,6 +1406,14 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         const live = `Rival: ${bits.filter((b) => !skipNumericBit(b)).join(" · ")}`;
         setLog(live, full);
       } else {
+        // Flutter dodge: Moth has 25% chance to negate your match damage
+        let flutterDodged = false;
+        if (combat.commonPassive && combat.commonPassive.name === "Flutter" && dmg > 0 && Math.random() < 0.25) {
+          flutterDodged = true;
+          dmg = 0;
+          dmgPop("enemy", "MISS!", "shielded");
+          setLog(`${combat.enemyName} fluttered away!`);
+        }
         if (dmg > 0) dealDamageToEnemy(dmg, { source: swordCount >= starCount ? "sword" : "star" });
         // FX: damage → enemy portrait; heal/shield → player portrait
         if (dmg > 0) {
@@ -1577,6 +1593,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       }
 
       applyArchetypeTurnStart();
+      if (combat.commonPassive && typeof combat.commonPassive.onTurnStart === "function") combat.commonPassive.onTurnStart();
       refreshCombatUI();
 
       // --- Normal Enemy Special Move ---
@@ -1596,6 +1613,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           const spDmg = Math.max(1, Math.round(enemyAtkForFloor(run.floor) * diffStats().atkMul * 1.5));
           dealDamageToPlayer(spDmg);
           applyArchetypePassiveOnHit();
+          if (combat.commonPassive && typeof combat.commonPassive.onAttack === "function") combat.commonPassive.onAttack();
           refreshCombatUI();
           if (combat.playerHp <= 0) { checkGameOver(); return; }
           maybePlayerLowVoice();
@@ -1625,6 +1643,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           dealDamageToPlayer(poke);
           applyArchetypePassiveOnHit();
           if (combat.eliteKit && combat.eliteKit.onHit) combat.eliteKit.onHit();
+          if (combat.commonPassive && typeof combat.commonPassive.onAttack === "function") combat.commonPassive.onAttack();
           setLog(`${combat.enemyName} attacks`, `${combat.enemyName} attacks · ${poke} dmg`);
           combat.enemyAp--;
           refreshCombatUI();
@@ -1669,6 +1688,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
             dealDamageToPlayer(poke);
             applyArchetypePassiveOnHit();
             if (combat.eliteKit && combat.eliteKit.onHit) combat.eliteKit.onHit();
+            if (combat.commonPassive && typeof combat.commonPassive.onAttack === "function") combat.commonPassive.onAttack();
           setLog(`${combat.enemyName} attacks`, `${combat.enemyName} attacks · ${poke} dmg`);
             combat.enemyAp--;
             maybePlayerLowVoice();

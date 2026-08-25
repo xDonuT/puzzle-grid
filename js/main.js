@@ -1632,7 +1632,12 @@ const screenMenu = document.getElementById("screen-menu");
       gameOver = false;
       gameOverOverlay.classList.remove("open");
       combat.playerMaxHp = maxHp;
-      combat.playerHp = maxHp;
+      // Partial heal between battles: restore ~45% of missing HP (not full)
+      const prevHp = combat.playerHp || maxHp;
+      const missing = Math.max(0, maxHp - prevHp);
+      let betweenHeal = Math.floor(missing * 0.45);
+      if ((run.healBlockFloors || 0) > 0) betweenHeal = Math.floor(betweenHeal * 0.5); // 🥀 Wilted halves it
+      combat.playerHp = Math.min(maxHp, prevHp + betweenHeal);
       combat.shield = Math.min(maxSh, hero.startShield + (run.floorShieldBonus || 0) + ((run.pending && run.pending.shield) || 0) + (run.fortifiedStart ? 4 + Math.floor(Math.random() * 3) : 0) + (run.unbreakable ? 10 : 0));
       combat.enemyShield = 0;
       combat.sigBank = (run.floorChargeBonus || 0);

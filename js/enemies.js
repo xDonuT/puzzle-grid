@@ -761,6 +761,8 @@
             ultDesc: "Blind + heavy hit + Disoriented (controls reversed for 2 turns)",
             ultFn: () => { combat.blindNext = true; combat.disorientedTurns = Math.max(combat.disorientedTurns, 2); dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.4)); setLog("Root Snare", "Root Snare · blind + heavy hit + Disoriented 2t"); } },
       30: { id: "cinder", name: "Squall Queen", epithet: "Crown of the Howling Gale", introColor: "#8a9cc8", persona: "viper", bias: { star: 1.5, sword: 1.2 }, ultName: "Ashstorm", ultTurns: 4,
+            passive: "Bloom Counter — each hit she takes adds a Bloom stack (+4% DR per stack, cap 8). At 5+ stacks she heals 2 HP/turn. Stacks decay -1/turn.",
+            ultDesc: "Poison + burst damage. Punishes chip damage — hit her hard and few times.",
             ultFn: () => { combat.poisonTurns = Math.max(combat.poisonTurns, 3); flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "poison"); dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.5)); setLog("Ashstorm · poison 3t + burst"); } },
       // The Last Rival = dark Knight kit: final boss at floor 45
       45: { id: "lastrival", name: "The Last Rival", epithet: "The Tower's Final Fear", introColor: "#c86a5a", persona: "mender", bias: { hp: 1.8, shield: 1.3 }, ultName: "Earthshatter", ultTurns: 5,
@@ -847,6 +849,7 @@
       playerFractureTurns: 0,
       playerMortalWoundTurns: 0,     // The Last Rival mortal wound on player
       disorientedTurns: 0,           // Bracken Root Snare: controls reversed
+      squallBloom: 0,                // Squall Queen: bloom stacks (damage reduction + heal)
       enemyName: "Rival",
       enemyFullName: "Rival",
       bossKit: null,

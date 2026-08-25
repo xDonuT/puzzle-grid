@@ -789,6 +789,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (combat.enemyPoisonTurns > 0) eChips.push({ key: "poison", emoji: "☠️", count: combat.enemyPoisonTurns });
       if (combat.poisonStacks > 0) eChips.push({ key: "poisonStacks", emoji: "🧪", count: combat.poisonStacks });
       if (combat.acidStacks > 0) eChips.push({ key: "acidStacks", emoji: "🩸", count: combat.acidStacks });
+      if (combat.squallBloom > 0) eChips.push({ key: "squallBloom", emoji: "🌺", count: combat.squallBloom });
       syncPortraitChips(enemyPortraitEl, eChips);
 
       // Enemy shield badge (mirror of the player's) — the rival does NOT get
@@ -823,6 +824,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
     }
 
     const STATUS_INFO = {
+      squallBloom: { name: "Bloom", detail: "Each stack = 4% damage reduction (cap 8). At 5+ stacks she heals 2 HP/turn. Decays -1 per turn." },
       disoriented: { name: "Disoriented", detail: "Controls reversed — drag left to go right, drag right to go left (from Bracken's Root Snare)." },
       afterglow: { name: "Afterglow", detail: "Take 50% less damage for the listed turns (from Ninja ultimate)." },
       poison: { name: "Poison", detail: "3 true-ish damage at the start of the affected side’s relevant turn. Counts down each player turn." },
@@ -1036,6 +1038,14 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       // Acid amplifier: +2% per stack, cap 30 stacks (+60%)
       if (combat.acidStacks > 0) {
         dmg = Math.round(dmg * (1 + Math.min(30, combat.acidStacks) * 0.02));
+      }
+
+      // 🌺 Squall Queen Bloom Counter: each hit builds bloom stacks (damage reduction)
+      if (combat.bossKit && combat.bossKit.id === "cinder" && !opts.trueDmg && dmg > 0) {
+        combat.squallBloom = Math.min(8, combat.squallBloom + 1);
+        const reduction = 1 - combat.squallBloom * 0.04; // 4% per stack
+        dmg = Math.max(1, Math.round(dmg * reduction));
+        if (combat.squallBloom >= 5) setLog("Bloom", "🌺 Bloom " + combat.squallBloom + " · flowers defending");
       }
 
       const trueDmg = !!opts.trueDmg; // ultimates & fracture
@@ -1731,6 +1741,14 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (combat.playerMortalWoundTurns > 0) combat.playerMortalWoundTurns--;
       if (combat.enemyWeakenTurns > 0) combat.enemyWeakenTurns--;
       if (combat.disorientedTurns > 0) combat.disorientedTurns--;
+      // 🌺 Bloom decay: -1 stack per turn, heal at 5+
+      if (combat.squallBloom > 0) {
+        if (combat.bossKit && combat.bossKit.id === "cinder" && combat.squallBloom >= 5 && combat.enemyHp > 0) {
+          healEnemy(2);
+          setLog("Bloom", "🌺 Bloom " + combat.squallBloom + " · heals 2 HP");
+        }
+        combat.squallBloom = Math.max(0, combat.squallBloom - 1);
+      }
 
       // Root Bind decay: 50% of remaining bindings break each turn
       if (combat.boundTiles && combat.boundTiles.size > 0) {

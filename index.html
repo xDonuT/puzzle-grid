@@ -355,6 +355,15 @@
       pointer-events: none;
     }
 
+    /* Disoriented: controls reversed — subtle warp on the board */
+    body.disoriented .board-wrap {
+      animation: disorientedWarp 3s ease-in-out infinite;
+    }
+    @keyframes disorientedWarp {
+      0%, 100% { filter: hue-rotate(0deg); }
+      50% { filter: hue-rotate(8deg); }
+    }
+
     .tile.dropping {
       z-index: 15;
       animation: tileDrop 0.36s cubic-bezier(0.22, 1.15, 0.36, 1) forwards;

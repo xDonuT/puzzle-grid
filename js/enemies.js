@@ -758,7 +758,8 @@
     // Unique boss kits (floor → definition)
     const BOSS_KITS = {
       15: { id: "bracken", name: "Bracken the Rootbound", epithet: "Warden of the Sprout", introColor: "#7aa65e", persona: "bruiser", bias: { sword: 1.5 }, ultName: "Root Snare", ultTurns: 4,
-            ultFn: () => { combat.blindNext = true; dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.4)); setLog("Root Snare · blind + heavy hit"); } },
+            ultDesc: "Blind + heavy hit + Disoriented (controls reversed for 2 turns)",
+            ultFn: () => { combat.blindNext = true; combat.disorientedTurns = Math.max(combat.disorientedTurns, 2); dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.4)); setLog("Root Snare", "Root Snare · blind + heavy hit + Disoriented 2t"); } },
       30: { id: "cinder", name: "Squall Queen", epithet: "Crown of the Howling Gale", introColor: "#8a9cc8", persona: "viper", bias: { star: 1.5, sword: 1.2 }, ultName: "Ashstorm", ultTurns: 4,
             ultFn: () => { combat.poisonTurns = Math.max(combat.poisonTurns, 3); flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "poison"); dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.5)); setLog("Ashstorm · poison 3t + burst"); } },
       // The Last Rival = dark Knight kit: final boss at floor 45
@@ -845,6 +846,7 @@
       playerFractureStacks: 0,       // The Last Rival (dark knight) fracture on player
       playerFractureTurns: 0,
       playerMortalWoundTurns: 0,     // The Last Rival mortal wound on player
+      disorientedTurns: 0,           // Bracken Root Snare: controls reversed
       enemyName: "Rival",
       enemyFullName: "Rival",
       bossKit: null,

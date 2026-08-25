@@ -823,6 +823,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
     }
 
     const STATUS_INFO = {
+      disoriented: { name: "Disoriented", detail: "Controls reversed — drag left to go right, drag right to go left (from Bracken's Root Snare)." },
       afterglow: { name: "Afterglow", detail: "Take 50% less damage for the listed turns (from Ninja ultimate)." },
       poison: { name: "Poison", detail: "3 true-ish damage at the start of the affected side’s relevant turn. Counts down each player turn." },
       empower: { name: "Empower", detail: "Your next damaging match deals +50% damage, then clears." },
@@ -1495,6 +1496,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       busy = true;
       combat.playerTurn = false;
       document.body.classList.remove("your-turn");
+      document.body.classList.remove("disoriented");
       combat.surgeActive = 0; // 🌀 Shuffle Surge lasts exactly one turn
       combat.enemyAp = Math.min(AP_MAX, 3); // rival caps at base AP — player bonuses are pure upside
 
@@ -1680,6 +1682,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       combat.turn += 1;
       combat.playerTurn = true;
       document.body.classList.add("your-turn");
+      document.body.classList.toggle("disoriented", combat.disorientedTurns > 0);
       // Per-turn floor modifiers: Gentle Rain / Deep Roots / Pollen Puff
       if (combat.playerHealPerTurn) applyHealing(combat.playerHealPerTurn);
       if (combat.shieldPerTurn) applyShielding(combat.shieldPerTurn);
@@ -1727,6 +1730,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (combat.enemyAfterglowTurns > 0) combat.enemyAfterglowTurns--;
       if (combat.playerMortalWoundTurns > 0) combat.playerMortalWoundTurns--;
       if (combat.enemyWeakenTurns > 0) combat.enemyWeakenTurns--;
+      if (combat.disorientedTurns > 0) combat.disorientedTurns--;
 
       // Root Bind decay: 50% of remaining bindings break each turn
       if (combat.boundTiles && combat.boundTiles.size > 0) {

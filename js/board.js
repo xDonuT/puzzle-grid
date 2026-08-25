@@ -1073,8 +1073,9 @@
       let willSwap = false;
 
       if (ax > th || ay > th) {
-        if (ax > ay) tc += dx > 0 ? 1 : -1;
-        else tr += dy > 0 ? 1 : -1;
+        const disori = typeof combat !== "undefined" && combat.disorientedTurns > 0;
+        if (ax > ay) tc += dx > 0 ? (disori ? -1 : 1) : (disori ? 1 : -1);
+        else tr += dy > 0 ? (disori ? -1 : 1) : (disori ? 1 : -1);
 
         if (tr >= 0 && tr < ROWS && tc >= 0 && tc < COLS) {
           willSwap = true;

@@ -35,6 +35,31 @@
         <circle fill="#33261d" cx="9.9" cy="8.7" r="0.9"/>
         <circle fill="#33261d" cx="14.1" cy="8.7" r="0.9"/>
         <path fill="#33261d" d="M10.6 12.3c0.4 0.3 0.9 0.4 1.4 0.4s1-0.1 1.4-0.4l-1.4-1.2-1.4 1.2z"/>
+      </svg>`,
+      thorn: `<svg viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor" d="M12 4.5l2.5 3.8h3.2l-2.6 2.8 1 3.6L12 12.8l-4.1 1.9 1-3.6-2.6-2.8h3.2z"/>
+        <circle fill="#3a2a1a" cx="10.8" cy="8.4" r="0.6"/>
+        <circle fill="#3a2a1a" cx="13.2" cy="8.4" r="0.6"/>
+        <path fill="currentColor" d="M8.5 14.8l-1.5 4.2h2.8l1.2-3.4z"/>
+        <path fill="currentColor" d="M15.5 14.8l1.5 4.2h-2.8l-1.2-3.4z"/>
+        <path fill="currentColor" d="M11.5 15.2l-0.5 3.8h2l-0.5-3.8z"/>
+      </svg>`,
+      wisp: `<svg viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor" d="M12 3c1.5 0 2.8 1.2 2.8 2.8 0 0.8-0.3 1.5-0.9 2l0.9 2.2h-5.6l0.9-2.2c-0.6-0.5-0.9-1.2-0.9-2C9.2 4.2 10.5 3 12 3z"/>
+        <path fill="currentColor" d="M7.5 8c-1.5 0.5-2.5 2-2.5 3.5s0.8 2.8 2 3.5l1.5-2.5z"/>
+        <path fill="currentColor" d="M16.5 8c1.5 0.5 2.5 2 2.5 3.5s-0.8 2.8-2 3.5l-1.5-2.5z"/>
+        <path fill="currentColor" d="M12 15.5c-1.5 0-2.8-1.2-2.8-2.8 0-0.8 0.3-1.5 0.9-2l-0.9-2.2h5.6l-0.9 2.2c0.6 0.5 0.9 1.2 0.9 2C14.8 14.3 13.5 15.5 12 15.5z"/>
+        <circle fill="#3a2a1a" cx="10.8" cy="10" r="0.6"/>
+        <circle fill="#3a2a1a" cx="13.2" cy="10" r="0.6"/>
+      </svg>`,
+      root: `<svg viewBox="0 0 24 24" aria-hidden="true">
+        <ellipse fill="currentColor" cx="12" cy="10" rx="4" ry="3"/>
+        <path fill="currentColor" d="M8 12c-1 1.5-2 3-3 5 1.5-0.5 2.5-0.5 3.5 0 0.5-1.5 1-3 0.5-5z"/>
+        <path fill="currentColor" d="M16 12c1 1.5 2 3 3 5-1.5-0.5-2.5-0.5-3.5 0-0.5-1.5-1-3-0.5-5z"/>
+        <path fill="currentColor" d="M10 13c-0.5 2-1 3.5-1.5 5.5 1-0.3 1.5-0.3 2 0 0.3-1.5 0.5-3 0-5.5z"/>
+        <path fill="currentColor" d="M14 13c0.5 2 1 3.5 1.5 5.5-1-0.3-1.5-0.3-2 0-0.3-1.5-0.5-3 0-5.5z"/>
+        <circle fill="#3a2a1a" cx="10.8" cy="9.5" r="0.6"/>
+        <circle fill="#3a2a1a" cx="13.2" cy="9.5" r="0.6"/>
       </svg>`
     };
 
@@ -123,6 +148,9 @@
       mush:     { name: "Fungling", role: "emush",     svg: MONSTER_SVG.mush },
       golem:    { name: "Mudwarden", role: "egolem",    svg: MONSTER_SVG.golem },
       skull:    { name: "Husk",      role: "eskull",    svg: MONSTER_SVG.skull },
+      thorn:    { name: "Bramble",   role: "ethorn",    svg: MONSTER_SVG.thorn },
+      wisp:     { name: "Petalwisp", role: "ewisp",     svg: MONSTER_SVG.wisp },
+      root:     { name: "Rootling",  role: "eroot",     svg: MONSTER_SVG.root },
 
       // ---- Elite recolors (same shapes, themed palette) ----
       bracken:    { name: "Bracken",    role: "c-bracken",    svg: MONSTER_SVG.golem },
@@ -255,7 +283,10 @@
         bat:   ["Flit", "Wisp", "Glimmer", "Dusk", "Moonwing", "Flutter"],
         mush:  ["Puff", "Spore", "Morel", "Bracket", "Toadstool", "Truffle"],
         golem: ["Pebble", "Clod", "Loam", "Boulder", "Sod", "Mossy"],
-        skull: ["Wilt", "Thorn", "Rattle", "Dryleaf", "Bramble", "Stub"]
+        skull: ["Wilt", "Thorn", "Rattle", "Dryleaf", "Bramble", "Stub"],
+        thorn: ["Spike", "Burr", "Briar", "Prickle", "Barb", "Nettle"],
+        wisp:  ["Petal", "Bloom", "Flora", "Daisy", "Iris", "Poppy"],
+        root:  ["Tendril", "Sprig", "Runner", "Fiber", "Rootlet", "Creeper"]
       };
       const pool = (type && BY_TYPE[type]) || ENEMY_NAMES;
       return pool[Math.floor(Math.random() * pool.length)];
@@ -278,7 +309,7 @@
       42: "nightcoil",
       45: "lastrival"
     };
-    const MONSTER_POOL = ["slime", "bat", "mush", "golem", "skull"];
+    const MONSTER_POOL = ["slime", "bat", "mush", "golem", "skull", "thorn", "wisp", "root"];
 
     function pickEnemyVisual(floor) {
       if (ENEMY_VISUALS[floor]) return ENEMY_VISUALS[floor];

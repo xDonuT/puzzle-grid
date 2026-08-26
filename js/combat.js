@@ -2269,10 +2269,15 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         }
       } else if (cls === "knight") {
         const shatterBonus = combat.fractureStacks * 4;
+        const heartHeal = tilesConsumed * 3;
         combat.fractureStacks = 0;
         combat.fractureTurns = 0;
         combat.mortalWoundTurns = Math.max(combat.mortalWoundTurns, 2);
-        bits.push("Earthshatter", `${ultDmg} true`, `${tilesConsumed} ❤️ consumed`, shatterBonus > 0 ? `Shatter +${shatterBonus}` : "No Fracture", "Mortal Wound");
+        bits.push("Earthshatter", `${ultDmg} true`, `${tilesConsumed} ❤️ consumed`, heartHeal > 0 ? `+${heartHeal} HP` : "No hearts", shatterBonus > 0 ? `Shatter +${shatterBonus}` : "No Fracture", "Mortal Wound");
+        if (heartHeal > 0) {
+          await sleep(90);
+          applyHealing(heartHeal);
+        }
         if (shatterBonus > 0) {
           await sleep(90);
           dealDamageToEnemy(shatterBonus, { trueDmg: true, source: "ult" });

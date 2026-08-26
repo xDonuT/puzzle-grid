@@ -2415,7 +2415,7 @@ const screenMenu = document.getElementById("screen-menu");
         shapes = "⭐ +12 Shield + 3→Shield · 💥 Mana Lock 2t · ⚡ Steal up to 3 Shield";
       } else {
         passive = "Regen +3 HP each turn. Iron Will: survive a lethal hit once per battle at 1 HP, gain +5 Fracture. Fracture stacks deal true dmg at enemy turn start — or cash them in early with a Charged match (Shatter: stacks×3).";
-        ult = "Earthshatter: Consumes ALL ❤️ on board — 5 + 5 dmg per ❤️, true + Shatter all Fracture (stacks×4 bonus) + Mortal Wound 2t.";
+        ult = "Earthshatter: Consumes ALL ❤️ on board — 5 + 5 dmg per ❤️, true, heal 3 HP per ❤️ + Shatter all Fracture (stacks×4 bonus) + Mortal Wound 2t.";
         shapes = "⭐ +2 Fracture + 3→Potion · 💥 +3 Fracture + 1 AP · ⚡ Shatter (stacks×3)";
       }
       return `
@@ -2435,17 +2435,17 @@ const screenMenu = document.getElementById("screen-menu");
     function runUpgradeSection() {
       const picked = run.pickedUpgrades || [];
       const passives = run.passives || [];
-      const upgradeNames = picked.map(id => {
+      const upgradeLines = picked.map(id => {
         const u = RUN_UPGRADES.find(u => u.id === id);
-        return u ? u.name : id;
+        return u ? `<b>${u.name}</b> — ${u.desc}` : id;
       });
-      const passiveNames = passives.map(id => {
+      const passiveLines = passives.map(id => {
         const p = typeof PASSIVE_TREES !== "undefined" ? PASSIVE_TREES.find(x => x.id === id) : null;
-        return p ? p.icon + " " + p.name : id;
+        return p ? `${p.icon} <b>${p.name}</b> — ${p.desc || ""}` : id;
       });
       const sections = [];
-      if (upgradeNames.length) sections.push(`<div class="info-section">Permanent Upgrades</div><div class="info-body">${upgradeNames.join(" · ")}</div>`);
-      if (passiveNames.length) sections.push(`<div class="info-section">Passives</div><div class="info-body">${passiveNames.join(" · ")}</div>`);
+      if (upgradeLines.length) sections.push(`<div class="info-section">Permanent Upgrades</div><div class="info-body">${upgradeLines.join("<br>")}</div>`);
+      if (passiveLines.length) sections.push(`<div class="info-section">Passives</div><div class="info-body">${passiveLines.join("<br>")}</div>`);
       return sections.join("");
     }
 

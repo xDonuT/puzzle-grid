@@ -521,7 +521,7 @@
     const BGM_FILES = {
       1: "music/Little Sprout.mp3",
       2: "music/Petal Peak.mp3",
-      3: "music/Petal Peak.mp3"
+      3: "music/Combo Blitz.mp3"
     };
 
     let bgmCurrent = null;

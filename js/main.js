@@ -2538,6 +2538,15 @@ const screenMenu = document.getElementById("screen-menu");
     `;
   }
 
+  // ---- COMMON MONSTER PASSIVE ----
+  if (combat.commonPassive) {
+    const cp = combat.commonPassive;
+    passiveDetails += `
+      <div class="info-section">🐾 Innate Ability</div>
+      <div class="info-body"><strong>${cp.name}</strong> — ${cp.desc}</div>
+    `;
+  }
+
   // ---- POWER STRIKE (all normal enemies) ----
   if (!combat.bossKit && !combat.eliteKit) {
     const chargeTime = combat.enemySpecialNeed || "4-5";

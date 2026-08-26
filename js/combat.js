@@ -566,6 +566,9 @@
           if (span.dataset.status === "arch" && combat.enemyArchetype) {
             extra = `\n\n${combat.enemyArchetype.label}: ${combat.enemyArchetype.passive}\nPlays: ${personalityStrategy()}`;
           }
+          if (span.dataset.status === "commonPassive" && combat.commonPassive) {
+            extra = `\n\n${combat.commonPassive.name}: ${combat.commonPassive.desc}`;
+          }
           openStatusDetail(info.name, info.detail + extra);
         });
       });
@@ -648,10 +651,12 @@
       if (playerHeartHp) playerHeartHp.classList.toggle("low", pPct < 30);
       if (enemyHeartHp) enemyHeartHp.classList.toggle("low", ePct < 30);
       if (turnNumEl) {
-        // Phase rides inside the turn counter — the one place eyes already are
         const ph = getPhase();
         const phaseMark = ph === "fever" ? " ☀️" : ph === "impact" ? " 🌸" : "";
-        turnNumEl.textContent = `Turn ${combat.turn}${phaseMark} \u00b7 F${run.floor}`;
+        const actIdx = run.gameMap ? (run.gameMap.currentAct || 1) : Math.ceil(run.floor / 15);
+        const actEmoji = ["", "\ud83c\udf31", "\ud83c\udf38", "\ud83c\udf3a"][actIdx] || "\u2b50";
+        const actFloor = run.floor - (actIdx - 1) * 15;
+        turnNumEl.textContent = `Turn ${combat.turn}${phaseMark} \u00b7 ${actEmoji} ${actFloor}/15`;
       }
       if (btnShuffle) {
         const free = (combat.freeShuffles || 0) > 0;
@@ -795,6 +800,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if ((combat.enemyBurnTurns || 0) > 0) eChips.push({ key: "burn", emoji: "🔥", count: combat.enemyBurnTurns });
       if ((combat.enemyStunTurns || 0) > 0) eChips.push({ key: "stun", emoji: "⚡", count: combat.enemyStunTurns });
       if ((combat.enemyFrostTurns || 0) > 0) eChips.push({ key: "frost", emoji: "❄️", count: combat.enemyFrostTurns });
+      if (combat.commonPassive) eChips.push({ key: "commonPassive", emoji: "🐾", count: 0 });
       syncPortraitChips(enemyPortraitEl, eChips);
 
       // Enemy shield badge (mirror of the player's) — the rival does NOT get
@@ -847,7 +853,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       poisonStacks: { name: "Poison", detail: "Deals stacks × (3 + Floor×0.5) true damage at the start of your turn, then decays by 1. Applied by class perks." },
       acidStacks: { name: "Acid", detail: "All incoming damage is amplified by +2% per stack (cap 30 → +60% max). Applied by class perks." },
       gauntlet: { name: "Gauntlet", detail: "Multi-enemy floor. Shows which foe you are fighting now." },
-      arch: { name: "Archetype", detail: "This foe’s special behavior (see name)." }
+      arch: { name: "Archetype", detail: "This foe’s special behavior (see name)." },
+      commonPassive: { name: "Innate", detail: "This creature has a special ability." }
     };
 
     function openStatusDetail(title, body) {

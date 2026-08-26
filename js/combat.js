@@ -1844,6 +1844,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       combat.pendingSurge = 0;
       if (combat.surgeActive > 0) {
         setLog("Shuffle Surge", `🌀 Surge active · +${25 * combat.surgeActive}% damage this turn`);
+        dmgPop("player", `🌀+${25 * combat.surgeActive}% DMG`, "empowered");
       }
       combat.sigTilesThisTurn = 0;       // sig tile charge accumulator (3 tiles = 1 charge)
       combat._sigMatchesThisTurn = 0;    // sig match counter (for ultChargeBonus)

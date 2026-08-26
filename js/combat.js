@@ -656,7 +656,8 @@
         const actIdx = run.gameMap ? (run.gameMap.currentAct || 1) : Math.ceil(run.floor / 15);
         const actEmoji = ["", "\ud83c\udf31", "\ud83c\udf38", "\ud83c\udf3a"][actIdx] || "\u2b50";
         const actFloor = run.floor - (actIdx - 1) * 15;
-        turnNumEl.textContent = `Turn ${combat.turn}${phaseMark} \u00b7 ${actEmoji} ${actFloor}/15`;
+        const modMark = combat.floorModifier ? ` ${combat.floorModifier.icon}` : "";
+        turnNumEl.textContent = `Turn ${combat.turn}${phaseMark} \u00b7 ${actEmoji} ${actFloor}/15${modMark}`;
       }
       if (btnShuffle) {
         const free = (combat.freeShuffles || 0) > 0;
@@ -766,6 +767,14 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         shieldBadgeEl.title = `Shield: ${combat.shield}/${maxSh}`;
       }
       if (shieldNumEl) shieldNumEl.textContent = String(combat.shield);
+
+      // Player stat row — always-visible summary of key stats
+      const statSwordEl = document.getElementById("statSword");
+      const statMaxHpEl = document.getElementById("statMaxHp");
+      const statShieldEl = document.getElementById("statShield");
+      if (statSwordEl) statSwordEl.textContent = String(settings.swordDmg + (run.bonusSwordDmg || 0) + (combat.tempSwordDmg || 0));
+      if (statMaxHpEl) statMaxHpEl.textContent = String(combat.playerMaxHp);
+      if (statShieldEl) statShieldEl.textContent = String(maxSh);
 
       if (playerPortraitEl) {
         playerPortraitEl.classList.toggle("ult-ready", ultReady() && combat.afterglowTurns <= 0);

@@ -781,7 +781,7 @@
     const BOSS_KITS = {
       15: { id: "bracken", name: "Bracken the Rootbound", epithet: "Warden of the Sprout", introColor: "#7aa65e", persona: "bruiser", bias: { sword: 1.5 }, ultName: "Root Snare", ultTurns: 4,
             ultDesc: "Blind + heavy hit + Disoriented (controls reversed for 2 turns)",
-            ultFn: () => { combat.blindNext = true; combat.disorientedTurns = Math.max(combat.disorientedTurns, 2); dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.4)); if (typeof sprinkleStatusTiles === "function") sprinkleStatusTiles("corrupted", 3); setLog("Root Snare", "Root Snare · blind + heavy hit + Disoriented 2t + Corrupts 3 tiles"); } },
+            ultFn: () => { combat.blindNext = true; combat.disorientedTurns = Math.max(combat.disorientedTurns, 2); dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.4)); if (typeof sprinkleStatusTiles === "function") sprinkleStatusTiles("corrupted", 3); document.body.classList.add("disoriented"); dmgPop("player", "DISORIENTED", "shielded"); setLog("Root Snare", "Root Snare · blind + heavy hit + Disoriented 2t + Corrupts 3 tiles"); } },
       30: { id: "cinder", name: "Squall Queen", epithet: "Crown of the Howling Gale", introColor: "#8a9cc8", persona: "viper", bias: { star: 1.5, sword: 1.2 }, ultName: "Ashstorm", ultTurns: 4,
             passive: "Bloom Counter — each hit she takes adds a Bloom stack (+4% DR per stack, cap 8). At 5+ stacks she heals 2 HP/turn. Stacks decay -1/turn.",
             ultDesc: "Poison + burst damage + Corrupts tiles. Punishes chip damage — hit her hard and few times.",

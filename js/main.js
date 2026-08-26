@@ -1638,6 +1638,11 @@ const screenMenu = document.getElementById("screen-menu");
       gameOverOverlay.classList.remove("open");
       combat.boundTiles = new Set();
       combat.squallBloom = 0;
+      combat.disorientedTurns = 0;
+      combat.enemyBurnTurns = 0;
+      combat.enemyBurnDmg = 0;
+      combat.enemyStunTurns = 0;
+      combat.enemyFrostTurns = 0;
       combat.playerMaxHp = maxHp;
       // Partial heal between battles: restore ~45% of missing HP (not full)
       const prevHp = combat.playerHp || maxHp;

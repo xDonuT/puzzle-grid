@@ -780,6 +780,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (combat.blindNext) pChips.push({ key: "blind", emoji: "🌫️", count: 0 });
       if (combat.weakenNextSword) pChips.push({ key: "weaken", emoji: "❌", count: 0 });
       if (combat.playerMortalWoundTurns > 0) pChips.push({ key: "mortal", emoji: "💔", count: combat.playerMortalWoundTurns });
+      if (combat.disorientedTurns > 0) pChips.push({ key: "disoriented", emoji: "🔄", count: combat.disorientedTurns });
       syncPortraitChips(playerPortraitEl, pChips);
 
       const eChips = [];
@@ -791,6 +792,9 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (combat.poisonStacks > 0) eChips.push({ key: "poisonStacks", emoji: "🧪", count: combat.poisonStacks });
       if (combat.acidStacks > 0) eChips.push({ key: "acidStacks", emoji: "🩸", count: combat.acidStacks });
       if (combat.squallBloom > 0) eChips.push({ key: "squallBloom", emoji: "🌺", count: combat.squallBloom });
+      if ((combat.enemyBurnTurns || 0) > 0) eChips.push({ key: "burn", emoji: "🔥", count: combat.enemyBurnTurns });
+      if ((combat.enemyStunTurns || 0) > 0) eChips.push({ key: "stun", emoji: "⚡", count: combat.enemyStunTurns });
+      if ((combat.enemyFrostTurns || 0) > 0) eChips.push({ key: "frost", emoji: "❄️", count: combat.enemyFrostTurns });
       syncPortraitChips(enemyPortraitEl, eChips);
 
       // Enemy shield badge (mirror of the player's) — the rival does NOT get

@@ -3793,7 +3793,12 @@ body.ult-hitstop .board-wrap {
           <button type="button" class="toggle on" id="musicToggle" aria-label="Music"></button>
         </div>
         <div class="row">
-          <label>Volume</label>
+          <label>Music Vol</label>
+          <input type="range" id="musicVolSlider" min="0" max="100" value="50" style="flex:1;accent-color:#7aa65e" />
+          <span id="musicVolLabel" style="min-width:2.2em;text-align:right;font-variant-numeric:tabular-nums">50</span>
+        </div>
+        <div class="row">
+          <label>SFX</label>
           <input type="range" id="volSlider" min="0" max="100" value="80" style="flex:1;accent-color:#efb09a" />
           <span id="volLabel" style="min-width:2.2em;text-align:right;font-variant-numeric:tabular-nums">80</span>
         </div>

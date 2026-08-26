@@ -2007,6 +2007,12 @@ const screenMenu = document.getElementById("screen-menu");
       document.getElementById("muteToggle").classList.toggle("on", settings.muted);
       const mtEl = document.getElementById("musicToggle");
       if (mtEl) mtEl.classList.toggle("on", settings.musicEnabled !== false);
+      const musicVolSlider = document.getElementById("musicVolSlider");
+      const musicVolLabel = document.getElementById("musicVolLabel");
+      if (musicVolSlider) {
+        musicVolSlider.value = Math.round((settings.musicVolume || 0.5) * 100);
+        if (musicVolLabel) musicVolLabel.textContent = String(musicVolSlider.value);
+      }
       const ltEl = document.getElementById("liteToggle");
       if (ltEl) ltEl.classList.toggle("on", settings.liteMode === true);
       renderSkillList();
@@ -2168,6 +2174,16 @@ const screenMenu = document.getElementById("screen-menu");
         settings.volume = Math.max(0, Math.min(1, (+volSliderEl.value || 0) / 100));
         const lab = document.getElementById("volLabel");
         if (lab) lab.textContent = String(volSliderEl.value);
+        persistSettings();
+      });
+    }
+    const musicVolSliderEl = document.getElementById("musicVolSlider");
+    if (musicVolSliderEl) {
+      musicVolSliderEl.addEventListener("input", () => {
+        settings.musicVolume = Math.max(0, Math.min(1, (+musicVolSliderEl.value || 0) / 100));
+        const lab = document.getElementById("musicVolLabel");
+        if (lab) lab.textContent = String(musicVolSliderEl.value);
+        bgmUpdateVolume();
         persistSettings();
       });
     }

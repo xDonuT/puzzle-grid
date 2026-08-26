@@ -29,7 +29,8 @@
       bestFloor: 0,        // career-best floor reached (unlocks global skills)
       skills: { shuffleSurge: true }, // global skill toggles
       liteMode: null,        // null = auto-detect, true = forced lite, false = forced full
-      musicEnabled: true     // background music on/off
+      musicEnabled: true,    // background music on/off
+      musicVolume: 0.5       // music volume 0-1 (separate from SFX)
     };
 
     // ---- Global skills (account-wide, unlock via milestones) ----
@@ -73,7 +74,8 @@
           bestFloor: settings.bestFloor || 0,
           skills: settings.skills || { shuffleSurge: true },
           liteMode: settings.liteMode,
-          musicEnabled: settings.musicEnabled
+          musicEnabled: settings.musicEnabled,
+          musicVolume: settings.musicVolume
         }));
       } catch (_) {}
     }
@@ -104,6 +106,7 @@
         }
         if (typeof o.liteMode === "boolean" || o.liteMode === null) settings.liteMode = o.liteMode;
         if (typeof o.musicEnabled === "boolean") settings.musicEnabled = o.musicEnabled;
+        if (typeof o.musicVolume === "number") settings.musicVolume = Math.max(0, Math.min(1, o.musicVolume));
       } catch (_) {}
     }
     loadSettings();

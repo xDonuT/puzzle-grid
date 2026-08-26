@@ -475,8 +475,8 @@
     let bgmStarted = false;
 
     function bgmVol() {
-      if (settings.muted) return 0;
-      return Math.max(0, Math.min(0.35, settings.volume * 0.35));
+      if (settings.muted || settings.musicEnabled === false) return 0;
+      return Math.max(0, Math.min(0.5, (settings.musicVolume || 0.5) * 0.5));
     }
 
     function bgmPlay(act) {

@@ -144,8 +144,13 @@
     }
 
     function playMatch(count) {
-      const base = 0.92 + Math.min(count, 5) * 0.03;
-      playCorrect(base);
+      // +1 semitone per combo tier above 3-match (semitone = 2^(1/12))
+      const tier = Math.max(0, (count || 3) - 3);
+      const semitone = Math.pow(2, 1 / 12);
+      const pitch = Math.pow(semitone, tier);
+      playCorrect(pitch);
+      // Bigger combos get a sparkle layer
+      if (tier >= 2) playSparkle(2.5 + tier * 0.3, 0.2 + tier * 0.05);
       hapticMatch();
     }
 
@@ -291,6 +296,21 @@
       g2.connect(audioCtx.destination);
       o2.start(t);
       o2.stop(t + 0.12);
+      // Sub-bass thump for heavy hits (boss attacks)
+      if (s > 1.0) {
+        const bass = audioCtx.createOscillator();
+        const bassG = audioCtx.createGain();
+        bass.type = "sine";
+        bass.frequency.setValueAtTime(60 * s, t);
+        bass.frequency.exponentialRampToValueAtTime(30, t + 0.2);
+        bassG.gain.setValueAtTime(0.0001, t);
+        bassG.gain.exponentialRampToValueAtTime(volume * 0.5, t + 0.015);
+        bassG.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
+        bass.connect(bassG);
+        bassG.connect(audioCtx.destination);
+        bass.start(t);
+        bass.stop(t + 0.28);
+      }
       hapticMatch();
     }
 
@@ -433,7 +453,7 @@
       haptic([32, 45, 28, 40, 50]);
     }
 
-    // Distinct ult sting — brighter than match plops
+    // Distinct ult sting — brief rise-up before the main impact
     function playUltSfx(cls = "ninja") {
       const volume = sfxVol(0.72);
       if (volume <= 0) {
@@ -444,38 +464,55 @@
       const t = audioCtx.currentTime;
       const base = cls === "wizard" ? 520 : cls === "knight" ? 280 : 400;
 
+      // Rise-up: 200ms ascending tone that builds anticipation
+      const rise = audioCtx.createOscillator();
+      const riseGain = audioCtx.createGain();
+      rise.type = "sine";
+      rise.frequency.setValueAtTime(base * 0.6, t);
+      rise.frequency.exponentialRampToValueAtTime(base * 1.2, t + 0.2);
+      riseGain.gain.setValueAtTime(0.0001, t);
+      riseGain.gain.linearRampToValueAtTime(volume * 0.35, t + 0.08);
+      riseGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+      rise.connect(riseGain);
+      riseGain.connect(audioCtx.destination);
+      rise.start(t);
+      rise.stop(t + 0.22);
+
+      // Main impact starts after rise-up
+      const t2 = t + 0.18;
+
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       const filter = audioCtx.createBiquadFilter();
       osc.type = cls === "knight" ? "triangle" : "sine";
-      osc.frequency.setValueAtTime(base, t);
-      osc.frequency.exponentialRampToValueAtTime(base * (cls === "wizard" ? 1.6 : 0.55), t + 0.22);
+      osc.frequency.setValueAtTime(base, t2);
+      osc.frequency.exponentialRampToValueAtTime(base * (cls === "wizard" ? 1.6 : 0.55), t2 + 0.22);
       filter.type = "lowpass";
-      filter.frequency.setValueAtTime(cls === "wizard" ? 2200 : 1400, t);
-      filter.frequency.exponentialRampToValueAtTime(600, t + 0.28);
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(volume, t + 0.02);
-      gain.gain.exponentialRampToValueAtTime(volume * 0.45, t + 0.12);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.38);
+      filter.frequency.setValueAtTime(cls === "wizard" ? 2200 : 1400, t2);
+      filter.frequency.exponentialRampToValueAtTime(600, t2 + 0.28);
+      gain.gain.setValueAtTime(0.0001, t2);
+      gain.gain.exponentialRampToValueAtTime(volume, t2 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(volume * 0.45, t2 + 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t2 + 0.38);
       osc.connect(filter);
       filter.connect(gain);
       gain.connect(audioCtx.destination);
-      osc.start(t);
-      osc.stop(t + 0.4);
+      osc.start(t2);
+      osc.stop(t2 + 0.4);
 
       // High sparkle layer
       const osc2 = audioCtx.createOscillator();
       const gain2 = audioCtx.createGain();
       osc2.type = "triangle";
-      osc2.frequency.setValueAtTime(base * 2.2, t);
-      osc2.frequency.exponentialRampToValueAtTime(base * 0.9, t + 0.15);
-      gain2.gain.setValueAtTime(0.0001, t);
-      gain2.gain.exponentialRampToValueAtTime(volume * 0.35, t + 0.01);
-      gain2.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+      osc2.frequency.setValueAtTime(base * 2.2, t2);
+      osc2.frequency.exponentialRampToValueAtTime(base * 0.9, t2 + 0.15);
+      gain2.gain.setValueAtTime(0.0001, t2);
+      gain2.gain.exponentialRampToValueAtTime(volume * 0.35, t2 + 0.01);
+      gain2.gain.exponentialRampToValueAtTime(0.0001, t2 + 0.18);
       osc2.connect(gain2);
       gain2.connect(audioCtx.destination);
-      osc2.start(t);
-      osc2.stop(t + 0.2);
+      osc2.start(t2);
+      osc2.stop(t2 + 0.2);
 
       hapticUlt();
     }
@@ -552,6 +589,24 @@
       bgmFadeTo(old, 0, 1200);
       setTimeout(() => { try { old.pause(); old.currentTime = 0; old.volume = oldVol; } catch(_){} }, 1300);
       bgmCurrent = null;
+    }
+
+    // Low health: muffle BGM with lowpass filter
+    let bgmLowHpFilter = null;
+    function bgmSetLowHp(low) {
+      if (!bgmCurrent || !bgmCurrent.el) return;
+      if (low && !bgmLowHpFilter) {
+        bgmLowHpFilter = audioCtx.createBiquadFilter();
+        bgmLowHpFilter.type = "lowpass";
+        bgmLowHpFilter.frequency.value = 800;
+        bgmCurrent.el.crossOrigin = "anonymous";
+        // Web Audio API can't easily process <audio> elements in all browsers
+        // Instead, just duck the volume when low HP
+        bgmFadeTo(bgmCurrent.el, bgmVol() * 0.4, 800);
+      } else if (!low && bgmLowHpFilter) {
+        bgmLowHpFilter = null;
+        bgmFadeTo(bgmCurrent.el, bgmVol(), 800);
+      }
     }
 
     function bgmInit() {

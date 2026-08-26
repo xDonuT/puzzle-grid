@@ -360,6 +360,7 @@
     function maybePlayerLowVoice() {
       const pct = combat.playerHp / Math.max(1, combat.playerMaxHp);
       if (pct > 0 && pct <= 0.35) sayVoice("playerLow", { chance: 0.45, force: false });
+      bgmSetLowHp(pct > 0 && pct <= 0.3);
     }
 
     function maybeEnemyLowVoice() {
@@ -1713,6 +1714,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       combat.playerTurn = true;
       document.body.classList.add("your-turn");
       document.body.classList.toggle("disoriented", combat.disorientedTurns > 0);
+      // Clear low-hp BGM ducking if HP recovered above 30%
+      if (combat.playerHp / Math.max(1, combat.playerMaxHp) > 0.3) bgmSetLowHp(false);
       // Per-turn floor modifiers: Gentle Rain / Deep Roots / Pollen Puff
       if (combat.playerHealPerTurn) applyHealing(combat.playerHealPerTurn);
       if (combat.shieldPerTurn) applyShielding(combat.shieldPerTurn);

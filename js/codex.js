@@ -137,7 +137,7 @@
       { id: "fracture", icon: "🦴", name: "Fracture", desc: "At the start of the enemy's turn they take 2 true damage per stack (max 5)." },
       { id: "mortal", icon: "💔", name: "Mortal Wound", desc: "Healing is halved for the listed turns." },
       { id: "manalock", icon: "🔒", name: "Mana Lock", desc: "Enemy cannot gain shield for the listed turns." },
-      { id: "poisonStacks", icon: "🧪", name: "Poison Stacks", desc: "Deals stacks × (3 + Floor×0.5) true damage at the start of your turn, then decays by 1." },
+      { id: "poisonStacks", icon: "🧪", name: "Poison Stacks", desc: "Deals stacks × (1 + Floor×0.15) true damage at the start of your turn, then decays by 1." },
       { id: "acidStacks", icon: "🩸", name: "Acid", desc: "All incoming damage is amplified by +2% per stack (cap 30 → +60% max)." },
       { id: "bloom", icon: "🌺", name: "Bloom", desc: "Each stack = 4% damage reduction (cap 8). At 5+ stacks, heals 2 HP/turn. Decays -1/turn." }
     ]

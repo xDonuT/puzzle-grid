@@ -851,7 +851,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       fracture: { name: "Fracture", detail: "At the start of the enemy’s turn they take 2 true damage per stack (max 5). From Knight skills." },
       mortal: { name: "Mortal Wound", detail: "Enemy healing is halved for the listed turns." },
       manalock: { name: "Mana Lock", detail: "Enemy cannot gain shield for the listed turns." },
-      poisonStacks: { name: "Poison", detail: "Deals stacks × (3 + Floor×0.5) true damage at the start of your turn, then decays by 1. Applied by class perks." },
+      poisonStacks: { name: "Poison", detail: "Deals stacks × (1 + Floor×0.15) true damage at the start of your turn, then decays by 1. Applied by class perks." },
       acidStacks: { name: "Acid", detail: "All incoming damage is amplified by +2% per stack (cap 30 → +60% max). Applied by class perks." },
       gauntlet: { name: "Gauntlet", detail: "Multi-enemy floor. Shows which foe you are fighting now." },
       arch: { name: "Archetype", detail: "This foe’s special behavior (see name)." },
@@ -1917,8 +1917,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       // --- New Poison/Acid stack system (ticks at start of player turn) ---
       // Poison DoT: stacks × (3 + floorLevel × 0.5), then decay 1 stack
       if (combat.poisonStacks > 0) {
-        const poisonBase = 3 + (run.lethalPoison ? 1 : 0);
-        const poisonDmg = Math.round(combat.poisonStacks * (poisonBase + run.floor * 0.5));
+        const poisonBase = 1 + (run.lethalPoison ? 0.5 : 0);
+        const poisonDmg = Math.round(combat.poisonStacks * (poisonBase + run.floor * 0.15));
         dealDamageToEnemy(poisonDmg, { trueDmg: true, source: "poison" });
         dmgPop("enemy", `☠${poisonDmg}`, "poison");
         combat.poisonStacks = Math.max(0, combat.poisonStacks - 1);

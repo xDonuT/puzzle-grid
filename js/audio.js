@@ -39,41 +39,39 @@
     }
     function hapticDrop()   { haptic(10); }          // soft land
 
-    // Soft, pleasant "pop" – short sine + gentle noise-like transient
+    // Soft bell pop — warm sine + inharmonic bell overtone for acoustic feel
     function playPop(pitch = 1, volume = 0.55) {
       volume = sfxVol(volume);
       if (volume <= 0) return;
       if (!ensureAudio()) return;
       const t = audioCtx.currentTime;
 
-      // Main soft tone
+      // Main bell tone — slower attack, longer ring
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = "sine";
-      osc.frequency.setValueAtTime(380 * pitch, t);
-      osc.frequency.exponentialRampToValueAtTime(180 * pitch, t + 0.09);
-
+      osc.frequency.setValueAtTime(520 * pitch, t);
+      osc.frequency.exponentialRampToValueAtTime(340 * pitch, t + 0.18);
       gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(volume, t + 0.012);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
-
+      gain.gain.exponentialRampToValueAtTime(volume * 0.7, t + 0.018);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.start(t);
-      osc.stop(t + 0.15);
+      osc.stop(t + 0.24);
 
-      // Tiny high click for definition (very soft)
-      const osc2 = audioCtx.createOscillator();
-      const gain2 = audioCtx.createGain();
-      osc2.type = "triangle";
-      osc2.frequency.setValueAtTime(900 * pitch, t);
-      gain2.gain.setValueAtTime(0.0001, t);
-      gain2.gain.exponentialRampToValueAtTime(volume * 0.25, t + 0.005);
-      gain2.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
-      osc2.connect(gain2);
-      gain2.connect(audioCtx.destination);
-      osc2.start(t);
-      osc2.stop(t + 0.05);
+      // Inharmonic bell partial (2.76x — the classic bell ratio)
+      const o2 = audioCtx.createOscillator();
+      const g2 = audioCtx.createGain();
+      o2.type = "sine";
+      o2.frequency.setValueAtTime(520 * 2.76 * pitch, t);
+      g2.gain.setValueAtTime(0.0001, t);
+      g2.gain.exponentialRampToValueAtTime(volume * 0.2, t + 0.008);
+      g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+      o2.connect(g2);
+      g2.connect(audioCtx.destination);
+      o2.start(t);
+      o2.stop(t + 0.14);
     }
 
     function playUiClick(kind = "tap") {
@@ -104,37 +102,45 @@
       playGooeyPlop(1.15, 0.45);
     }
 
-    // Bouncy "toink" – a springy pitch-drop (cartoon boing) with a resonant body
-    // Technique: triangle osc sweeping fast from high to low, bandpass resonance, quick decay
+    // Soft mallet plop — warm wood-strike feel with gentle ring
     function playGooeyPlop(pitch = 1, volume = 0.65) {
       volume = sfxVol(volume);
       if (volume <= 0) return;
       if (!ensureAudio()) return;
       const t = audioCtx.currentTime;
 
+      // Wood-strike body
       const osc = audioCtx.createOscillator();
       const filt = audioCtx.createBiquadFilter();
       const gain = audioCtx.createGain();
-
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(620 * pitch, t);
-      osc.frequency.exponentialRampToValueAtTime(95 * pitch, t + 0.1);
-
-      filt.type = "bandpass";
-      filt.frequency.setValueAtTime(900 * pitch, t);
-      filt.frequency.exponentialRampToValueAtTime(220 * pitch, t + 0.12);
-      filt.Q.value = 2.2;
-
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(440 * pitch, t);
+      osc.frequency.exponentialRampToValueAtTime(180 * pitch, t + 0.12);
+      filt.type = "lowpass";
+      filt.frequency.setValueAtTime(1200 * pitch, t);
+      filt.frequency.exponentialRampToValueAtTime(400 * pitch, t + 0.1);
       gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(volume, t + 0.006);
-      gain.gain.exponentialRampToValueAtTime(volume * 0.55, t + 0.05);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
-
+      gain.gain.exponentialRampToValueAtTime(volume * 0.8, t + 0.012);
+      gain.gain.exponentialRampToValueAtTime(volume * 0.4, t + 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
       osc.connect(filt);
       filt.connect(gain);
       gain.connect(audioCtx.destination);
       osc.start(t);
-      osc.stop(t + 0.22);
+      osc.stop(t + 0.2);
+
+      // Bell overtone
+      const o2 = audioCtx.createOscillator();
+      const g2 = audioCtx.createGain();
+      o2.type = "sine";
+      o2.frequency.setValueAtTime(440 * 2.4 * pitch, t);
+      g2.gain.setValueAtTime(0.0001, t);
+      g2.gain.exponentialRampToValueAtTime(volume * 0.15, t + 0.006);
+      g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
+      o2.connect(g2);
+      g2.connect(audioCtx.destination);
+      o2.start(t);
+      o2.stop(t + 0.1);
     }
 
     function playMatch(count) {
@@ -143,37 +149,51 @@
       hapticMatch();
     }
 
-    // "Correct!" answer chime – a bright rising bell ding (quiz-show style)
+    // Match chime — warm bell two-note with resonant overtones
     function playCorrect(pitch = 1) {
       const volume = sfxVol(0.5);
       if (volume <= 0) return;
       if (!ensureAudio()) return;
       const t = audioCtx.currentTime;
-      [784, 1046.5].forEach((f, i) => {
-        const at = t + i * 0.08;
+      [523, 784].forEach((f, i) => {
+        const at = t + i * 0.1;
         const o = audioCtx.createOscillator();
         const g = audioCtx.createGain();
         o.type = "sine";
         o.frequency.value = f * pitch;
         g.gain.setValueAtTime(0.0001, at);
-        g.gain.exponentialRampToValueAtTime(volume, at + 0.005);
-        g.gain.exponentialRampToValueAtTime(0.0001, at + 0.28);
+        g.gain.exponentialRampToValueAtTime(volume * 0.7, at + 0.008);
+        g.gain.exponentialRampToValueAtTime(0.0001, at + 0.35);
         o.connect(g);
         g.connect(audioCtx.destination);
         o.start(at);
-        o.stop(at + 0.3);
+        o.stop(at + 0.38);
 
+        // Bell partial
         const o2 = audioCtx.createOscillator();
         const g2 = audioCtx.createGain();
         o2.type = "sine";
         o2.frequency.value = f * 2.76 * pitch;
         g2.gain.setValueAtTime(0.0001, at);
-        g2.gain.exponentialRampToValueAtTime(volume * 0.3, at + 0.004);
-        g2.gain.exponentialRampToValueAtTime(0.0001, at + 0.2);
+        g2.gain.exponentialRampToValueAtTime(volume * 0.18, at + 0.005);
+        g2.gain.exponentialRampToValueAtTime(0.0001, at + 0.18);
         o2.connect(g2);
         g2.connect(audioCtx.destination);
         o2.start(at);
-        o2.stop(at + 0.22);
+        o2.stop(at + 0.2);
+
+        // Soft shimmer overtone
+        const o3 = audioCtx.createOscillator();
+        const g3 = audioCtx.createGain();
+        o3.type = "sine";
+        o3.frequency.value = f * 4.17 * pitch;
+        g3.gain.setValueAtTime(0.0001, at);
+        g3.gain.exponentialRampToValueAtTime(volume * 0.08, at + 0.005);
+        g3.gain.exponentialRampToValueAtTime(0.0001, at + 0.12);
+        o3.connect(g3);
+        g3.connect(audioCtx.destination);
+        o3.start(at);
+        o3.stop(at + 0.14);
       });
       hapticMatch();
     }
@@ -188,23 +208,28 @@
       hapticCombo(level);
     }
 
+    // Crystalline bell sparkle — three harmonics for shimmer
     function playSparkle(ratio = 3, vol = 0.3) {
       const volume = sfxVol(vol);
       if (volume <= 0) return;
       if (!ensureAudio()) return;
       const t = audioCtx.currentTime;
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      o.type = "sine";
-      o.frequency.setValueAtTime(660 * ratio * 0.5, t);
-      o.frequency.exponentialRampToValueAtTime(880 * ratio * 0.5, t + 0.08);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(volume, t + 0.008);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
-      o.connect(g);
-      g.connect(audioCtx.destination);
-      o.start(t);
-      o.stop(t + 0.18);
+      const base = 660 * ratio * 0.5;
+
+      [1, 2.76, 5.4].forEach((h, i) => {
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = "sine";
+        o.frequency.setValueAtTime(base * h, t);
+        o.frequency.exponentialRampToValueAtTime(base * h * 1.15, t + 0.1);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(volume * (1 - i * 0.3), t + 0.006);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2 - i * 0.04);
+        o.connect(g);
+        g.connect(audioCtx.destination);
+        o.start(t);
+        o.stop(t + 0.22);
+      });
     }
 
     // ---------- Combat SFX (punchy, layered: thump + noise transient + click) ----------
@@ -231,7 +256,7 @@
       src.start(t);
     }
 
-    // Punchy impact — big hits thump lower and harder
+    // Soft wood knock — warm body with bell overtone, no harsh noise
     function playHit(strength = 1, opts = {}) {
       const volume = sfxVol(0.6);
       if (volume <= 0) return;
@@ -239,33 +264,33 @@
       const t = audioCtx.currentTime;
       const s = Math.max(0.35, Math.min(1.5, strength));
 
+      // Wood body
       const osc = audioCtx.createOscillator();
       const og = audioCtx.createGain();
-      const base = opts.down ? 150 : 185;
+      const base = opts.down ? 160 : 200;
       osc.type = "sine";
       osc.frequency.setValueAtTime(base * s, t);
-      osc.frequency.exponentialRampToValueAtTime(base * 0.45 * s, t + 0.12);
+      osc.frequency.exponentialRampToValueAtTime(base * 0.5 * s, t + 0.15);
       og.gain.setValueAtTime(0.0001, t);
-      og.gain.exponentialRampToValueAtTime(volume * 0.9, t + 0.008);
-      og.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      og.gain.exponentialRampToValueAtTime(volume * 0.8, t + 0.012);
+      og.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
       osc.connect(og);
       og.connect(audioCtx.destination);
       osc.start(t);
-      osc.stop(t + 0.18);
+      osc.stop(t + 0.22);
 
-      playNoiseBurst(t, volume * 0.5, 0.08, 1600);
-
-      const c = audioCtx.createOscillator();
-      const cg = audioCtx.createGain();
-      c.type = "triangle";
-      c.frequency.setValueAtTime(700 * s, t);
-      cg.gain.setValueAtTime(0.0001, t);
-      cg.gain.exponentialRampToValueAtTime(volume * 0.3, t + 0.004);
-      cg.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
-      c.connect(cg);
-      cg.connect(audioCtx.destination);
-      c.start(t);
-      c.stop(t + 0.06);
+      // Bell overtone
+      const o2 = audioCtx.createOscillator();
+      const g2 = audioCtx.createGain();
+      o2.type = "sine";
+      o2.frequency.setValueAtTime(base * 2.76 * s, t);
+      g2.gain.setValueAtTime(0.0001, t);
+      g2.gain.exponentialRampToValueAtTime(volume * 0.15, t + 0.008);
+      g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.1);
+      o2.connect(g2);
+      g2.connect(audioCtx.destination);
+      o2.start(t);
+      o2.stop(t + 0.12);
       hapticMatch();
     }
 
@@ -290,35 +315,26 @@
       });
     }
 
-    // Metallic clink for shield gain
+    // Wind chime shimmer — three soft cascading notes
     function playShield() {
       const volume = sfxVol(0.45);
       if (volume <= 0) return;
       if (!ensureAudio()) return;
       const t = audioCtx.currentTime;
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      o.type = "triangle";
-      o.frequency.setValueAtTime(880, t);
-      o.frequency.exponentialRampToValueAtTime(720, t + 0.06);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(volume, t + 0.005);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
-      o.connect(g);
-      g.connect(audioCtx.destination);
-      o.start(t);
-      o.stop(t + 0.14);
-      const o2 = audioCtx.createOscillator();
-      const g2 = audioCtx.createGain();
-      o2.type = "sine";
-      o2.frequency.setValueAtTime(1760, t + 0.01);
-      g2.gain.setValueAtTime(0.0001, t + 0.01);
-      g2.gain.exponentialRampToValueAtTime(volume * 0.25, t + 0.015);
-      g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
-      o2.connect(g2);
-      g2.connect(audioCtx.destination);
-      o2.start(t + 0.01);
-      o2.stop(t + 0.1);
+      [784, 988, 1175].forEach((f, i) => {
+        const at = t + i * 0.06;
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = "sine";
+        o.frequency.setValueAtTime(f, at);
+        g.gain.setValueAtTime(0.0001, at);
+        g.gain.exponentialRampToValueAtTime(volume * (0.6 - i * 0.1), at + 0.006);
+        g.gain.exponentialRampToValueAtTime(0.0001, at + 0.22);
+        o.connect(g);
+        g.connect(audioCtx.destination);
+        o.start(at);
+        o.stop(at + 0.24);
+      });
     }
 
     // Low warning hum when the enemy is charging its ultimate

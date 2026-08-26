@@ -872,7 +872,11 @@ const screenMenu = document.getElementById("screen-menu");
       { icon: "✨", label: "FULL HEAL", apply() {
         const hero = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
         combat.playerHp = hero.hp + run.bonusMaxHp;
-      } }
+      } },
+      { icon: "☠️", label: "POISON TILES · 5 green tiles", apply() { if (typeof sprinkleStatusTiles === "function") sprinkleStatusTiles("poison", 5); } },
+      { icon: "🔥", label: "BURN TILES · 5 ember tiles", apply() { if (typeof sprinkleStatusTiles === "function") sprinkleStatusTiles("burn", 5); } },
+      { icon: "⚡", label: "STUN TILES · 4 lightning tiles", apply() { if (typeof sprinkleStatusTiles === "function") sprinkleStatusTiles("stun", 4); } },
+      { icon: "❄️", label: "FROST TILES · 5 ice tiles", apply() { if (typeof sprinkleStatusTiles === "function") sprinkleStatusTiles("frost", 5); } }
     ];
     const MYSTERY_TWISTS = [
       { icon: "🔮", label: "+8 SHIELD · LOSE 4 HP", apply() {

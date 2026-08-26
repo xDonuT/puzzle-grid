@@ -825,6 +825,10 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
     }
 
     const STATUS_INFO = {
+      burn: { name: "Burn", detail: "Enemy takes fire damage each time they spend AP to attack." },
+      stun: { name: "Stun", detail: "Enemy skips their next turn entirely." },
+      frost: { name: "Frost", detail: "Enemy loses 1 AP at the start of their turn." },
+      corrupted: { name: "Corrupted", detail: "Matching this tile deals 8 damage to YOU instead of the enemy!" },
       squallBloom: { name: "Bloom", detail: "Each stack = 4% damage reduction (cap 8). At 5+ stacks she heals 2 HP/turn. Decays -1 per turn." },
       disoriented: { name: "Disoriented", detail: "Controls reversed — drag left to go right, drag right to go left (from Bracken's Root Snare)." },
       afterglow: { name: "Afterglow", detail: "Take 50% less damage for the listed turns (from Ninja ultimate)." },
@@ -1186,6 +1190,50 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           if (!forEnemy && sigType === "shield") { hasSigMatch = true; sigShieldCount++; }
         } else if (type === "question") {
           questionCount++;
+        }
+      }
+
+      // ── Status-infused tile effects ──
+      if (!forEnemy) {
+        const statusCounts = { poison: 0, burn: 0, stun: 0, frost: 0, corrupted: 0 };
+        for (const item of matchedList) {
+          if (item.status && statusCounts[item.status] !== undefined) statusCounts[item.status]++;
+        }
+        // Poison tiles: apply 2 poison turns to enemy
+        if (statusCounts.poison > 0) {
+          combat.enemyPoisonTurns = Math.max(combat.enemyPoisonTurns, 2);
+          combat.enemyPoisonDmg = Math.max(combat.enemyPoisonDmg || 0, 3);
+          flyEffect(matchedList[0] ? getCell(matchedList[0].r, matchedList[0].c) : document.getElementById("playerPortrait"),
+                    document.getElementById("enemyPortrait"), "poison");
+          bitsExtra.push("Poison " + statusCounts.poison + "t");
+        }
+        // Burn tiles: apply burn (extra dmg when enemy uses AP)
+        if (statusCounts.burn > 0) {
+          combat.enemyBurnTurns = Math.max(combat.enemyBurnTurns || 0, 3);
+          combat.enemyBurnDmg = Math.max(combat.enemyBurnDmg || 0, 4 + statusCounts.burn);
+          flyEffect(matchedList[0] ? getCell(matchedList[0].r, matchedList[0].c) : document.getElementById("playerPortrait"),
+                    document.getElementById("enemyPortrait"), "sword");
+          bitsExtra.push("Burn 3t");
+        }
+        // Stun tiles: 4+ matching stuns enemy for 1 turn
+        if (statusCounts.stun >= 4) {
+          combat.enemyStunTurns = Math.max(combat.enemyStunTurns || 0, 1);
+          bitsExtra.push("Stun 1t");
+        } else if (statusCounts.stun > 0) {
+          // Less than 4 stun tiles: just apply 1 burn as consolation
+          combat.enemyBurnTurns = Math.max(combat.enemyBurnTurns || 0, 2);
+          combat.enemyBurnDmg = Math.max(combat.enemyBurnDmg || 0, 2);
+        }
+        // Frost tiles: increase enemy AP cost for 2 turns
+        if (statusCounts.frost > 0) {
+          combat.enemyFrostTurns = Math.max(combat.enemyFrostTurns || 0, 2);
+          bitsExtra.push("Frost " + statusCounts.frost + "t");
+        }
+        // Corrupted tiles: HURT the player!
+        if (statusCounts.corrupted > 0) {
+          const corruptDmg = 8 * statusCounts.corrupted;
+          dealDamageToPlayer(corruptDmg, { noFracture: true });
+          bitsExtra.push("Corrupted -" + corruptDmg);
         }
       }
 
@@ -1565,6 +1613,34 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         }
       }
 
+      // Stun: skip enemy's entire turn
+      if ((combat.enemyStunTurns || 0) > 0) {
+        combat.enemyStunTurns--;
+        setLog("Stunned", "Enemy is stunned — turn skipped!");
+        dmgPop("enemy", "STUNNED", "shielded");
+        refreshCombatUI();
+        await sleep(600);
+        // Still charge ult and apply DOTs, but skip attacks
+        if (combat.bossKit) combat.enemyUltCharge = Math.min(combat.enemyUltNeed, combat.enemyUltCharge + 1);
+        if (combat.eliteKit) combat.enemyUltCharge = Math.min(combat.enemyUltNeed, combat.enemyUltCharge + 1);
+        hideEnemyThinking();
+        document.body.classList.remove("your-turn");
+        combat.playerTurn = true;
+        startPlayerTurn();
+        return;
+      }
+
+      // Burn: enemy takes fire dmg when they use AP this turn
+      if ((combat.enemyBurnTurns || 0) > 0) {
+        const burnDmg = combat.enemyBurnDmg || 4;
+        dealDamageToEnemy(burnDmg, { trueDmg: true, source: "burn" });
+        combat.enemyBurnTurns--;
+        setLog("Burning", "Burn · " + burnDmg + " fire dmg");
+        refreshCombatUI();
+        await sleep(300);
+        if (combat.enemyHp <= 0) { checkGameOver(); return; }
+      }
+
       // Boss ultimate charge
       if (combat.bossKit) {
         combat.enemyUltCharge += 1;
@@ -1635,6 +1711,15 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       const eliteAtk = (combat.eliteKit && combat.eliteKit.atkMul) || 1;
       const quickBonus = combat.quickening ? (combat.enemyAtkBonus || 0) : 0;
       const atkScale = archAtk * eliteAtk + quickBonus;
+
+      // Frost: reduce enemy AP by 1 per frost stack
+      if ((combat.enemyFrostTurns || 0) > 0) {
+        combat.enemyAp = Math.max(0, combat.enemyAp - 1);
+        setLog("Frosted", "Frost · enemy loses 1 AP");
+        dmgPop("enemy", "FROST", "shielded");
+        refreshCombatUI();
+        await sleep(300);
+      }
 
       for (let i = 0; i < AP_MAX && combat.enemyAp > 0 && combat.playerHp > 0; i++) {
         await sleep(settings.difficulty === "hard" ? 280 : 380);
@@ -1764,6 +1849,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (combat.playerMortalWoundTurns > 0) combat.playerMortalWoundTurns--;
       if (combat.enemyWeakenTurns > 0) combat.enemyWeakenTurns--;
       if (combat.disorientedTurns > 0) combat.disorientedTurns--;
+      if ((combat.enemyFrostTurns || 0) > 0) combat.enemyFrostTurns--;
       // 🌺 Bloom decay: -1 stack per turn, heal at 5+
       if (combat.squallBloom > 0) {
         if (combat.bossKit && combat.bossKit.id === "cinder" && combat.squallBloom >= 5 && combat.enemyHp > 0) {

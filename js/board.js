@@ -322,15 +322,36 @@
     }
 
     // ---------- build ----------
+    // tileStatus[r][c] = "poison" | "burn" | "stun" | "frost" | "corrupted" | null
+    let tileStatus = [];
+    function sprinkleStatusTiles(type, count) {
+      const candidates = [];
+      for (let r = 0; r < ROWS; r++)
+        for (let c = 0; c < COLS; c++)
+          if (board[r][c] && !tileStatus[r][c] && !specials[r][c])
+            candidates.push([r, c]);
+      for (let i = candidates.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+      }
+      for (let i = 0; i < Math.min(count, candidates.length); i++) {
+        const [r, c] = candidates[i];
+        tileStatus[r][c] = type;
+      }
+      rebuildVisual();
+    }
+
     function build() {
       gridEl.innerHTML = "";
       board = [];
       specials = [];
+      tileStatus = [];
       cells = [];
 
       for (let r = 0; r < ROWS; r++) {
         board[r] = [];
         specials[r] = [];
+        tileStatus[r] = [];
         for (let c = 0; c < COLS; c++) {
           let t;
           do { t = rand(); }
@@ -340,6 +361,7 @@
           );
           board[r][c] = t;
           specials[r][c] = false;
+          tileStatus[r][c] = null;
           const el = makeTile(t, r, c);
           cells.push(el);
           gridEl.appendChild(el);
@@ -633,7 +655,7 @@
           for (let c = 0; c < COLS; c++) {
             if (mark[r][c]) {
               count++;
-              matchedList.push({ r, c, type: board[r][c], wasSpecial: specials[r][c] });
+              matchedList.push({ r, c, type: board[r][c], wasSpecial: specials[r][c], status: tileStatus[r][c] });
             }
           }
         }
@@ -752,6 +774,7 @@
               const kind = shape.crossKind === "l" ? "x" : "cross";
               board[r][c] = entry.type;
               specials[r][c] = kind;
+              tileStatus[r][c] = null;
               const el = getCell(r, c);
               setType(el, entry.type, kind);
               setSpecialClass(el, kind);
@@ -782,7 +805,7 @@
         const stack = [];
         for (let r = ROWS - 1; r >= 0; r--) {
           if (board[r][c] !== null) {
-            stack.push({ r, type: board[r][c], special: specials[r][c] });
+            stack.push({ r, type: board[r][c], special: specials[r][c], tileStatus: tileStatus[r] && tileStatus[r][c] || null });
           }
         }
         let write = ROWS - 1;
@@ -797,6 +820,8 @@
           }
           board[write][c] = item.type;
           specials[write][c] = item.special;
+      tileStatus[write] = tileStatus[write] || [];
+      tileStatus[write][c] = item.tileStatus || null;
           write--;
         }
       }
@@ -855,7 +880,7 @@
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
           const el = getCell(r, c);
-          el.className = "tile" + specialClassFor(specials[r][c]);
+          el.className = "tile" + specialClassFor(specials[r][c]) + (tileStatus[r][c] ? " ts-" + tileStatus[r][c] : "");
           el.style.transform = "";
           el.style.opacity = board[r][c] ? "1" : "0";
           el.dataset.row = r;

@@ -2581,10 +2581,35 @@ const screenMenu = document.getElementById("screen-menu");
     </div>
   `;
 
+  // ---- SIGNATURE TILE (all enemies) ----
+  let sigDetails = "";
+  if (typeof getEnemySignature === "function") {
+    const sig = getEnemySignature();
+    if (sig && sig.primary) {
+      const icons = { sword: "⚔️", star: "⭐", shield: "🛡️", hp: "❤️", question: "❓" };
+      const bonusText = {
+        sword: "+40% damage from those tiles",
+        star: "+40% damage from those tiles",
+        shield: "+1 shield per 2 matched",
+        hp: "+1 heal per tile matched"
+      }[sig.primary] || "bonus effect";
+      const adaptNote = combat.bossKit ? "<br>• Adapts its signature as the fight changes" : "";
+      sigDetails = `
+        <div class="info-section">🎯 Signature Tile</div>
+        <div class="info-body">
+          <strong>${icons[sig.primary] || "❓"} ${sig.primary.charAt(0).toUpperCase() + sig.primary.slice(1)}</strong> — ${sig.label || "Signature"}<br>
+          • ${bonusText}${adaptNote}<br>
+          • Marked with <span style="color:#e05a44">red dots</span> on the board — match them first to deny!
+        </div>
+      `;
+    }
+  }
+
   // ---- BUILD FINAL HTML ----
   return `
     <div class="info-row"><span>Floor</span><span>${run.floor}</span></div>
     <div class="info-row"><span>Attack</span><span>~${atkNow} damage</span></div>
+    ${sigDetails}
     ${passiveDetails}
     ${specialDetails}
     ${ultDetails}

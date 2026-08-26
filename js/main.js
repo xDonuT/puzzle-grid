@@ -2607,7 +2607,7 @@ const screenMenu = document.getElementById("screen-menu");
         const markMult = combat.markStacks > 0 ? ` (+${Math.round(combat.markStacks * 15)}%)` : "";
         const critCh = combat.critChance || 0;
         const poisonInfo = combat.poisonTurns > 0 ? `${combat.poisonTurns}t` : combat.poisonStacks > 0 ? `${combat.poisonStacks} stacks` : "none";
-        const maxSh = hero.maxShieldCap + run.bonusShieldMax;
+        const maxSh = s.maxShieldCap + run.bonusShieldMax;
         return `
           <div class="pp-photo"><div class="portrait ${combat.playerClass}" id="ppPhotoSlot"></div></div>
           <div class="pp-id-name">${s.name}</div>

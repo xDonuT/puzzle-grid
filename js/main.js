@@ -659,6 +659,7 @@ const screenMenu = document.getElementById("screen-menu");
           upg.apply();
           if (!run.pickedUpgrades) run.pickedUpgrades = [];
           run.pickedUpgrades.push(upg.id);
+          if (typeof codexReveal === "function") codexReveal("upgrades", upg.id);
           if (res) { res.innerHTML = `<span class="buff">🩸 ${upg.name}</span> — −${hpCost} HP. Permanent!`; res.style.opacity = 1; }
           setTimeout(cb, 1200);
         });
@@ -1100,6 +1101,7 @@ const screenMenu = document.getElementById("screen-menu");
           }
           btn.addEventListener("click", () => {
             run.pickedUpgrades.push(u.id);
+            if (typeof codexReveal === "function") codexReveal("upgrades", u.id);
             run.rewardsClaimed[run.floor] = true;
             u.apply();
             ov.classList.remove("open");
@@ -1182,6 +1184,7 @@ const screenMenu = document.getElementById("screen-menu");
         btn.addEventListener("click", () => {
           if (!run.passives) run.passives = [];
           run.passives.push(p.id);
+          if (typeof codexReveal === "function") codexReveal("passives", p.id);
           p.apply();
           ov.classList.remove("open");
           onPick(p.name);
@@ -1701,6 +1704,12 @@ const screenMenu = document.getElementById("screen-menu");
       combat.eliteKit = ELITE_KITS[run.floor] || null;
       combat.enemyClass = pickEnemyVisual(run.floor);
       combat.commonPassive = (!combat.bossKit && !combat.eliteKit) ? getCommonPassive(combat.enemyClass) : null;
+      // Codex: reveal encountered creature
+      if (typeof codexReveal === "function") {
+        if (combat.bossKit) codexReveal("creatures", combat.bossKit.id);
+        else if (combat.eliteKit) codexReveal("creatures", combat.eliteKit.id);
+        else if (combat.enemyClass) codexReveal("creatures", combat.enemyClass);
+      }
       combat.enemyUltNeed = combat.bossKit ? combat.bossKit.ultTurns + (run.enemyUltSlow || 0) : 4 + (run.enemyUltSlow || 0);
       combat.enemyUltNeed += (run.pending && run.pending.enemySlow) || 0;
       combat.enemyUltNeed += run.heavyChains ? 1 : 0;
@@ -1738,6 +1747,7 @@ const screenMenu = document.getElementById("screen-menu");
       combat.twinStorm = false;
       if (combat.floorModifier) {
         combat.floorModifier.apply(combat);
+        if (typeof codexReveal === "function") codexReveal("modifiers", combat.floorModifier.id);
         if (combat.enemySpeedMult && combat.enemySpeedMult !== 1) {
           combat.enemyUltNeed = Math.max(1, Math.round(combat.enemyUltNeed * combat.enemySpeedMult));
           combat.enemySpecialNeed = Math.max(1, Math.round(combat.enemySpecialNeed * combat.enemySpeedMult));
@@ -1817,6 +1827,10 @@ const screenMenu = document.getElementById("screen-menu");
       setupFighters();
       document.getElementById("enemyName").textContent = combat.enemyName;
       refreshCombatUI();
+      // Codex: reveal common combat statuses after first battle
+      if (typeof codexReveal === "function" && run.floor <= 2) {
+        ["poison", "burn", "stun", "frost", "corrupted", "disoriented", "afterglow", "empower", "blind", "weaken", "mark", "fracture", "mortal", "manalock"].forEach(s => codexReveal("statuses", s));
+      }
       const floorNote = combat.bossKit
         ? " · BOSS"
         : elite
@@ -2124,6 +2138,8 @@ const screenMenu = document.getElementById("screen-menu");
     }
     const btnMenuHelp = document.getElementById("btnMenuHelp");
     if (btnMenuHelp) btnMenuHelp.addEventListener("click", openHelp);
+    const btnCodex = document.getElementById("btnCodex");
+    if (btnCodex) btnCodex.addEventListener("click", () => { if (typeof codexOpen === "function") codexOpen(); });
     const btnSettingsHelp = document.getElementById("btnSettingsHelp");
     if (btnSettingsHelp) btnSettingsHelp.addEventListener("click", openHelp);
     const btnHelpClose = document.getElementById("btnHelpClose");

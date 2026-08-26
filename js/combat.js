@@ -1211,6 +1211,12 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         for (const item of matchedList) {
           if (item.status && statusCounts[item.status] !== undefined) statusCounts[item.status]++;
         }
+        // Codex: reveal matched status types
+        if (typeof codexReveal === "function") {
+          for (const st of Object.keys(statusCounts)) {
+            if (statusCounts[st] > 0) codexReveal("statuses", st);
+          }
+        }
         // Poison tiles: apply 2 poison turns to enemy
         if (statusCounts.poison > 0) {
           combat.enemyPoisonTurns = Math.max(combat.enemyPoisonTurns, 2);

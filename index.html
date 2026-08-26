@@ -3472,6 +3472,79 @@ body.ult-hitstop .board-wrap {
       background: #6a9a6a; color: #fff; border: none; border-radius: 12px;
       padding: 10px 28px; font-size: 0.9rem; font-weight: 700; cursor: pointer;
     }
+
+    /* ─── Codex Overlay ─── */
+    .codex-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(20, 18, 15, 0.85);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .codex-overlay.open { opacity: 1; pointer-events: auto; }
+    .codex-panel {
+      background: #f3efe8; border-radius: 18px; width: min(420px, 94vw);
+      max-height: 80vh; display: flex; flex-direction: column;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+      overflow: hidden; border: 2px solid #d4c9b0;
+    }
+    .codex-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 14px 16px 8px; border-bottom: 1px solid #d4c9b0;
+    }
+    .codex-title { margin: 0; font-size: 1.05rem; flex: 1; color: #3d3427; }
+    .codex-progress { font-size: 0.7rem; color: #8a7e6d; }
+    .codex-close {
+      background: none; border: none; font-size: 1.2rem; cursor: pointer;
+      color: #8a7e6d; padding: 4px 8px; border-radius: 8px;
+    }
+    .codex-close:hover { background: #e8e0d0; }
+    .codex-tabs {
+      display: flex; gap: 2px; padding: 6px 8px;
+      overflow-x: auto; border-bottom: 1px solid #d4c9b0;
+      -webkit-overflow-scrolling: touch;
+    }
+    .codex-tab {
+      flex-shrink: 0; padding: 6px 10px; border-radius: 8px;
+      border: none; background: transparent; cursor: pointer;
+      font-size: 0.72rem; font-weight: 600; color: #6b5e4f;
+      white-space: nowrap; transition: background 0.15s;
+    }
+    .codex-tab.active { background: #e8e0d0; color: #3d3427; }
+    .codex-tab:hover:not(.active) { background: #ede7db; }
+    .codex-body {
+      flex: 1; overflow-y: auto; padding: 10px 12px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .codex-cat-progress {
+      text-align: center; font-size: 0.7rem; color: #8a7e6d;
+      padding: 2px 0 8px;
+    }
+    .codex-grid {
+      display: grid; grid-template-columns: 1fr; gap: 6px;
+    }
+    .codex-card {
+      background: #fff; border-radius: 10px; padding: 10px 12px;
+      border: 1px solid #e0d8c8; display: flex; gap: 10px;
+      align-items: flex-start; transition: transform 0.12s;
+    }
+    .codex-card.locked {
+      background: #ede7db; border-style: dashed; opacity: 0.6;
+    }
+    .codex-card.boss { border-left: 3px solid #c86a5a; }
+    .codex-card.elite { border-left: 3px solid #d4a843; }
+    .codex-card.hard { border-left: 3px solid #c86a5a; }
+    .codex-card-icon { font-size: 1.3rem; flex-shrink: 0; width: 28px; text-align: center; }
+    .codex-card-name { font-weight: 700; font-size: 0.8rem; color: #3d3427; }
+    .codex-card-desc { font-size: 0.7rem; color: #6b5e4f; line-height: 1.35; }
+    .codex-card-passive {
+      font-size: 0.68rem; color: #7a6e5d; margin-top: 2px;
+      font-style: italic;
+    }
+    .codex-card-class {
+      font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.05em;
+      color: #a0937d; margin-top: 2px; font-weight: 700;
+    }
 </style>
 </head>
 <body>
@@ -3683,6 +3756,7 @@ body.ult-hitstop .board-wrap {
       <button type="button" class="action-btn" id="btnContinue" style="display:none">Continue Floor <span id="continueFloor">1</span></button>
       <button type="button" class="action-btn" id="btnMenuSettings">Settings</button>
       <button type="button" class="action-btn" id="btnMenuHelp">How to Play</button>
+      <button type="button" class="action-btn" id="btnCodex">📖 Codex</button>
     </div>
     <div class="run-history" id="runHistory"></div>
   </div>
@@ -4132,6 +4206,7 @@ body.ult-hitstop .board-wrap {
   <script src="js/map.js"></script>
   <script src="js/ai.js"></script>
   <script src="js/combat.js"></script>
+  <script src="js/codex.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

@@ -609,6 +609,8 @@
       }
     }
 
+    let bgmPausedByHidden = false;
+
     function bgmInit() {
       if (bgmStarted) return;
       const start = () => {
@@ -619,6 +621,20 @@
       };
       document.addEventListener("pointerdown", start, { once: false });
       document.addEventListener("keydown", start, { once: false });
+
+      // Pause BGM when tab/browser goes to background, resume when visible
+      document.addEventListener("visibilitychange", () => {
+        if (!bgmCurrent || !bgmCurrent.el) return;
+        if (document.hidden) {
+          if (!bgmCurrent.el.paused) {
+            bgmPausedByHidden = true;
+            bgmCurrent.el.pause();
+          }
+        } else if (bgmPausedByHidden && settings.musicEnabled !== false) {
+          bgmPausedByHidden = false;
+          bgmCurrent.el.play().catch(() => {});
+        }
+      });
     }
 
     // ---------- helpers ----------

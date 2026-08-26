@@ -2585,6 +2585,13 @@ const screenMenu = document.getElementById("screen-menu");
         const sig = SIGNATURE[combat.playerClass];
         const sigLabel = { sword: "⚔️ Sword", shield: "🛡️ Shield", hp: "❤️ Potion" }[sig] || sig;
         const actIdx = run.gameMap ? (run.gameMap.currentAct || 1) : 1;
+        const swordDmg = settings.swordDmg + (run.bonusSwordDmg || 0) + (combat.tempSwordDmg || 0);
+        const starDmg = settings.starDmg + (run.bonusStarDmg || 0);
+        const healAmt = settings.healAmt + (run.bonusHeal || 0);
+        const markMult = combat.markStacks > 0 ? ` (+${Math.round(combat.markStacks * 15)}%)` : "";
+        const critCh = combat.critChance || 0;
+        const poisonInfo = combat.poisonTurns > 0 ? `${combat.poisonTurns}t` : combat.poisonStacks > 0 ? `${combat.poisonStacks} stacks` : "none";
+        const maxSh = hero.maxShieldCap + run.bonusShieldMax;
         return `
           <div class="pp-photo"><div class="portrait ${combat.playerClass}" id="ppPhotoSlot"></div></div>
           <div class="pp-id-name">${s.name}</div>
@@ -2592,7 +2599,12 @@ const screenMenu = document.getElementById("screen-menu");
           <div class="info-row"><span>Location</span><span>${ACT_NAMES[actIdx] || `Act ${actIdx}`}</span></div>
           <div class="info-row"><span>Floor</span><span>${run.floor}/${MAX_FLOOR}</span></div>
           <div class="info-row"><span>HP</span><span>${combat.playerHp}/${combat.playerMaxHp}</span></div>
-          <div class="info-row"><span>Shield</span><span>${combat.shield}</span></div>
+          <div class="info-row"><span>Shield</span><span>${combat.shield}/${maxSh}</span></div>
+          <div class="info-row"><span>Sword</span><span>⚔️ ${swordDmg}${markMult}</span></div>
+          <div class="info-row"><span>Star</span><span>⭐ ${starDmg}</span></div>
+          <div class="info-row"><span>Heal</span><span>💚 ${healAmt}</span></div>
+          <div class="info-row"><span>Crit</span><span>🎯 ${critCh}%</span></div>
+          <div class="info-row"><span>Poison</span><span>☠️ ${poisonInfo}</span></div>
           <div class="info-row"><span>Signature</span><span>${sigLabel}</span></div>
           <div class="info-row"><span>Charge</span><span>${combat.sigBank}/${settings.ultMaxCharge}</span></div>
           <div class="info-row"><span>AP</span><span>${combat.ap}/${AP_MAX}</span></div>

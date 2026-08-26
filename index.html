@@ -2282,23 +2282,6 @@ body.ult-hitstop .board-wrap {
       overflow: hidden;
     }
     .status-row:empty { display: none; }
-    .stat-row {
-      display: flex;
-      gap: 8px;
-      justify-content: center;
-      padding: 2px 0;
-      font-size: 0.65rem;
-      opacity: 0.85;
-      letter-spacing: 0.02em;
-    }
-    .stat-item {
-      display: inline-flex;
-      align-items: center;
-      gap: 1px;
-    }
-    .stat-item span {
-      font-weight: 600;
-    }
     .status-icon {
       position: relative;
       display: inline-flex;
@@ -3772,11 +3755,6 @@ body.ult-hitstop .board-wrap {
             </div>
           </div>
           <div class="status-row" id="playerStatusRow"></div>
-          <div class="stat-row" id="playerStatRow">
-            <span class="stat-item" title="Sword damage">⚔️<span id="statSword">3</span></span>
-            <span class="stat-item" title="Max HP">❤️<span id="statMaxHp">36</span></span>
-            <span class="stat-item" title="Shield cap">🛡️<span id="statShield">6</span></span>
-          </div>
            <div class="ap-row" title="Action points">
             <span class="ap-label">AP</span>
             <div class="ap-pips" id="apPips" aria-label="Action points">

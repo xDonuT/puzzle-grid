@@ -768,14 +768,6 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       }
       if (shieldNumEl) shieldNumEl.textContent = String(combat.shield);
 
-      // Player stat row — always-visible summary of key stats
-      const statSwordEl = document.getElementById("statSword");
-      const statMaxHpEl = document.getElementById("statMaxHp");
-      const statShieldEl = document.getElementById("statShield");
-      if (statSwordEl) statSwordEl.textContent = String(settings.swordDmg + (run.bonusSwordDmg || 0) + (combat.tempSwordDmg || 0));
-      if (statMaxHpEl) statMaxHpEl.textContent = String(combat.playerMaxHp);
-      if (statShieldEl) statShieldEl.textContent = String(maxSh);
-
       if (playerPortraitEl) {
         playerPortraitEl.classList.toggle("ult-ready", ultReady() && combat.afterglowTurns <= 0);
         playerPortraitEl.classList.toggle("afterglow-aura", combat.afterglowTurns > 0);

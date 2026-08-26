@@ -790,14 +790,6 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       syncPortraitChips(playerPortraitEl, pChips);
 
       const eChips = [];
-      // Enemy signature tile indicator (always shown)
-      if (typeof getEnemySignature === "function") {
-        const sig = getEnemySignature();
-        if (sig && sig.primary) {
-          const sigIcons = { sword: "⚔️", star: "⭐", shield: "🛡️", hp: "❤️", question: "❓" };
-          eChips.push({ key: "enemySig", emoji: sigIcons[sig.primary] || "❓", count: 0, tip: sig.label || "Signature" });
-        }
-      }
       if (combat.markStacks > 0) eChips.push({ key: "mark", emoji: "🎯", count: combat.markStacks });
       if (combat.fractureStacks > 0 && combat.fractureTurns > 0) eChips.push({ key: "fracture", emoji: "🦴", count: combat.fractureStacks });
       if (combat.mortalWoundTurns > 0) eChips.push({ key: "mortal", emoji: "💔", count: combat.mortalWoundTurns });
@@ -809,7 +801,6 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if ((combat.enemyBurnTurns || 0) > 0) eChips.push({ key: "burn", emoji: "🔥", count: combat.enemyBurnTurns });
       if ((combat.enemyStunTurns || 0) > 0) eChips.push({ key: "stun", emoji: "⚡", count: combat.enemyStunTurns });
       if ((combat.enemyFrostTurns || 0) > 0) eChips.push({ key: "frost", emoji: "❄️", count: combat.enemyFrostTurns });
-      if (combat.commonPassive) eChips.push({ key: "commonPassive", emoji: "🐾", count: 0 });
       syncPortraitChips(enemyPortraitEl, eChips);
 
       // Enemy shield badge (mirror of the player's) — the rival does NOT get

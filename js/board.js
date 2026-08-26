@@ -903,6 +903,7 @@
       }
     }
     window.syncBoundVisuals = syncBoundVisuals;
+    window.sprinkleStatusTiles = sprinkleStatusTiles;
 
     // ---------- swap ----------
     async function trySwap(r1, c1, r2, c2) {

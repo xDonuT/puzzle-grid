@@ -873,10 +873,10 @@ const screenMenu = document.getElementById("screen-menu");
         const hero = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
         combat.playerHp = hero.hp + run.bonusMaxHp;
       } },
-      { icon: "☠️", label: "POISON TILES · 5 green tiles", apply() { if (typeof sprinkleStatusTiles === "function") sprinkleStatusTiles("poison", 5); } },
-      { icon: "🔥", label: "BURN TILES · 5 ember tiles", apply() { if (typeof sprinkleStatusTiles === "function") sprinkleStatusTiles("burn", 5); } },
-      { icon: "⚡", label: "STUN TILES · 4 lightning tiles", apply() { if (typeof sprinkleStatusTiles === "function") sprinkleStatusTiles("stun", 4); } },
-      { icon: "❄️", label: "FROST TILES · 5 ice tiles", apply() { if (typeof sprinkleStatusTiles === "function") sprinkleStatusTiles("frost", 5); } }
+      { icon: "☠️", label: "POISON TILES · 5 green tiles", apply() { run.pendingStatusTiles = { type: "poison", count: 5 }; } },
+      { icon: "🔥", label: "BURN TILES · 5 ember tiles", apply() { run.pendingStatusTiles = { type: "burn", count: 5 }; } },
+      { icon: "⚡", label: "STUN TILES · 4 lightning tiles", apply() { run.pendingStatusTiles = { type: "stun", count: 4 }; } },
+      { icon: "❄️", label: "FROST TILES · 5 ice tiles", apply() { run.pendingStatusTiles = { type: "frost", count: 5 }; } }
     ];
     const MYSTERY_TWISTS = [
       { icon: "🔮", label: "+8 SHIELD · LOSE 4 HP", apply() {
@@ -1810,6 +1810,10 @@ const screenMenu = document.getElementById("screen-menu");
 
       clearComboTheater(true);
       build();
+      if (run.pendingStatusTiles) {
+        sprinkleStatusTiles(run.pendingStatusTiles.type, run.pendingStatusTiles.count);
+        run.pendingStatusTiles = null;
+      }
       setupFighters();
       document.getElementById("enemyName").textContent = combat.enemyName;
       refreshCombatUI();

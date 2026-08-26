@@ -2403,14 +2403,6 @@ const screenMenu = document.getElementById("screen-menu");
         shapes = "⭐ +2 Fracture + 3→Potion · 💥 +3 Fracture + 1 AP · ⚡ Shatter (stacks×3)";
       }
       return `
-        <div class="info-row"><span>Class</span><span>${s.name}</span></div>
-        <div class="info-row"><span>Location</span><span>${run.gameMap ? (ACT_NAMES[run.gameMap.currentAct || 1] || "") : "—"}</span></div>
-        <div class="info-row"><span>Floor</span><span>${run.floor}/${MAX_FLOOR}</span></div>
-        <div class="info-row"><span>HP</span><span>${s.hp} (+${run.bonusMaxHp} run)</span></div>
-        <div class="info-row"><span>Start Shield</span><span>${s.startShield}</span></div>
-        <div class="info-row"><span>Signature</span><span>${sigLabel}</span></div>
-        <div class="info-row"><span>Charge</span><span>${combat.sigBank}/${settings.ultMaxCharge}</span></div>
-        <div class="info-row"><span>AP</span><span>${combat.ap}/${AP_MAX}</span></div>
         <div class="info-section">Passive</div>
         <div class="info-body">${passive}</div>
         <div class="info-section">Ultimate</div>
@@ -2575,17 +2567,12 @@ const screenMenu = document.getElementById("screen-menu");
 
   // ---- BUILD FINAL HTML ----
   return `
-    <div class="info-row"><span>Name</span><span>${combat.enemyFullName || combat.enemyName || "Rival"}</span></div>
-    <div class="info-row"><span>HP</span><span>${combat.enemyHp}/${combat.enemyMaxHp}</span></div>
     <div class="info-row"><span>Floor</span><span>${run.floor}</span></div>
-    <div class="info-row"><span>Type</span><span>${encounter}</span></div>
     <div class="info-row"><span>Attack</span><span>~${atkNow} damage</span></div>
     ${passiveDetails}
     ${specialDetails}
     ${ultDetails}
     ${scalingInfo}
-    <div class="info-section">📊 Statuses on this foe</div>
-    <div class="info-body">${statusSummaryEnemy()}</div>
   `;
 }
 

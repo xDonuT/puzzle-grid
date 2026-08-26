@@ -897,7 +897,7 @@ const screenMenu = document.getElementById("screen-menu");
       } }
     ];
     const MYSTERY_CURSES = [
-      { icon: "💔", label: "−4 MAX HP", apply() { run.bonusMaxHp = Math.max(0, run.bonusMaxHp - 4); } },
+      { icon: "💔", label: "−4 MAX HP", apply() { run.bonusMaxHp = Math.max(0, run.bonusMaxHp - 4); combat.playerHp = Math.min(combat.playerHp, Math.max(1, (HERO_STATS[combat.playerClass] || HERO_STATS.ninja).hp + run.bonusMaxHp)); } },
       { icon: "⛓️", label: "−1 AP NEXT FLOOR", apply() { run.pending.bonusAp -= 1; } },
       { icon: "🥀", label: "WILTED · HEALS HALVED 3 FLOORS", apply() { run.healBlockFloors = 3; } },
       { icon: "🩸", label: "LOSE 12 HP NOW", apply() { combat.playerHp = Math.max(1, combat.playerHp - 12); } }
@@ -1803,6 +1803,7 @@ const screenMenu = document.getElementById("screen-menu");
         floorActEl.textContent = ACT_NAMES[actIdx] || "";
       }
 
+      clearComboTheater(true);
       build();
       setupFighters();
       document.getElementById("enemyName").textContent = combat.enemyName;

@@ -1054,6 +1054,53 @@
       }
     }
 
+    // ---- Tile status tooltip (long-press to inspect) ----
+    const TILE_STATUS_INFO = {
+      corrupted: { icon: "🟣", name: "Corrupted", desc: "Deals 8 damage to YOU when matched. Avoid!" },
+      poison:    { icon: "☠️", name: "Venomous",  desc: "Matching applies 2 poison turns to the enemy." },
+      burn:      { icon: "🔥", name: "Burning",   desc: "Matching applies burn — enemy takes damage each time it acts (3 turns)." },
+      stun:      { icon: "⚡", name: "Charging",  desc: "Match 4+ of these to stun the enemy for 1 turn." },
+      frost:     { icon: "❄️", name: "Frozen",    desc: "Matching chills the enemy — it loses 1 AP for 2 turns." }
+    };
+    let tileHoldTimer = null;
+    let tileHoldDragged = false;
+    const tileTooltipEl = document.getElementById("tileTooltip");
+
+    function hideTileTooltip() {
+      if (tileTooltipEl) tileTooltipEl.style.display = "none";
+      if (tileHoldTimer) { clearTimeout(tileHoldTimer); tileHoldTimer = null; }
+    }
+
+    function showTileTooltip(row, col, x, y) {
+      if (!tileTooltipEl || busy) return;
+      const status = tileStatus[row] && tileStatus[row][col];
+      const isEnemySig = typeof getEnemySignature === "function" && (() => {
+        const sig = getEnemySignature();
+        return sig && board[row][col] === sig.primary;
+      })();
+
+      let html = "";
+      if (status && TILE_STATUS_INFO[status]) {
+        const info = TILE_STATUS_INFO[status];
+        html = `<div class="tt-title">${info.icon} ${info.name}</div><div class="tt-body">${info.desc}</div>`;
+      } else if (isEnemySig) {
+        const sig = getEnemySignature();
+        const icons = { sword: "⚔️", star: "⭐", shield: "🛡️", hp: "❤️" };
+        html = `<div class="tt-title">${icons[sig.primary] || "❓"} Enemy Signature</div><div class="tt-body">${sig.label || "Signature"} — enemy gets a bonus when matching this tile type. Race them to deny it!</div>`;
+      } else {
+        return; // nothing special about this tile
+      }
+
+      tileTooltipEl.innerHTML = html;
+      tileTooltipEl.style.display = "block";
+      tileTooltipEl.style.left = x + "px";
+      tileTooltipEl.style.top = (y - 10) + "px";
+      tileTooltipEl.style.transform = "translate(-50%, -100%)";
+      playPickup();
+      // Auto-hide after 2.2s
+      setTimeout(hideTileTooltip, 2200);
+    }
+
     gridEl.addEventListener("pointerdown", e => {
       if (busy || combat.ap <= 0) return;
       const t = tileAt(e.clientX, e.clientY);
@@ -1073,11 +1120,28 @@
       t.el.classList.add("selected");
       showPotentialMatches(t.row, t.col);
       playPickup();
+
+      // Long-press: show status tooltip after 450ms if finger stays still
+      tileHoldDragged = false;
+      const holdRow = t.row, holdCol = t.col;
+      if (tileHoldTimer) clearTimeout(tileHoldTimer);
+      tileHoldTimer = setTimeout(() => {
+        tileHoldTimer = null;
+        // Only show if finger hasn't dragged away (not swiping to swap)
+        if (!tileHoldDragged && !busy && pointer && pointer.row === holdRow && pointer.col === holdCol) {
+          showTileTooltip(holdRow, holdCol, pointer.startX, pointer.startY);
+        }
+      }, 450);
       e.preventDefault();
     });
 
     window.addEventListener("pointermove", e => {
       if (!pointer || busy) return;
+      // Dragging cancels the long-press tooltip
+      if (Math.abs(e.clientX - pointer.startX) > 12 || Math.abs(e.clientY - pointer.startY) > 12) {
+        tileHoldDragged = true;
+        hideTileTooltip();
+      }
       const el = getCell(pointer.row, pointer.col);
       const dx = e.clientX - pointer.startX;
       const dy = e.clientY - pointer.startY;
@@ -1097,6 +1161,7 @@
 
     window.addEventListener("pointerup", e => {
       if (!pointer) return;
+      hideTileTooltip();
       const el = getCell(pointer.row, pointer.col);
       clearPotentialHighlights();
 

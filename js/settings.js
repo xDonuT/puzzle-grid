@@ -28,7 +28,8 @@
       ngLoopsDone: 0,      // completed Golden Cosmos loops
       bestFloor: 0,        // career-best floor reached (unlocks global skills)
       skills: { shuffleSurge: true }, // global skill toggles
-      liteMode: null        // null = auto-detect, true = forced lite, false = forced full
+      liteMode: null,        // null = auto-detect, true = forced lite, false = forced full
+      musicEnabled: true     // background music on/off
     };
 
     // ---- Global skills (account-wide, unlock via milestones) ----
@@ -71,7 +72,8 @@
           ngLoopsDone: settings.ngLoopsDone,
           bestFloor: settings.bestFloor || 0,
           skills: settings.skills || { shuffleSurge: true },
-          liteMode: settings.liteMode
+          liteMode: settings.liteMode,
+          musicEnabled: settings.musicEnabled
         }));
       } catch (_) {}
     }
@@ -101,6 +103,7 @@
           });
         }
         if (typeof o.liteMode === "boolean" || o.liteMode === null) settings.liteMode = o.liteMode;
+        if (typeof o.musicEnabled === "boolean") settings.musicEnabled = o.musicEnabled;
       } catch (_) {}
     }
     loadSettings();
@@ -113,6 +116,7 @@
       persistSettings();
     }
     autoDetectLite();
+    bgmInit();
 
     function isLite() {
       return settings.liteMode === true;

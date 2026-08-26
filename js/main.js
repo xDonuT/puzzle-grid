@@ -28,6 +28,7 @@ const screenMenu = document.getElementById("screen-menu");
       const inAct = ((Math.max(1, f) - 1) % 15) + 1;
       b.classList.add(inAct <= 5 ? "alt-low" : inAct <= 10 ? "alt-mid" : "alt-top");
       b.classList.toggle("golden", (run.ngLoop || 0) > 0);
+      bgmPlay(act);
     }
 
     // ─── Run timer (pure stats; pauses in menus/settings/overlays) ───
@@ -2004,6 +2005,8 @@ const screenMenu = document.getElementById("screen-menu");
       if (floorInput) floorInput.value = String(run.floor || 1);
       if (impactEl) impactEl.value = settings.impactTurn || 11;
       document.getElementById("muteToggle").classList.toggle("on", settings.muted);
+      const mtEl = document.getElementById("musicToggle");
+      if (mtEl) mtEl.classList.toggle("on", settings.musicEnabled !== false);
       const ltEl = document.getElementById("liteToggle");
       if (ltEl) ltEl.classList.toggle("on", settings.liteMode === true);
       renderSkillList();
@@ -2123,6 +2126,19 @@ const screenMenu = document.getElementById("screen-menu");
     document.getElementById("muteToggle").addEventListener("click", function () {
       settings.muted = !settings.muted;
       this.classList.toggle("on", settings.muted);
+      persistSettings();
+      bgmUpdateVolume();
+    });
+
+    document.getElementById("musicToggle").addEventListener("click", function () {
+      settings.musicEnabled = settings.musicEnabled !== false ? false : true;
+      this.classList.toggle("on", settings.musicEnabled);
+      if (settings.musicEnabled) {
+        const act = (run && run.currentAct) || 1;
+        bgmPlay(act);
+      } else {
+        bgmStop();
+      }
       persistSettings();
     });
 

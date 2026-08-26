@@ -464,4 +464,73 @@
       hapticUlt();
     }
 
+    // ---------- BGM system ----------
+    const BGM_FILES = {
+      1: "music/Little Sprout.mp3",
+      2: "music/Petal Peak.mp3",
+      3: "music/Petal Peak.mp3"
+    };
+
+    let bgmCurrent = null;
+    let bgmStarted = false;
+
+    function bgmVol() {
+      if (settings.muted) return 0;
+      return Math.max(0, Math.min(0.35, settings.volume * 0.35));
+    }
+
+    function bgmPlay(act) {
+      if (settings.musicEnabled === false) return;
+      const file = BGM_FILES[act] || BGM_FILES[1];
+      if (bgmCurrent && bgmCurrent.act === act && !bgmCurrent.el.paused) return;
+
+      // Fade out old
+      if (bgmCurrent && bgmCurrent.el) {
+        const old = bgmCurrent.el;
+        old.style.transition = "opacity 1.5s ease-out";
+        old.style.opacity = "0";
+        setTimeout(() => { try { old.pause(); old.currentTime = 0; } catch(_){} }, 1600);
+      }
+
+      const el = new Audio(file);
+      el.loop = true;
+      el.volume = 0.0001;
+      el.preload = "auto";
+      el.play().catch(() => {});
+      bgmCurrent = { el, act };
+
+      setTimeout(() => {
+        el.style.transition = "opacity 1.5s ease-in";
+        el.style.opacity = String(bgmVol());
+      }, 80);
+      bgmStarted = true;
+    }
+
+    function bgmUpdateVolume() {
+      if (!bgmCurrent || !bgmCurrent.el) return;
+      bgmCurrent.el.style.transition = "opacity 0.5s ease";
+      bgmCurrent.el.style.opacity = String(bgmVol());
+    }
+
+    function bgmStop() {
+      if (!bgmCurrent || !bgmCurrent.el) return;
+      const old = bgmCurrent.el;
+      old.style.transition = "opacity 1.5s ease-out";
+      old.style.opacity = "0";
+      setTimeout(() => { try { old.pause(); old.currentTime = 0; } catch(_){} }, 1600);
+      bgmCurrent = null;
+    }
+
+    function bgmInit() {
+      if (bgmStarted) return;
+      const start = () => {
+        const act = (typeof run !== "undefined" && run.currentAct) || 1;
+        bgmPlay(act);
+        document.removeEventListener("pointerdown", start);
+        document.removeEventListener("keydown", start);
+      };
+      document.addEventListener("pointerdown", start, { once: false });
+      document.addEventListener("keydown", start, { once: false });
+    }
+
     // ---------- helpers ----------

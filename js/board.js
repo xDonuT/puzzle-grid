@@ -877,10 +877,20 @@
     }
 
     function rebuildVisual() {
+      // Determine enemy signature type for board highlighting
+      let enemySigType = null;
+      if (typeof getEnemySignature === "function") {
+        const sig = getEnemySignature();
+        if (sig && sig.primary) enemySigType = sig.primary;
+      }
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
           const el = getCell(r, c);
           el.className = "tile" + specialClassFor(specials[r][c]) + (tileStatus[r][c] ? " ts-" + tileStatus[r][c] : "");
+          // Highlight enemy signature tiles with a subtle indicator
+          if (enemySigType && board[r][c] === enemySigType) {
+            el.classList.add("enemy-sig");
+          }
           el.style.transform = "";
           el.style.opacity = board[r][c] ? "1" : "0";
           el.dataset.row = r;

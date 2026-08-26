@@ -11,7 +11,7 @@
     };
 
     // Current tile-preference weights, layered: personality → class mirror →
-    // elite/boss bias → special hunger.
+    // elite/boss bias → signature hunger → special hunger.
     function enemyTileWeights() {
       const kit = combat.eliteKit || combat.bossKit;
       const arch = combat.enemyArchetype || {};
@@ -26,6 +26,14 @@
       // Elite / boss biases
       if (kit && kit.bias) {
         for (const t in kit.bias) w[t] = (w[t] || 1) * kit.bias[t];
+      }
+
+      // Signature hunger: enemy strongly prefers their signature tile type
+      if (typeof getEnemySignature === "function") {
+        const sig = getEnemySignature();
+        if (sig && sig.primary && w[sig.primary] !== undefined) {
+          w[sig.primary] *= 2.2;  // strong priority on signature tiles
+        }
       }
 
       // Special hunger: with a special/ult nearly ready, push aggression

@@ -790,6 +790,14 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       syncPortraitChips(playerPortraitEl, pChips);
 
       const eChips = [];
+      // Enemy signature tile indicator (always shown)
+      if (typeof getEnemySignature === "function") {
+        const sig = getEnemySignature();
+        if (sig && sig.primary) {
+          const sigIcons = { sword: "⚔️", star: "⭐", shield: "🛡️", hp: "❤️", question: "❓" };
+          eChips.push({ key: "enemySig", emoji: sigIcons[sig.primary] || "❓", count: 0, tip: sig.label || "Signature" });
+        }
+      }
       if (combat.markStacks > 0) eChips.push({ key: "mark", emoji: "🎯", count: combat.markStacks });
       if (combat.fractureStacks > 0 && combat.fractureTurns > 0) eChips.push({ key: "fracture", emoji: "🦴", count: combat.fractureStacks });
       if (combat.mortalWoundTurns > 0) eChips.push({ key: "mortal", emoji: "💔", count: combat.mortalWoundTurns });
@@ -1462,6 +1470,10 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           combat.enemyShield = Math.min(maxSh, combat.enemyShield + sh);
           playShield();
           flyEffect(document.getElementById("enemyPortrait"), document.getElementById("enemyPortrait"), "shield");
+        }
+        // Enemy signature tile bonus (extra damage/heal/shield from matching their signature)
+        if (typeof applyEnemySignatureBonus === "function") {
+          applyEnemySignatureBonus(matchedList, shape);
         }
         const bits = [label];
         if (shapeTag) bits.push(shapeTag);

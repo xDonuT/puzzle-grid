@@ -403,6 +403,97 @@
 
     function getCommonPassive(type) { return COMMON_PASSIVES[type] || null; }
 
+    // ---- Enemy Signature Tiles ----
+    // Each enemy has a fixed signature type. When they match it, they get a bonus.
+    // The player can see this on the enemy portrait and race to deny those tiles.
+    const ENEMY_SIGNATURES = {
+      // Common enemies
+      slime:  { primary: "star",   label: "Slippery" },
+      bat:    { primary: "hp",     label: "Draining" },
+      mush:   { primary: "star",   label: "Spreading" },
+      golem:  { primary: "shield", label: "Fortified" },
+      skull:  { primary: "sword",  label: "Rending" },
+      thorn:  { primary: "sword",  label: "Piercing" },
+      wisp:   { primary: "hp",     label: "Soothing" },
+      root:   { primary: "shield", label: "Rooted" },
+      // Elites (primary + secondary)
+      bloodroot:  { primary: "sword",  secondary: "hp",     label: "Bloodthirst" },
+      stormglass: { primary: "star",   secondary: "sword",  label: "Arcane Surge" },
+      nightcoil:  { primary: "sword",  secondary: "star",   label: "Toxic Strike" },
+      // Bosses — priority-based, resolved dynamically
+      bracken:    { primary: "sword",  label: "Root Snare" },
+      cinder:     { primary: "star",   label: "Ashstorm" },
+      lastrival:  { primary: "sword",  label: "Earthshatter" }
+    };
+
+    // Get the enemy's current signature tile type (bosses adapt to player HP)
+    function getEnemySignature() {
+      const cls = combat.enemyClass;
+      const kit = combat.bossKit || combat.eliteKit;
+      const sig = ENEMY_SIGNATURES[cls];
+      if (!sig) return { primary: "sword", label: "" };
+
+      // Boss priority: adapt based on player HP
+      if (combat.bossKit) {
+        const hpPct = combat.playerHp / Math.max(1, combat.playerMaxHp);
+        if (cls === "bracken") {
+          // Bracken: sword when healthy, shield when low, hp when critical
+          if (hpPct > 0.5) return { primary: "sword", label: "Aggressive" };
+          if (hpPct > 0.2) return { primary: "shield", label: "Defensive" };
+          return { primary: "hp", label: "Desperate Heal" };
+        }
+        if (cls === "cinder") {
+          // Squall Queen: always star (pure offense)
+          return { primary: "star", label: "Ashstorm" };
+        }
+        if (cls === "lastrival") {
+          // Rival: mirrors player signature + adapts
+          const playerSig = SIGNATURE[combat.playerClass] || "sword";
+          if (hpPct > 0.6) return { primary: playerSig, label: "Mirroring" };
+          if (hpPct > 0.3) return { primary: "shield", label: "Defensive" };
+          return { primary: "hp", label: "Regrouping" };
+        }
+      }
+
+      // Elites: primary, with secondary fallback if primary tiles are scarce on board
+      if (combat.eliteKit && sig.secondary) {
+        // Count available primary tiles on board
+        let primaryCount = 0;
+        for (let r = 0; r < ROWS; r++)
+          for (let c = 0; c < COLS; c++)
+            if (board[r][c] === sig.primary) primaryCount++;
+        // If few primary tiles available, switch to secondary
+        if (primaryCount < 4) return { primary: sig.secondary, label: "Adapting" };
+      }
+
+      return sig;
+    }
+
+    // Signature tile match bonus for enemies
+    function applyEnemySignatureBonus(matchedList, shape) {
+      const sig = getEnemySignature();
+      if (!sig || !sig.primary) return;
+      let sigCount = 0;
+      for (const item of matchedList) {
+        if (item.type === sig.primary) sigCount++;
+      }
+      if (sigCount === 0) return;
+
+      const mult = shape.mult || 1;
+      if (sig.primary === "sword" || sig.primary === "star") {
+        // +40% damage from signature tile matches
+        const bonus = Math.round(sigCount * 2 * mult * 0.4);
+        if (bonus > 0) dealDamageToPlayer(bonus);
+      } else if (sig.primary === "shield") {
+        // +1 shield per 2 signature tiles
+        const bonus = Math.floor(sigCount / 2);
+        if (bonus > 0) combat.enemyShield = Math.min(settings.shieldMax, combat.enemyShield + bonus);
+      } else if (sig.primary === "hp") {
+        // +1 heal per signature tile
+        if (sigCount > 0) healEnemy(sigCount);
+      }
+    }
+
     // Signature tile per class (charges ultimate)
     const SIGNATURE = {
       ninja: "sword",

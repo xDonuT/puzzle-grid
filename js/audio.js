@@ -473,10 +473,29 @@
 
     let bgmCurrent = null;
     let bgmStarted = false;
+    let bgmFadeTimer = null;
 
     function bgmVol() {
       if (settings.muted || settings.musicEnabled === false) return 0;
       return Math.max(0, Math.min(0.5, (settings.musicVolume || 0.5) * 0.5));
+    }
+
+    function bgmFadeTo(el, target, duration) {
+      if (bgmFadeTimer) clearInterval(bgmFadeTimer);
+      const startVol = el.volume;
+      const steps = Math.max(1, Math.round(duration / 50));
+      const stepTime = duration / steps;
+      const delta = (target - startVol) / steps;
+      let i = 0;
+      bgmFadeTimer = setInterval(() => {
+        i++;
+        el.volume = Math.max(0, Math.min(1, el.volume + delta));
+        if (i >= steps) {
+          clearInterval(bgmFadeTimer);
+          bgmFadeTimer = null;
+          el.volume = target;
+        }
+      }, stepTime);
     }
 
     function bgmPlay(act) {
@@ -487,37 +506,35 @@
       // Fade out old
       if (bgmCurrent && bgmCurrent.el) {
         const old = bgmCurrent.el;
-        old.style.transition = "opacity 1.5s ease-out";
-        old.style.opacity = "0";
-        setTimeout(() => { try { old.pause(); old.currentTime = 0; } catch(_){} }, 1600);
+        const oldVol = old.volume;
+        bgmFadeTo(old, 0, 1200);
+        setTimeout(() => { try { old.pause(); old.currentTime = 0; old.volume = oldVol; } catch(_){} }, 1300);
       }
 
       const el = new Audio(file);
       el.loop = true;
-      el.volume = 0.0001;
+      el.volume = 0;
       el.preload = "auto";
       el.play().catch(() => {});
       bgmCurrent = { el, act };
 
-      setTimeout(() => {
-        el.style.transition = "opacity 1.5s ease-in";
-        el.style.opacity = String(bgmVol());
-      }, 80);
+      // Fade in
+      const target = bgmVol();
+      setTimeout(() => { bgmFadeTo(el, target, 1200); }, 100);
       bgmStarted = true;
     }
 
     function bgmUpdateVolume() {
       if (!bgmCurrent || !bgmCurrent.el) return;
-      bgmCurrent.el.style.transition = "opacity 0.5s ease";
-      bgmCurrent.el.style.opacity = String(bgmVol());
+      bgmFadeTo(bgmCurrent.el, bgmVol(), 400);
     }
 
     function bgmStop() {
       if (!bgmCurrent || !bgmCurrent.el) return;
       const old = bgmCurrent.el;
-      old.style.transition = "opacity 1.5s ease-out";
-      old.style.opacity = "0";
-      setTimeout(() => { try { old.pause(); old.currentTime = 0; } catch(_){} }, 1600);
+      const oldVol = old.volume;
+      bgmFadeTo(old, 0, 1200);
+      setTimeout(() => { try { old.pause(); old.currentTime = 0; old.volume = oldVol; } catch(_){} }, 1300);
       bgmCurrent = null;
     }
 

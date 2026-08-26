@@ -318,15 +318,7 @@
     }
 
     /* Soft land when you release */
-    /* Root Bind: rival's ult locks signature tiles — root tendrils wrap the tile */
-    @keyframes rootWrap {
-      0%   { clip-path: polygon(0% 100%, 8% 85%, 4% 65%, 12% 50%, 6% 30%, 10% 10%); opacity: 0; }
-      100% { clip-path: polygon(0% 100%, 8% 85%, 4% 65%, 12% 50%, 6% 30%, 10% 10%); opacity: 0.9; }
-    }
-    @keyframes rootWrapR {
-      0%   { clip-path: polygon(100% 100%, 92% 82%, 96% 60%, 88% 45%, 94% 25%, 90% 8%); opacity: 0; }
-      100% { clip-path: polygon(100% 100%, 92% 82%, 96% 60%, 88% 45%, 94% 25%, 90% 8%); opacity: 0.9; }
-    }
+
     .tile.bound {
       pointer-events: none;
       filter: saturate(0.5) brightness(0.82);
@@ -462,13 +454,6 @@
       50%  { transform: scale(0.94, 1.06) translateY(3px); }
       75%  { transform: scale(1.04, 0.97) translateY(-1px); }
       100% { transform: scale(1) translateY(0); }
-    }
-
-    @keyframes matchPulse {
-      0%   { transform: scale(1); }
-      30%  { transform: scale(1.12); }
-      60%  { transform: scale(1.06); }
-      100% { transform: scale(1.1); }
     }
 
     /* Inflate then pop – more weight before release */
@@ -1097,6 +1082,7 @@
       animation: endGlowFade 1.4s ease-in-out infinite;
     }
     @keyframes endGlowFade { 0%,100%{opacity:.35} 50%{opacity:1} }
+    @keyframes endApGlow { 0%,100%{box-shadow: 0 0 0 2px rgba(60,180,80,0.25), 0 0 12px 2px rgba(60,180,80,0.18)} 50%{box-shadow: 0 0 0 3px rgba(60,180,80,0.4), 0 0 18px 4px rgba(60,180,80,0.3)} }
     #btnShuffle {
       position: relative;
       height: 30px;

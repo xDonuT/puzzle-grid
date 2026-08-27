@@ -170,7 +170,7 @@
       if (/Poison|☠|Miasma|Venom|Acid|Corrosive|Toxic/i.test(text)) return "poison";
       if (/to you|on you|Void Reflection/i.test(text)) return "taken";
       if (/Heal|\+\d+ HP|Shadow Strike/i.test(text)) return "heal";
-      if (/shield|Shield|Petal Ward|Mana Steal/i.test(text)) return "shield";
+      if (/shield|Shield|Petal Ward|Shield Strike/i.test(text)) return "shield";
       if (/dmg|CRIT|\d+ true/i.test(text)) return "dmg";
       return "voice";
     }
@@ -1025,7 +1025,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         if (!opts.noFracture && combat.bossKit && combat.bossKit.id === "lastrival") {
           combat.playerFractureStacks = Math.min(5, combat.playerFractureStacks + 1);
           combat.playerFractureTurns = Math.max(combat.playerFractureTurns, 3);
-          setLog("Fracture", `Fracture ${combat.playerFractureStacks} on you`);
+          setLog("Cracked", `Cracked ${combat.playerFractureStacks} on you`);
         }
       }
     }
@@ -1209,7 +1209,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
             sigHpCount++;
             combat.fractureStacks = Math.min(6, combat.fractureStacks + 1);
             combat.fractureTurns = Math.max(combat.fractureTurns, 2);
-            bitsExtra.push(`Fracture ${combat.fractureStacks}`);
+            bitsExtra.push(`Cracked ${combat.fractureStacks}`);
           } else {
             heal += settings.healAmt + (run.bonusHeal || 0);
           }
@@ -1268,7 +1268,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         if (statusCounts.corrupted > 0) {
           const corruptDmg = 8 * statusCounts.corrupted;
           dealDamageToPlayer(corruptDmg, { noFracture: true });
-          bitsExtra.push("Corrupted -" + corruptDmg);
+          bitsExtra.push("Cursed -" + corruptDmg);
         }
       }
 
@@ -1371,7 +1371,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
               combat.enemyShield -= steal;
               const shielded = applyShielding(steal);
               const dmgFromOverflow = steal - shielded;
-              let stealMsg = `Mana Steal ${steal}`;
+              let stealMsg = `Shield Strike ${steal}`;
               if (dmgFromOverflow > 0) stealMsg += ` (+${dmgFromOverflow} overflow dmg)`;
               bitsExtra.push(stealMsg);
             }
@@ -1404,7 +1404,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
             combat.fractureStacks = Math.min(6, combat.fractureStacks + 3);
             combat.fractureTurns = Math.max(combat.fractureTurns, 2);
             combat.ap = Math.min(AP_MAX, combat.ap + 1);
-            bitsExtra.push(`Sunder +3 Fracture · +1 AP`);
+            bitsExtra.push(`Sunder +3 Cracked · +1 AP`);
           }
           if (isCharged && combat.fractureStacks > 0) {
             let shatterDmg = combat.fractureStacks * 3;
@@ -1417,7 +1417,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
             // Earthquake passive: stun enemy 1 turn on shatter
             if (run.earthquake) {
               combat.enemyStunTurns = Math.max(combat.enemyStunTurns || 0, 1);
-              bitsExtra.push("Earthquake Stun!");
+              bitsExtra.push("Earthquake Dizzy!");
             }
           }
         }
@@ -1533,7 +1533,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           if (run.runicNova) {
             dealDamageToEnemy(5, { trueDmg: true, source: "runic" });
             dmgPop("enemy", `🔮+5`, "true");
-            bitsExtra.push("Thorns +5");
+            bitsExtra.push("Runic +5");
           }
         }
         // Bulwark (Knight): shield matches apply 1 Fracture stack (once per turn)
@@ -1543,7 +1543,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           combat.fractureTurns = Math.max(combat.fractureTurns, 2);
           flyEffect(matchedList[0] ? getCell(matchedList[0].r, matchedList[0].c) : document.getElementById("playerPortrait"),
                     document.getElementById("enemyPortrait"), "fracture");
-          bitsExtra.push(`Bulwark Fracture ${combat.fractureStacks}`);
+          bitsExtra.push(`Bulwark Cracked ${combat.fractureStacks}`);
         }
         if (hasSigMatch) {
           // Track total signature tiles cleared this turn (3 tiles = 1 charge, cascades count)
@@ -1643,7 +1643,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         const fBase = 2 + Math.floor(run.floor * 0.3);
         const fDmg = combat.fractureStacks * (run.deepFracture ? fBase + 1 : fBase);
         dealDamageToEnemy(fDmg, { trueDmg: true, source: "fracture" });
-        setLog("Fracture", `Fracture · ${fDmg} true dmg`);
+        setLog("Cracked", `Cracked · ${fDmg} true dmg`);
         refreshCombatUI();
         await sleep(350);
         if (combat.enemyHp <= 0) {
@@ -1655,7 +1655,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       // Stun: skip enemy's entire turn
       if ((combat.enemyStunTurns || 0) > 0) {
         combat.enemyStunTurns--;
-        setLog("Stunned", "Enemy is stunned — turn skipped!");
+        setLog("Dizzy", "Enemy is Dizzy — turn skipped!");
         dmgPop("enemy", "STUNNED", "shielded");
         refreshCombatUI();
         await sleep(600);
@@ -1754,7 +1754,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       // Frost: reduce enemy AP by 1 per frost stack
       if ((combat.enemyFrostTurns || 0) > 0) {
         combat.enemyAp = Math.max(0, combat.enemyAp - 1);
-        setLog("Frosted", "Frost · enemy loses 1 AP");
+        setLog("Chilled", "Chill · enemy loses 1 AP");
         dmgPop("enemy", "FROST", "shielded");
         refreshCombatUI();
         await sleep(300);
@@ -1920,7 +1920,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (combat.playerFractureStacks > 0 && combat.playerFractureTurns > 0) {
         const fDmg = combat.playerFractureStacks * 2;
         dealDamageToPlayer(fDmg, { noFracture: true });
-        setLog("Fracture", `Fracture · ${fDmg} true dmg`);
+        setLog("Cracked", `Cracked · ${fDmg} true dmg`);
         combat.playerFractureTurns--;
         if (combat.playerFractureTurns <= 0) combat.playerFractureStacks = 0;
       }
@@ -2249,13 +2249,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         combat._moonstormLinks = links;
       }
       const tilesConsumed = typeof window.consumeTilesOfType === "function" ? await window.consumeTilesOfType(sig) : 0;
-      // Floor 1–14 you only have the basic consume (your first skill). The full
-      // ultimate (Moonstorm / Earthshatter / Assassinate) unlocks at floor 15.
-      const ultUnlocked = run.floor >= 15;
-      const basicMode = !ultUnlocked;
-      const perTileDmg = basicMode
-        ? (sig === "sword" ? 4 : 3)
-        : (sig === "sword" ? 6 : 5);
+      // Your ultimate is available from level 1 — the full Finisher always works.
+      const perTileDmg = sig === "sword" ? 6 : 5;
       const baseDmg = 5;
       let ultDmg = baseDmg + tilesConsumed * perTileDmg;
       // Earthshatter+ passive: ult +15 true damage
@@ -2278,15 +2273,12 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
 
       // Class-specific pre-impact bonuses
       if (cls === "ninja") {
+        combat.playerHp = Math.max(1, combat.playerHp - 3);
+        combat.afterglowTurns = run.shadowArmy ? 3 : (run.lingeringShadow ? 2 : 1);
         const enemyPct = combat.enemyHp / Math.max(1, combat.enemyMaxHp);
-        if (!basicMode) {
-          combat.playerHp = Math.max(1, combat.playerHp - 3);
-          combat.afterglowTurns = run.shadowArmy ? 3 : (run.lingeringShadow ? 2 : 1);
-          if (enemyPct < 0.3) ultDmg = Math.round(ultDmg * 2);
-        }
-        bits.push(basicMode ? "Basic Strike" : "Assassinate", `${ultDmg} true`, `${tilesConsumed} ⚔️ consumed`,
-          !basicMode && enemyPct < 0.3 ? "Finish Off!" : "",
-          !basicMode ? "Afterglow" : "", !basicMode ? "-3 HP" : "");
+        if (enemyPct < 0.3) ultDmg = Math.round(ultDmg * 2);
+        bits.push("Assassinate", `${ultDmg} true`, `${tilesConsumed} ⚔️ spent`,
+          enemyPct < 0.3 ? "Finish Off!" : "", "Afterglow", "-3 HP");
         refreshCombatUI();
       } else if (cls === "wizard") {
         // Moonstorm: each consumed shield links to a damage tile for free separate damage
@@ -2298,34 +2290,30 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
             : (settings.starDmg + (run.bonusStarDmg || 0));
         }
         combat._moonstormLinkedDmg = linkedDmg;
-        bits.push(basicMode ? "Basic Bolt" : "Moonstorm", `${ultDmg} true`, `${tilesConsumed} 🛡️ consumed`);
-        if (!basicMode && linkedDmg > 0) bits.push(`+${linkedDmg} linked`);
+        bits.push("Moonstorm", `${ultDmg} true`, `${tilesConsumed} 🛡️ spent`);
+        if (linkedDmg > 0) bits.push(`+${linkedDmg} chain`);
         // Moonstorm Barrier: the storm leaves a small shield so the Wizard isn't
         // left fully exposed if the burst doesn't finish the enemy.
-        if (!basicMode) {
-          const barrier = Math.min(12, tilesConsumed * 2);
-          if (barrier > 0) {
-            applyShielding(barrier);
-            bits.push(`+${barrier}🛡️ barrier`);
-          }
-          // Mana steal if enemy has shield
-          if (combat.enemyShield > 0) {
-            const steal = Math.min(3, combat.enemyShield);
-            combat.enemyShield -= steal;
-            applyShielding(steal);
-            bits.push(`steal ${steal}🛡️`);
-          }
+        const barrier = Math.min(12, tilesConsumed * 2);
+        if (barrier > 0) {
+          applyShielding(barrier);
+          bits.push(`+${barrier}🛡️ barrier`);
+        }
+        // Mana steal if enemy has shield
+        if (combat.enemyShield > 0) {
+          const steal = Math.min(3, combat.enemyShield);
+          combat.enemyShield -= steal;
+          applyShielding(steal);
+          bits.push(`steal ${steal}🛡️`);
         }
       } else if (cls === "knight") {
-        const shatterBonus = basicMode ? 0 : combat.fractureStacks * 4;
-        const heartHeal = tilesConsumed * (basicMode ? 2 : 3);
-        if (!basicMode) {
-          combat.fractureStacks = 0;
-          combat.fractureTurns = 0;
-          combat.mortalWoundTurns = Math.max(combat.mortalWoundTurns, 2);
-        }
-        bits.push(basicMode ? "Basic Bash" : "Earthshatter", `${ultDmg} true`, `${tilesConsumed} ❤️ consumed`, heartHeal > 0 ? `+${heartHeal} HP` : "No hearts",
-          shatterBonus > 0 ? `Shatter +${shatterBonus}` : (basicMode ? "" : "No Fracture"), basicMode ? "" : "Bleed");
+        const shatterBonus = combat.fractureStacks * 4;
+        const heartHeal = tilesConsumed * 3;
+        combat.fractureStacks = 0;
+        combat.fractureTurns = 0;
+        combat.mortalWoundTurns = Math.max(combat.mortalWoundTurns, 2);
+        bits.push("Earthshatter", `${ultDmg} true`, `${tilesConsumed} ❤️ spent`, heartHeal > 0 ? `+${heartHeal} HP` : "No hearts",
+          shatterBonus > 0 ? `Shatter +${shatterBonus}` : "No Cracked", "Bleed");
         if (heartHeal > 0) {
           await sleep(90);
           applyHealing(heartHeal);
@@ -2335,12 +2323,12 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           dealDamageToEnemy(shatterBonus, { trueDmg: true, source: "ult" });
           showUltDamagePop(shatterBonus, cls);
         }
-        if (!basicMode && run.mortalStrike) {
+        if (run.mortalStrike) {
           combat.enemyWeakenTurns = Math.max(combat.enemyWeakenTurns || 0, 2);
           bits.push("Weaken 25%");
         }
       } else {
-        bits.push("Ultimate", `${ultDmg} dmg`, `${tilesConsumed} consumed`);
+        bits.push("Ultimate", `${ultDmg} dmg`, `${tilesConsumed} spent`);
       }
 
       // --- Hit-stop + flash + flinch + cinematic ---

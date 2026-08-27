@@ -83,7 +83,7 @@ const screenMenu = document.getElementById("screen-menu");
       if (/ap|action/.test(s))             return "Best for multi-action combo turns";
       if (/star|signature|charge/.test(s)) return "Best for fast Ultimate cycling";
       if (/cascade|combo/.test(s))         return "Best for cascade-heavy boards";
-      if (/fracture/.test(s))              return "Best for Knight Fracture stacking";
+      if (/fracture|cracked/.test(s))      return "Best for Knight Cracked stacking";
       if (/ult|ultimate/.test(s))          return "Best for big burst damage turns";
       return "";
     }
@@ -397,7 +397,7 @@ const screenMenu = document.getElementById("screen-menu");
         add("⭐", "Star", s.star);
         add("🔮", "Runic", s.runic);
         add("☠️", "Poison", s.poison);
-        add("🦴", "Fracture", s.fracture);
+        add("🦴", "Cracked", s.fracture);
         add("💥", "Ult", s.ult);
         add("↩️", "Reflect", s.reflect);
         vs.innerHTML = chips.join("") || '<span class="victory-chip">No actions</span>';
@@ -1036,7 +1036,7 @@ const screenMenu = document.getElementById("screen-menu");
         { icon: "🛡️", name: "Iron Mantle", desc: "+5 max shield", costType: "hp", cost: 8, apply() { combat.tempShieldCapBonus += 5; } },
         { icon: "⚡", name: "Surge", desc: "+1 max AP", costType: "hp", cost: 15, apply() { combat.ap = Math.min(AP_MAX + 1, combat.ap + 1); } },
         { icon: "🔮", name: "Enchant", desc: "Add a special tile to board", costType: "shield", cost: 5, apply() { if (typeof window.placeRandomSpecial === "function") window.placeRandomSpecial(); } },
-        { icon: "💀", name: "Fracture Shard", desc: "Apply 2 Fracture to enemy", costType: "hp", cost: 12, apply() { combat.fractureStacks = Math.min(6, combat.fractureStacks + 2); combat.fractureTurns = Math.max(combat.fractureTurns, 3); } },
+        { icon: "💀", name: "Cracked Shard", desc: "Apply 2 Cracked to enemy", costType: "hp", cost: 12, apply() { combat.fractureStacks = Math.min(6, combat.fractureStacks + 2); combat.fractureTurns = Math.max(combat.fractureTurns, 3); } },
         { icon: "🌟", name: "Golden Nectar", desc: "+4 ult charge", costType: "shield", cost: 6, apply() { combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + 4); } },
       ];
       // Pick 4 random items
@@ -2447,16 +2447,16 @@ const screenMenu = document.getElementById("screen-menu");
       let passive = "", ult = "", shapes = "";
       if (cls === "ninja") {
         passive = "Shadow Step: First hit dodged, then 20% dodge. Clear 4+ Sword tiles in one turn → prompt: −3 HP for +1 extra swap (once per turn).";
-        ult = "Assassinate: Consumes ALL ⚔️ on board — 5 + 6 dmg per ⚔️, true. ×2 if enemy <30% HP. Costs −3 HP, grants Afterglow.";
+        ult = "Assassinate: Spends ALL ⚔️ on board — 5 + 6 dmg per ⚔️, true. ×2 if enemy <30% HP. Costs −3 HP, grants Afterglow.";
         shapes = "⭐ +2 AP + 4→Sword · 💥 +2 Mark (+15% dmg each) + 1 AP · ⚡ True dmg = Swords×4 (min 8, max 24)";
       } else if (cls === "wizard") {
         passive = "Arcane Reflection: 40%+ of damage taken reflected as true dmg (scales with floor). Shield matches deal Runic damage if the Runic tree is picked.";
-        ult = "Moonstorm: Consumes ALL 🛡️ on board — 5 + 5 dmg per 🛡️, true. Each consumed shield also links to a damage tile (⚔️/⭐) and fires its damage at the enemy as FREE separate damage. Leaves a Moonstorm Barrier (up to 12 Shield) and steals up to 3 enemy Shield.";
+        ult = "Moonstorm: Spends ALL 🛡️ on board — 5 + 5 dmg per 🛡️, true. Each spent shield chains to a damage tile (⚔️/⭐) and fires its damage at the enemy as FREE separate damage. Leaves a Moonstorm Barrier (up to 12 Shield) and steals up to 3 enemy Shield.";
         shapes = "⭐ +12 Shield + 3→Shield · 💥 Mana Lock 2t · ⚡ Steal up to 3 Shield";
       } else {
-        passive = "Regen +3 HP each turn. Iron Will: survive a lethal hit once per battle at 1 HP, gain +5 Fracture. Fracture stacks deal true dmg at enemy turn start — or cash them in early with a Charged match (Shatter: stacks×3).";
-        ult = "Earthshatter: Consumes ALL ❤️ on board — 5 + 5 dmg per ❤️, true, heal 3 HP per ❤️ + Shatter all Fracture (stacks×4 bonus) + Mortal Wound 2t.";
-        shapes = "⭐ +2 Fracture + 3→Potion · 💥 +3 Fracture + 1 AP · ⚡ Shatter (stacks×3)";
+        passive = "Regen +3 HP each turn. Iron Will: survive a lethal hit once per battle at 1 HP, gain +5 Cracked. Cracked stacks deal true dmg at enemy turn start — or cash them in early with a Bloom match (Shatter: stacks×3).";
+        ult = "Earthshatter: Spends ALL ❤️ on board — 5 + 5 dmg per ❤️, true, heal 3 HP per ❤️ + Shatter all Cracked (stacks×4 bonus) + Bleed 2t.";
+        shapes = "⭐ +2 Cracked + 3→Potion · 💥 +3 Cracked + 1 AP · ⚡ Shatter (stacks×3)";
       }
       return `
         <div class="info-section">Passive</div>
@@ -2493,8 +2493,8 @@ const screenMenu = document.getElementById("screen-menu");
       const parts = [];
       if (combat.afterglowTurns > 0) parts.push(`Afterglow ${combat.afterglowTurns}t`);
       if (combat.poisonTurns > 0) parts.push(`Poison ${combat.poisonTurns}t`);
-      if (combat.playerFractureStacks > 0) parts.push(`Fracture ${combat.playerFractureStacks} (${combat.playerFractureTurns}t)`);
-      if (combat.playerMortalWoundTurns > 0) parts.push(`Mortal Wound ${combat.playerMortalWoundTurns}t`);
+      if (combat.playerFractureStacks > 0) parts.push(`Cracked ${combat.playerFractureStacks} (${combat.playerFractureTurns}t)`);
+      if (combat.playerMortalWoundTurns > 0) parts.push(`Bleed ${combat.playerMortalWoundTurns}t`);
       if (combat.empowerNext) parts.push("Empower");
       if (combat.blindNext) parts.push("Blind");
       if (combat.weakenNextSword) parts.push("Weaken");
@@ -2505,8 +2505,8 @@ const screenMenu = document.getElementById("screen-menu");
     function statusSummaryEnemy() {
       const parts = [];
       if (combat.markStacks > 0) parts.push(`Mark ${combat.markStacks}`);
-      if (combat.fractureStacks > 0) parts.push(`Fracture ${combat.fractureStacks} (${combat.fractureTurns}t)`);
-      if (combat.mortalWoundTurns > 0) parts.push(`Mortal Wound ${combat.mortalWoundTurns}t`);
+      if (combat.fractureStacks > 0) parts.push(`Cracked ${combat.fractureStacks} (${combat.fractureTurns}t)`);
+      if (combat.mortalWoundTurns > 0) parts.push(`Bleed ${combat.mortalWoundTurns}t`);
       if (combat.manaLockTurns > 0) parts.push(`Mana Lock ${combat.manaLockTurns}t`);
       if (combat.enemyAfterglowTurns > 0) parts.push(`Afterglow ${combat.enemyAfterglowTurns}t`);
       if (combat.bossKit && combat.bossKit.id === "umbral" && !combat.enemyVeilUsed) parts.push("Shadow Veil");

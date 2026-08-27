@@ -504,8 +504,8 @@
     // Hero base stats & signature extras
     const HERO_STATS = {
       ninja:  { hp: 85,  startShield: 15, maxShieldCap: 15, name: "Ninja" },
-      wizard: { hp: 100, startShield: 20, maxShieldCap: 20, name: "Wizard", reflectPct: 0.3 },
-      knight: { hp: 120, startShield: 10, maxShieldCap: 10, name: "Knight" }
+      wizard: { hp: 100, startShield: 20, maxShieldCap: 20, name: "Wizard", reflectPct: 0.4 },
+      knight: { hp: 120, startShield: 15, maxShieldCap: 15, name: "Knight" }
     };
 
     // Permanent run progression (persists across floors until defeat / menu)

@@ -1670,7 +1670,7 @@ const screenMenu = document.getElementById("screen-menu");
       }
       combat.pendingSurge = 0;
       combat.surgeActive = 0;
-      combat.reflectPct = Math.min(0.65, (hero.reflectPct || 0) + 0.02 * (run.floor - 1) + (run.arcaneMirror ? 0.1 : 0));
+      combat.reflectPct = Math.min(0.7, (hero.reflectPct || 0) + 0.02 * (run.floor - 1) + (run.arcaneMirror ? 0.1 : 0));
       combat.turn = 1;
       combat.playerTurn = true;
       combat.tutorial = !!opts.tutorial;
@@ -2410,8 +2410,8 @@ const screenMenu = document.getElementById("screen-menu");
         ult = "Assassinate: Consumes ALL ⚔️ on board — 5 + 6 dmg per ⚔️, true. ×2 if enemy <30% HP. Costs −3 HP, grants Afterglow.";
         shapes = "⭐ +2 AP + 4→Sword · 💥 +2 Mark (+15% dmg each) + 1 AP · ⚡ True dmg = Swords×4 (min 8, max 24)";
       } else if (cls === "wizard") {
-        passive = "Arcane Reflection: 30%+ of damage taken reflected as true dmg (scales with floor). Shield matches deal Runic damage equal to shield gained.";
-        ult = "Moonbloom: Consumes ALL 🛡️ on board — 5 + 5 dmg per 🛡️, true. Also steals up to 3 enemy Shield.";
+        passive = "Arcane Reflection: 40%+ of damage taken reflected as true dmg (scales with floor). Shield matches deal Runic damage if the Runic tree is picked.";
+        ult = "Moonstorm: Consumes ALL 🛡️ on board — 5 + 5 dmg per 🛡️, true. Each consumed shield also links to a damage tile (⚔️/⭐) and fires its damage at the enemy as FREE separate damage. Steals up to 3 enemy Shield.";
         shapes = "⭐ +12 Shield + 3→Shield · 💥 Mana Lock 2t · ⚡ Steal up to 3 Shield";
       } else {
         passive = "Regen +3 HP each turn. Iron Will: survive a lethal hit once per battle at 1 HP, gain +5 Fracture. Fracture stacks deal true dmg at enemy turn start — or cash them in early with a Charged match (Shatter: stacks×3).";

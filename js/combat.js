@@ -961,6 +961,11 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       }
       const lost = before - combat.playerHp;
       if (combat.stats) combat.stats.taken += lost;
+      // Knight Lifedrinker: heal 30% of damage actually taken (sustain on hits)
+      if (combat.playerClass === "knight" && lost > 0 && combat.playerHp > 0) {
+        const lh = Math.round(lost * 0.3);
+        if (lh > 0) applyHealing(lh);
+      }
       if (lost > 0) {
         dmgPop("player", `-${lost}`, "dmg");
         hpFlash("player", "down");
@@ -2219,6 +2224,17 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
 
       // Count all signature tiles on board, then consume them
       const tilesOnBoard = typeof window.countTilesOfType === "function" ? window.countTilesOfType(sig) : 0;
+      // Wizard Moonstorm: snapshot link positions BEFORE shields are consumed
+      if (cls === "wizard" && typeof getCell === "function") {
+        const sPos = [], dPos = [];
+        for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+          if (board[r][c] === "shield") sPos.push(getCell(r, c));
+          else if (board[r][c] === "sword" || board[r][c] === "star") dPos.push({ el: getCell(r, c), type: board[r][c] });
+        }
+        const links = [];
+        for (let i = 0; i < sPos.length && dPos.length > 0; i++) links.push({ from: sPos[i], mid: dPos.shift() });
+        combat._moonstormLinks = links;
+      }
       const tilesConsumed = typeof window.consumeTilesOfType === "function" ? await window.consumeTilesOfType(sig) : 0;
       const perTileDmg = sig === "sword" ? 6 : sig === "shield" ? 5 : 5;
       const baseDmg = 5;
@@ -2250,7 +2266,17 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         bits.push("Assassinate", `${ultDmg} true`, enemyPct < 0.3 ? "Execute!" : "", `${tilesConsumed} ⚔️ consumed`, "Afterglow", "-3 HP");
         refreshCombatUI();
       } else if (cls === "wizard") {
-        bits.push("Moonbloom", `${ultDmg} true`, `${tilesConsumed} 🛡️ consumed`);
+        // Moonstorm: each consumed shield links to a damage tile for free separate damage
+        const links = combat._moonstormLinks || [];
+        let linkedDmg = 0;
+        for (const lk of links) {
+          linkedDmg += (lk.mid.type === "sword")
+            ? (settings.swordDmg + (run.bonusSwordDmg || 0))
+            : (settings.starDmg + (run.bonusStarDmg || 0));
+        }
+        combat._moonstormLinkedDmg = linkedDmg;
+        bits.push("Moonstorm", `${ultDmg} true`, `${tilesConsumed} 🛡️ consumed`);
+        if (linkedDmg > 0) bits.push(`+${linkedDmg} linked`);
         // Mana steal if enemy has shield
         if (combat.enemyShield > 0) {
           const steal = Math.min(3, combat.enemyShield);
@@ -2316,6 +2342,23 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       }
       dealDamageToEnemy(ultDmg, { trueDmg: true, source: "ult" });
       showUltDamagePop(ultDmg, cls);
+      // Wizard Moonstorm: fire linked projectiles (shield → damage tile → enemy) for free separate damage
+      if (cls === "wizard" && combat._moonstormLinks && combat._moonstormLinks.length) {
+        const links = combat._moonstormLinks;
+        const ePort = enemyPort || document.getElementById("enemyPortrait");
+        for (const lk of links) {
+          await sleep(70);
+          flyEffect(lk.from, lk.mid.el, "shield");
+          await sleep(90);
+          const td = (lk.mid.type === "sword")
+            ? (settings.swordDmg + (run.bonusSwordDmg || 0))
+            : (settings.starDmg + (run.bonusStarDmg || 0));
+          flyEffect(lk.mid.el, ePort, lk.mid.type);
+          dealDamageToEnemy(td, { trueDmg: true, source: "ult" });
+          dmgPop("enemy", `🔗${td}`, "true");
+        }
+        combat._moonstormLinks = null;
+      }
       combat.sigBank = 0;
       combat.ultAnnounced = false;
       const liveBits = bits.filter((b) => b !== `${ultDmg} true` && b !== `${ultDmg} dmg`);

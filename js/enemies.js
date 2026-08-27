@@ -921,7 +921,7 @@
     function actPos(f) { return (f - (actTier(f) - 1) * 15 - 1) / 14; } // 0..1 within act
 
     function enemyHpForFloor(f) {
-      const tiers = [ { lo: 70, hi: 140 }, { lo: 160, hi: 290 }, { lo: 300, hi: 480 } ];
+      const tiers = [ { lo: 100, hi: 200 }, { lo: 230, hi: 420 }, { lo: 430, hi: 700 } ];
       const t = tiers[actTier(f) - 1];
       let hp = Math.round(t.lo + (t.hi - t.lo) * actPos(f));
       if (BOSS_REWARDS[f]) hp = Math.round(hp * 1.35);
@@ -933,7 +933,7 @@
     }
 
     function enemyAtkForFloor(f) {
-      const tiers = [ { lo: 14, hi: 26 }, { lo: 30, hi: 46 }, { lo: 52, hi: 78 } ];
+      const tiers = [ { lo: 16, hi: 30 }, { lo: 34, hi: 52 }, { lo: 58, hi: 90 } ];
       const t = tiers[actTier(f) - 1];
       let atk = Math.round(t.lo + (t.hi - t.lo) * actPos(f));
       const loop = (typeof run !== "undefined" && run.ngLoop) || 0;

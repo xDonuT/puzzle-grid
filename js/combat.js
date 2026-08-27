@@ -776,6 +776,14 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (enemyPortraitEl) {
         enemyPortraitEl.classList.toggle("fracture-mark", combat.fractureStacks > 0 && combat.fractureTurns > 0);
         enemyPortraitEl.classList.toggle("mortal-mark", combat.mortalWoundTurns > 0);
+        // Glow the enemy portrait the turn before a special/ult fires, so the
+        // player gets a clear "kill or be killed before the special" warning.
+        const isBoss = !!combat.bossKit, isElite = !!combat.eliteKit;
+        const enemyCharging = !isElite && (
+          (isBoss && combat.enemyUltCharge === combat.enemyUltNeed - 1) ||
+          (!isBoss && combat.enemySpecialCharge === combat.enemySpecialNeed - 1)
+        );
+        enemyPortraitEl.classList.toggle("charging", enemyCharging);
       }
 
       // Cute status chips along the top of each portrait (tap for details)

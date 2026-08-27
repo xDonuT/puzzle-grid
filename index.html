@@ -1702,6 +1702,36 @@
     .portrait.wizard.ult-ready::after { background: linear-gradient(135deg, #5bb6a8, #2f8d7e); }
     .portrait.knight.ult-ready::after { background: linear-gradient(135deg, #db7e92, #c2506a); }
 
+    /* Enemy charging a special/ult — red danger glow mirrors the player's ULT READY,
+       so you can see the big hit is coming on the enemy's NEXT turn. */
+    .portrait.enemy.charging {
+      box-shadow: 0 0 0 3px #ff5a4d, 0 0 18px 6px rgba(255, 90, 77, 0.55), 0 0 36px 10px rgba(255, 70, 60, 0.25);
+      animation: enemyChargePulse 0.8s ease-in-out infinite;
+    }
+    .portrait.enemy.charging::after {
+      content: "⚠ SPECIAL";
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      font-size: 0.52rem;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      color: #fff;
+      background: linear-gradient(135deg, #ff6a5a, #e23b2c);
+      padding: 2px 8px;
+      border-radius: 999px;
+      box-shadow: 0 2px 6px rgba(200, 40, 30, 0.4);
+      animation: ultBadgePulse 1.2s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 6;
+    }
+    @keyframes enemyChargePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+
     /* Ultimate impact juice */
     .portrait.ult-cast {
       animation: ultCastPulse 0.45s cubic-bezier(0.22, 1.2, 0.36, 1);

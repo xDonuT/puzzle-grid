@@ -577,7 +577,14 @@
       { id: "contagionCatalyst", name: "☣️ Contagion Catalyst", desc: "Wizard: Clearing a Mystery tile while Shielded doubles enemy Poison", classRequirement: "WIZARD", apply: () => { run.contagionCatalyst = true; } },
       // ---- Knight-specific (Poison/Acid) ----
       { id: "corrosiveOverheal", name: "🩸 Corrosive Overheal", desc: "Knight: Excess healing converts to Acid stacks (1 per 5 HP)", classRequirement: "KNIGHT", apply: () => { run.corrosiveOverheal = true; } },
-      { id: "toxicFortitude", name: "🏰 Toxic Fortitude", desc: "Knight: Start of turn, gain Shield = 2× total (Poison + Acid) on rival", classRequirement: "KNIGHT", apply: () => { run.toxicFortitude = true; } }
+      { id: "toxicFortitude", name: "🏰 Toxic Fortitude", desc: "Knight: Start of turn, gain Shield = 2× total (Poison + Acid) on rival", classRequirement: "KNIGHT", apply: () => { run.toxicFortitude = true; } },
+      // ---- Class flat-stat parity (mirror Ninja's sword stacking) ----
+      // Wizard's signature is Shield, Knight's is Heart/HP — give each a permanent
+      // stat-stacking path so no class is behind in the upgrade economy.
+      { id: "wizShield", name: "🛡️ +4 Max Shield", desc: "Permanently higher shield ceiling", classRequirement: "WIZARD", apply: () => { run.bonusShieldMax += 4; } },
+      { id: "wizShieldFloor", name: "🛡️ +1 Shield per Floor", desc: "Begin each floor with +1 shield", classRequirement: "WIZARD", apply: () => { run.floorShieldBonus += 1; } },
+      { id: "kniHp", name: "❤️ +10 Max HP", desc: "Permanently stronger health", classRequirement: "KNIGHT", apply: () => { run.bonusMaxHp += 10; } },
+      { id: "kniHeal", name: "💚 +2 Heal Amount", desc: "Heals & potions restore more", classRequirement: "KNIGHT", apply: () => { run.bonusHeal += 2; } }
     ];
 
     // ===================== PASSIVE TREE SYSTEM =====================

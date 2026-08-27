@@ -2290,6 +2290,13 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         combat._moonstormLinkedDmg = linkedDmg;
         bits.push("Moonstorm", `${ultDmg} true`, `${tilesConsumed} 🛡️ consumed`);
         if (linkedDmg > 0) bits.push(`+${linkedDmg} linked`);
+        // Moonstorm Barrier: the storm leaves a small shield so the Wizard isn't
+        // left fully exposed if the burst doesn't finish the enemy.
+        const barrier = Math.min(12, tilesConsumed * 2);
+        if (barrier > 0) {
+          applyShielding(barrier);
+          bits.push(`+${barrier}🛡️ barrier`);
+        }
         // Mana steal if enemy has shield
         if (combat.enemyShield > 0) {
           const steal = Math.min(3, combat.enemyShield);

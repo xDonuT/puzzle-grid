@@ -2447,7 +2447,7 @@ const screenMenu = document.getElementById("screen-menu");
         shapes = "⭐ +2 AP + 4→Sword · 💥 +2 Mark (+15% dmg each) + 1 AP · ⚡ True dmg = Swords×4 (min 8, max 24)";
       } else if (cls === "wizard") {
         passive = "Arcane Reflection: 40%+ of damage taken reflected as true dmg (scales with floor). Shield matches deal Runic damage if the Runic tree is picked.";
-        ult = "Moonstorm: Consumes ALL 🛡️ on board — 5 + 5 dmg per 🛡️, true. Each consumed shield also links to a damage tile (⚔️/⭐) and fires its damage at the enemy as FREE separate damage. Steals up to 3 enemy Shield.";
+        ult = "Moonstorm: Consumes ALL 🛡️ on board — 5 + 5 dmg per 🛡️, true. Each consumed shield also links to a damage tile (⚔️/⭐) and fires its damage at the enemy as FREE separate damage. Leaves a Moonstorm Barrier (up to 12 Shield) and steals up to 3 enemy Shield.";
         shapes = "⭐ +12 Shield + 3→Shield · 💥 Mana Lock 2t · ⚡ Steal up to 3 Shield";
       } else {
         passive = "Regen +3 HP each turn. Iron Will: survive a lethal hit once per battle at 1 HP, gain +5 Fracture. Fracture stacks deal true dmg at enemy turn start — or cash them in early with a Charged match (Shatter: stacks×3).";

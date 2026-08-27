@@ -847,7 +847,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       stun: { name: "Dizzy", detail: "Enemy skips their next turn entirely." },
       frost: { name: "Chill", detail: "Enemy loses 1 AP at the start of their turn." },
       corrupted: { name: "Cursed", detail: "Matching this tile deals 8 damage to YOU instead of the enemy!" },
-      squallBloom: { name: "Charged", detail: "Each stack = 4% damage reduction (cap 8). At 5+ stacks she heals 2 HP/turn. Decays -1 per turn." },
+      squallBloom: { name: "Bloom", detail: "Each stack = 4% damage reduction (cap 8). At 5+ stacks she heals 2 HP/turn. Decays -1 per turn." },
       disoriented: { name: "Disoriented", detail: "Controls reversed — drag left to go right, drag right to go left (from Bracken's Root Snare)." },
       afterglow: { name: "Afterglow", detail: "Take 50% less damage for the listed turns (from Ninja ultimate)." },
       poison: { name: "Poison", detail: "3 true-ish damage at the start of the affected side’s relevant turn. Counts down each player turn." },
@@ -1083,7 +1083,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         combat.squallBloom = Math.min(8, combat.squallBloom + 1);
         const reduction = 1 - combat.squallBloom * 0.04; // 4% per stack
         dmg = Math.max(1, Math.round(dmg * reduction));
-        if (combat.squallBloom >= 5) setLog("Charged", "🌺 Charged " + combat.squallBloom + " · flowers defending");
+        if (combat.squallBloom >= 5) setLog("Bloom", "🌺 Bloom " + combat.squallBloom + " · flowers defending");
       }
 
       const trueDmg = !!opts.trueDmg; // ultimates & fracture
@@ -1894,7 +1894,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (combat.squallBloom > 0) {
         if (combat.bossKit && combat.bossKit.id === "cinder" && combat.squallBloom >= 5 && combat.enemyHp > 0) {
           healEnemy(2);
-          setLog("Charged", "🌺 Charged " + combat.squallBloom + " · heals 2 HP");
+          setLog("Bloom", "🌺 Bloom " + combat.squallBloom + " · heals 2 HP");
         }
         combat.squallBloom = Math.max(0, combat.squallBloom - 1);
       }

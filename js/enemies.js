@@ -766,7 +766,7 @@
         apply(c) { c.tempStarDmg = (c.tempStarDmg || 0) + 2; } },
       { id: "ironSkin", tier: "easy", icon: "🛡️", name: "Iron Skin", desc: "+5 max HP this floor.", color: "#6a9a6a",
         apply(c) { c.playerMaxHp += 5; c.playerHp = Math.min(c.playerMaxHp, c.playerHp + 5); } },
-      { id: "firstStrike", tier: "easy", icon: "💥", name: "First Strike", desc: "First match of the floor is charged (4+).", color: "#d4783c",
+        { id: "firstStrike", tier: "easy", icon: "💥", name: "First Strike", desc: "First match of the floor is a Bloom (4+).", color: "#d4783c",
         apply(c) { c.pendingChargedFirst = true; } },
       { id: "signatureSurge", tier: "easy", icon: "🔥", name: "Signature Surge", desc: "Start floor with +4 ult charge.", color: "#e06040",
         apply(c) { c.sigBank = Math.min(settings.ultMaxCharge, c.sigBank + 4); } },

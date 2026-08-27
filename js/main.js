@@ -706,6 +706,14 @@ const screenMenu = document.getElementById("screen-menu");
         conn.forEach(id => reachable.add(id));
       }
 
+      // Softlock guard: if the current node has no forward moves (e.g. you exited
+      // mid-boss and the boss — a terminal node — is already "current"), the map
+      // would be dead with nothing clickable. Resume that encounter instead.
+      if (currentId && reachable.size === 0) {
+        resumeCurrentNode();
+        return;
+      }
+
       // Render layers top-to-bottom (boss at top, layer 0 at bottom) using column-reverse
       // Walked path blooms: a connector flowers once you've climbed through its lower layer
       const walked = actData.layers.map(layer => layer.some(n => visitedSet.has(n.id)));
@@ -780,6 +788,34 @@ const screenMenu = document.getElementById("screen-menu");
         startBattle({ fromVictory: false });
       }
       saveRun();
+    }
+
+    // Resume the encounter for the node you're currently parked on (used when a
+    // run is restored mid-fight, since board/enemy state isn't persisted). This
+    // re-fights the node from the start — correct for an unfinished boss/elite/
+    // normal battle, and it also clears the dead-map softlock described above.
+    function resumeCurrentNode() {
+      const map = run.gameMap;
+      if (!map || !map.currentNode) { showMap(); return; }
+      const node = getNodeById(map.acts[map.currentAct - 1], map.currentNode);
+      if (!node) { showMap(); return; }
+      hideMap();
+      if (node.type === "boss") {
+        const bossFloors = [15, 30, 45];
+        run.floor = bossFloors[map.currentAct - 1] || calcMapFloor(map);
+        startBattle({ fromVictory: false, isBoss: true });
+      } else if (node.type === "elite") {
+        const eliteFloors = [12, 27, 42];
+        run.floor = eliteFloors[map.currentAct - 1] || calcMapFloor(map);
+        startBattle({ fromVictory: false });
+      } else if (node.type === "mystery") {
+        openMysteryNode(() => { showMap(); saveRun(); });
+      } else if (node.type === "shop") {
+        openShopNode(() => { showMap(); saveRun(); });
+      } else {
+        run.floor = calcMapFloor(map);
+        startBattle({ fromVictory: false });
+      }
     }
 
     function calcMapFloor(map) {

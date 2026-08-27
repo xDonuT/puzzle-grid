@@ -544,47 +544,26 @@
     // Post-boss upgrade pool — each pick may be taken once per run.
     // name = card title · desc = short effect line
     const RUN_UPGRADES = [
-      // ---- General / Stat boosts (any class) ----
-      { id: "hp10", name: "❤️ +10 Max HP", desc: "Permanently boost your health", classRequirement: "ANY", apply: () => { run.bonusMaxHp += 10; } },
-      { id: "shield5", name: "🛡️ +5 Max Shield", desc: "Higher shield ceiling", classRequirement: "ANY", apply: () => { run.bonusShieldMax += 5; } },
-      { id: "ultCharge", name: "🔥 Faster Ult", desc: "Signature charge +1 per signature match", classRequirement: "ANY", apply: () => { run.ultChargeBonus += 1; } },
-      { id: "swordDmg", name: "⚔️ +1 Sword Damage", desc: "Permanently stronger swords", classRequirement: "ANY", apply: () => { run.bonusSwordDmg += 1; } },
-      { id: "healAmt", name: "💚 +2 Heal Amount", desc: "Potions heal more", classRequirement: "ANY", apply: () => { run.bonusHeal += 2; } },
-      { id: "floorShield", name: "🛡️ +1 Shield at Floor Start", desc: "Begin each floor shielded", classRequirement: "ANY", apply: () => { run.floorShieldBonus += 1; } },
-      { id: "feverEarly", name: "☀️ Surge 1 Turn Earlier", desc: "Sun Surge arrives sooner", classRequirement: "ANY", apply: () => { run.feverEarly += 1; } },
-      { id: "enemyUltSlow", name: "⛓️ Enemy Ult +1 Turn", desc: "Rival ultimates charge slower", classRequirement: "ANY", apply: () => { run.enemyUltSlow += 1; } },
-      // ---- Transformative upgrades (change how you play) ----
-      { id: "crossAp", name: "✚ Seal Mastery", desc: "T/+ and L seals refund 1 additional AP", classRequirement: "ANY", apply: () => { run.crossAp = true; } },
-      { id: "overflowBoost", name: "💚 Overflow Surge", desc: "Overflow heal/shield damage +50%", classRequirement: "ANY", apply: () => { run.overflowBoost = true; } },
-      { id: "bloomCharge", name: "🌸 Bloom Signature", desc: "Detonating a Bloom gives +1 Sig charge", classRequirement: "ANY", apply: () => { run.bloomCharge = true; } },
-      { id: "sigDouble", name: "⭐ Signature Echo", desc: "Your signature tile also counts as a small star", classRequirement: "ANY", apply: () => { run.sigDouble = true; } },
-      { id: "boardWhisper", name: "🔄 Board Whisper", desc: "1 free Shuffle each floor", classRequirement: "ANY", apply: () => { run.boardWhisper = true; } },
-      { id: "phasePower", name: "🌠 Phase Attunement", desc: "Signature effects stronger in Fever; Mystery +1 charge in Impact", classRequirement: "ANY", apply: () => { run.phasePower = true; } },
-      { id: "startShield", name: "🛡️ Fortified Start", desc: "Begin every floor with +4–6 extra Shield", classRequirement: "ANY", apply: () => { run.fortifiedStart = true; } },
-      { id: "poisonMaster", name: "☠️ Venomous", desc: "Sword matches can poison the enemy (30%)", classRequirement: "NINJA", apply: () => { run.venomous = true; } },
-      { id: "reflectBoost", name: "🪞 Arcane Mirror", desc: "Wizard reflection +10% (scales with floor)", classRequirement: "WIZARD", apply: () => { run.arcaneMirror = true; } },
-      { id: "enemySlow2", name: "⛓️ Heavy Chains", desc: "Enemy specials/ults +1 additional turn", classRequirement: "ANY", apply: () => { run.heavyChains = true; } },
-      { id: "apCarry", name: "⚡ Momentum", desc: "Unused AP carries over up to +2 next turn", classRequirement: "ANY", apply: () => { run.momentum = true; } },
-      { id: "mysteryBias", name: "🎲 Lucky Dice", desc: "Mystery tiles are 70% buffs before Full Bloom", classRequirement: "ANY", apply: () => { run.luckyDice = true; } },
-      // ---- Knight-specific ----
-      { id: "mortalStrike", name: "⚔️ Mortal Strike", desc: "Knight: Ultimate also reduces enemy damage by 25% for 2 turns", classRequirement: "KNIGHT", apply: () => { run.mortalStrike = true; } },
-      { id: "bulwark", name: "🛡️ Bulwark", desc: "Knight: Shield matches apply 1 Fracture stack (once per turn)", classRequirement: "KNIGHT", apply: () => { run.bulwark = true; } },
-      // ---- Ninja-specific ----
-      { id: "venomousBlade", name: "🗡️ Venomous Blade", desc: "Ninja: Matches of 4+ Swords or cascades apply +2 Poison", classRequirement: "NINJA", apply: () => { run.venomousBlade = true; } },
-      { id: "miasmaReflex", name: "💨 Miasma Reflex", desc: "Ninja: Dodging triggers 100% of Poison stacks as immediate damage", classRequirement: "NINJA", apply: () => { run.miasmaReflex = true; } },
-      // ---- Wizard-specific ----
-      { id: "acidicBarrier", name: "🧪 Acidic Barrier", desc: "Wizard: Every 10 damage absorbed by Shield applies +1 Poison", classRequirement: "WIZARD", apply: () => { run.acidicBarrier = true; } },
-      { id: "contagionCatalyst", name: "☣️ Contagion Catalyst", desc: "Wizard: Clearing a Mystery tile while Shielded doubles enemy Poison", classRequirement: "WIZARD", apply: () => { run.contagionCatalyst = true; } },
-      // ---- Knight-specific (Poison/Acid) ----
-      { id: "corrosiveOverheal", name: "🩸 Corrosive Overheal", desc: "Knight: Excess healing converts to Acid stacks (1 per 5 HP)", classRequirement: "KNIGHT", apply: () => { run.corrosiveOverheal = true; } },
-      { id: "toxicFortitude", name: "🏰 Toxic Fortitude", desc: "Knight: Start of turn, gain Shield = 2× total (Poison + Acid) on rival", classRequirement: "KNIGHT", apply: () => { run.toxicFortitude = true; } },
-      // ---- Class flat-stat parity (mirror Ninja's sword stacking) ----
-      // Wizard's signature is Shield, Knight's is Heart/HP — give each a permanent
-      // stat-stacking path so no class is behind in the upgrade economy.
-      { id: "wizShield", name: "🛡️ +4 Max Shield", desc: "Permanently higher shield ceiling", classRequirement: "WIZARD", apply: () => { run.bonusShieldMax += 4; } },
-      { id: "wizShieldFloor", name: "🛡️ +1 Shield per Floor", desc: "Begin each floor with +1 shield", classRequirement: "WIZARD", apply: () => { run.floorShieldBonus += 1; } },
-      { id: "kniHp", name: "❤️ +10 Max HP", desc: "Permanently stronger health", classRequirement: "KNIGHT", apply: () => { run.bonusMaxHp += 10; } },
-      { id: "kniHeal", name: "💚 +2 Heal Amount", desc: "Heals & potions restore more", classRequirement: "KNIGHT", apply: () => { run.bonusHeal += 2; } }
+      // ---- Generic (any class) — small, friendly, non-overlapping ----
+      { id: "hp10", name: "❤️ +10 Max HP", desc: "Permanently boost your health", classRequirement: "ANY", act: 1, apply: () => { run.bonusMaxHp += 10; } },
+      { id: "shield5", name: "🛡️ +5 Max Shield", desc: "Higher shield ceiling", classRequirement: "ANY", act: 1, apply: () => { run.bonusShieldMax += 5; } },
+      { id: "healAmt", name: "💚 +2 Heal Amount", desc: "Potions heal more", classRequirement: "ANY", act: 1, apply: () => { run.bonusHeal += 2; } },
+      { id: "ultCharge", name: "🔥 Faster Ult", desc: "Signature charge +1 per signature match", classRequirement: "ANY", act: 1, apply: () => { run.ultChargeBonus += 1; } },
+      { id: "apCarry", name: "⚡ Extra Action", desc: "Unused AP carries over up to +2 next turn", classRequirement: "ANY", act: 2, apply: () => { run.momentum = true; } },
+      { id: "boardWhisper", name: "🔄 Free Shuffle", desc: "1 free Shuffle each floor", classRequirement: "ANY", act: 2, apply: () => { run.boardWhisper = true; } },
+      // ---- Ninja-specific skills ----
+      { id: "poisonMaster", name: "☠️ Venomous", desc: "Sword matches can poison the enemy (30%)", classRequirement: "NINJA", act: 1, apply: () => { run.venomous = true; } },
+      { id: "venomousBlade", name: "🗡️ Venomous Blade", desc: "Matches of 4+ Swords or cascades apply +2 Poison", classRequirement: "NINJA", act: 2, apply: () => { run.venomousBlade = true; } },
+      { id: "miasmaReflex", name: "💨 Miasma Reflex", desc: "Dodging triggers 100% of Poison stacks as immediate damage", classRequirement: "NINJA", act: 3, apply: () => { run.miasmaReflex = true; } },
+      // ---- Wizard-specific skills ----
+      { id: "reflectBoost", name: "🪞 Arcane Mirror", desc: "Wizard reflect +10% (scales with floor)", classRequirement: "WIZARD", act: 2, apply: () => { run.arcaneMirror = true; } },
+      { id: "acidicBarrier", name: "🧪 Acidic Barrier", desc: "Every 10 damage absorbed by Shield applies +1 Poison", classRequirement: "WIZARD", act: 2, apply: () => { run.acidicBarrier = true; } },
+      { id: "contagionCatalyst", name: "☣️ Contagion Catalyst", desc: "Clearing a Mystery tile while Shielded doubles enemy Poison", classRequirement: "WIZARD", act: 3, apply: () => { run.contagionCatalyst = true; } },
+      // ---- Knight-specific skills ----
+      { id: "bulwark", name: "🛡️ Bulwark", desc: "Shield matches apply 1 Cracked stack (once per turn)", classRequirement: "KNIGHT", act: 1, apply: () => { run.bulwark = true; } },
+      { id: "mortalStrike", name: "⚔️ Weaken", desc: "Ultimate also weakens enemy damage by 25% for 2 turns", classRequirement: "KNIGHT", act: 2, apply: () => { run.mortalStrike = true; } },
+      { id: "corrosiveOverheal", name: "🩸 Corrosive Overheal", desc: "Excess healing converts to Acid stacks (1 per 5 HP)", classRequirement: "KNIGHT", act: 3, apply: () => { run.corrosiveOverheal = true; } },
+      { id: "toxicFortitude", name: "🏰 Toxic Fortitude", desc: "Start of turn, gain Shield = 2× total (Poison + Acid) on rival", classRequirement: "KNIGHT", act: 3, apply: () => { run.toxicFortitude = true; } }
     ];
 
     // ===================== PASSIVE TREE SYSTEM =====================
@@ -593,94 +572,98 @@
     const PASSIVE_TREES = [
       // ---- NINJA ----
       // Path: Shadow (speed/AP)
-      { id: "shd1", path: "shadow", tier: 1, cls: "NINJA", icon: "🗡️", name: "Swift Strikes", desc: "+1 max AP per turn.",
+      { id: "shd1", path: "shadow", tier: 1, act: 1, cls: "NINJA", icon: "🗡️", name: "Swift Strikes", desc: "+1 max AP per turn.",
         apply() { run.bonusApMax += 1; AP_MAX = 3 + run.bonusApMax; } },
-      { id: "shd2", path: "shadow", tier: 2, cls: "NINJA", icon: "🗡️", name: "Cascade Master", desc: "Every cascade after the first refunds 1 AP.",
+      { id: "shd2", path: "shadow", tier: 2, act: 2, cls: "NINJA", icon: "🗡️", name: "Cascade Master", desc: "Every cascade after the first refunds 1 AP.",
         apply() { run.cascadeAp = true; } },
-      { id: "shd3", path: "shadow", tier: 3, cls: "NINJA", icon: "🗡️", name: "Blitz", desc: "First match each turn costs 0 AP.",
+      { id: "shd3", path: "shadow", tier: 3, act: 3, cls: "NINJA", icon: "🗡️", name: "Blitz", desc: "First match each turn costs 0 AP.",
         apply() { run.blitz = true; } },
       // Path: Venom (poison)
-      { id: "vnw1", path: "venom", tier: 1, cls: "NINJA", icon: "☠️", name: "Toxic Blade", desc: "Sword matches poison enemy for 2 turns.",
+      { id: "vnw1", path: "venom", tier: 1, act: 1, cls: "NINJA", icon: "☠️", name: "Toxic Blade", desc: "Sword matches poison the enemy for 2 turns.",
         apply() { run.toxicBlade = true; } },
-      { id: "vnw2", path: "venom", tier: 2, cls: "NINJA", icon: "☠️", name: "Lethal Poison", desc: "Poison damage +1 per stack, duration +1.",
+      { id: "vnw2", path: "venom", tier: 2, act: 2, cls: "NINJA", icon: "☠️", name: "Lethal Poison", desc: "Poison damage +1 per stack, duration +1.",
         apply() { run.lethalPoison = true; } },
-      { id: "vnw3", path: "venom", tier: 3, cls: "NINJA", icon: "☠️", name: "Plague", desc: "Poisoned enemy death deals 10 splash to next enemy.",
+      { id: "vnw3", path: "venom", tier: 3, act: 3, cls: "NINJA", icon: "☠️", name: "Plague", desc: "A poisoned enemy's death deals 10 splash to the next enemy.",
         apply() { run.plague = true; } },
       // Path: Blade (raw sword damage)
-      { id: "bld1", path: "blade", tier: 1, cls: "NINJA", icon: "🔪", name: "Sharp Edge", desc: "Sword damage +3.",
+      { id: "bld1", path: "blade", tier: 1, act: 1, cls: "NINJA", icon: "🔪", name: "Sharp Edge", desc: "Sword damage +3.",
         apply() { run.bonusSwordDmg += 3; } },
-      { id: "bld2", path: "blade", tier: 2, cls: "NINJA", icon: "🔪", name: "Critical Edge", desc: "25% chance sword matches deal ×2.",
+      { id: "bld2", path: "blade", tier: 2, act: 2, cls: "NINJA", icon: "🔪", name: "Critical Edge", desc: "25% chance sword matches deal ×2.",
         apply() { run.criticalEdge = true; } },
-      { id: "bld3", path: "blade", tier: 3, cls: "NINJA", icon: "🔪", name: "Assassinate", desc: "Enemies below 30% HP take ×2 sword damage.",
+      { id: "bld3", path: "blade", tier: 3, act: 3, cls: "NINJA", icon: "🔪", name: "Assassinate", desc: "Enemies below 30% HP take ×2 sword damage.",
         apply() { run.assassinate = true; } },
       // Path: Afterglow (signature/ult)
-      { id: "aft1", path: "afterglow", tier: 1, cls: "NINJA", icon: "🌑", name: "Lingering Shadow", desc: "Afterglow lasts 2 turns.",
+      { id: "aft1", path: "afterglow", tier: 1, act: 1, cls: "NINJA", icon: "🌑", name: "Lingering Shadow", desc: "Afterglow lasts 2 turns.",
         apply() { run.lingeringShadow = true; } },
-      { id: "aft2", path: "afterglow", tier: 2, cls: "NINJA", icon: "🌑", name: "Shadow Echo", desc: "Afterglow deals 3 true damage per turn.",
+      { id: "aft2", path: "afterglow", tier: 2, act: 2, cls: "NINJA", icon: "🌑", name: "Shadow Echo", desc: "Afterglow deals 3 true damage per turn.",
         apply() { run.shadowEcho = true; } },
-      { id: "aft3", path: "afterglow", tier: 3, cls: "NINJA", icon: "🌑", name: "Shadow Army", desc: "Afterglow: 3 turns, 5 dmg/turn.",
+      { id: "aft3", path: "afterglow", tier: 3, act: 3, cls: "NINJA", icon: "🌑", name: "Shadow Army", desc: "Afterglow: 3 turns, 5 dmg/turn.",
         apply() { run.shadowArmy = true; run.lingeringShadow = true; } },
 
       // ---- WIZARD ----
       // Path: Runic (shield → damage)
-      { id: "rnc1", path: "runic", tier: 1, cls: "WIZARD", icon: "🔮", name: "Runic Edge", desc: "Shield matches deal +4 damage.",
+      { id: "rnc1", path: "runic", tier: 1, act: 1, cls: "WIZARD", icon: "🔮", name: "Runic Edge", desc: "Shield matches deal +4 damage.",
         apply() { run.runicEdge = true; } },
-      { id: "rnc2", path: "runic", tier: 2, cls: "WIZARD", icon: "🔮", name: "Runic Burst", desc: "Shield matches deal ×2 damage.",
+      { id: "rnc2", path: "runic", tier: 2, act: 2, cls: "WIZARD", icon: "🔮", name: "Runic Burst", desc: "Shield matches deal ×2 damage.",
         apply() { run.runicShield = true; } },
-      { id: "rnc3", path: "runic", tier: 3, cls: "WIZARD", icon: "🔮", name: "Thornburst", desc: "Shield matches also deal 5 splash.",
+      { id: "rnc3", path: "runic", tier: 3, act: 3, cls: "WIZARD", icon: "🔮", name: "Thornburst", desc: "Shield matches also deal 5 splash.",
         apply() { run.runicNova = true; } },
       // Path: Mana (AP/charge/economy)
-      { id: "mna1", path: "mana", tier: 1, cls: "WIZARD", icon: "💎", name: "Arcane Pool", desc: "Start each floor +3 ult charge.",
+      { id: "mna1", path: "mana", tier: 1, act: 1, cls: "WIZARD", icon: "💎", name: "Arcane Pool", desc: "Start each floor with +3 ult charge.",
         apply() { run.floorChargeBonus = (run.floorChargeBonus || 0) + 3; } },
-      { id: "mna2", path: "mana", tier: 2, cls: "WIZARD", icon: "💎", name: "Mana Surge", desc: "Full charge — sig matches refund 1 AP.",
+      { id: "mna2", path: "mana", tier: 2, act: 2, cls: "WIZARD", icon: "💎", name: "Mana Surge", desc: "At full charge, signature matches refund 1 AP.",
         apply() { run.manaSurge = true; } },
-      { id: "mna3", path: "mana", tier: 3, cls: "WIZARD", icon: "💎", name: "Infinite Mana", desc: "4+ matches grant 1 AP.",
+      { id: "mna3", path: "mana", tier: 3, act: 3, cls: "WIZARD", icon: "💎", name: "Infinite Mana", desc: "4+ matches grant 1 AP.",
         apply() { run.infiniteMana = true; } },
       // Path: Arcana (star/mystery)
-      { id: "arc1", path: "arcana", tier: 1, cls: "WIZARD", icon: "⭐", name: "Star Power", desc: "Star matches deal +3 damage.",
+      { id: "arc1", path: "arcana", tier: 1, act: 1, cls: "WIZARD", icon: "⭐", name: "Star Power", desc: "Star matches deal +3 damage.",
         apply() { run.bonusStarDmg += 3; } },
-      { id: "arc2", path: "arcana", tier: 2, cls: "WIZARD", icon: "⭐", name: "Mystic Insight", desc: "Mystery tiles are 100% buffs.",
+      { id: "arc2", path: "arcana", tier: 2, act: 2, cls: "WIZARD", icon: "⭐", name: "Mystic Insight", desc: "Mystery tiles are always buffs.",
         apply() { run.mysticInsight = true; } },
-      { id: "arc3", path: "arcana", tier: 3, cls: "WIZARD", icon: "⭐", name: "Sun-Kissed", desc: "Star matches also heal 3 + shield 1.",
+      { id: "arc3", path: "arcana", tier: 3, act: 3, cls: "WIZARD", icon: "⭐", name: "Sun-Kissed", desc: "Star matches also heal 3 + shield 1.",
         apply() { run.celestial = true; } },
       // Path: Aegis (defense)
-      { id: "aeg1", path: "aegis", tier: 1, cls: "WIZARD", icon: "🛡️", name: "Arcane Barrier", desc: "+8 max shield.",
+      { id: "aeg1", path: "aegis", tier: 1, act: 1, cls: "WIZARD", icon: "🛡️", name: "Arcane Barrier", desc: "+8 max shield.",
         apply() { run.bonusShieldMax += 8; } },
-      { id: "aeg2", path: "aegis", tier: 2, cls: "WIZARD", icon: "🛡️", name: "Mana Shield", desc: "Shield absorbs 60% of damage.",
+      { id: "aeg2", path: "aegis", tier: 2, act: 2, cls: "WIZARD", icon: "🛡️", name: "Mana Shield", desc: "Shield absorbs 60% of damage.",
         apply() { run.manaShield = true; } },
-      { id: "aeg3", path: "aegis", tier: 3, cls: "WIZARD", icon: "🛡️", name: "Reflective Aura", desc: "When hit, reflect 2 damage.",
+      { id: "aeg3", path: "aegis", tier: 3, act: 3, cls: "WIZARD", icon: "🛡️", name: "Reflective Aura", desc: "When hit, reflect 2 damage.",
         apply() { run.reflectiveAura = true; } },
 
       // ---- KNIGHT ----
       // Path: Fracture (DoT/shatter)
-      { id: "frc1", path: "fracture", tier: 1, cls: "KNIGHT", icon: "💥", name: "Deep Fracture", desc: "Fracture +1 true dmg/stack.",
+      { id: "frc1", path: "fracture", tier: 1, act: 1, cls: "KNIGHT", icon: "💥", name: "Deep Cracked", desc: "Cracked +1 true damage per stack.",
         apply() { run.deepFracture = true; } },
-      { id: "frc2", path: "fracture", tier: 2, cls: "KNIGHT", icon: "💥", name: "Shatter+", desc: "Shatter deals ×1.5 damage.",
+      { id: "frc2", path: "fracture", tier: 2, act: 2, cls: "KNIGHT", icon: "💥", name: "Shatter+", desc: "Shatter deals ×1.5 damage.",
         apply() { run.shatterPlus = true; } },
-      { id: "frc3", path: "fracture", tier: 3, cls: "KNIGHT", icon: "💥", name: "Earthquake", desc: "Shatter stuns enemy 1 turn.",
+      { id: "frc3", path: "fracture", tier: 3, act: 3, cls: "KNIGHT", icon: "💥", name: "Earthquake", desc: "Shatter Dizzies the enemy 1 turn.",
         apply() { run.earthquake = true; } },
       // Path: Fortitude (HP/shield)
-      { id: "frt1", path: "fortitude", tier: 1, cls: "KNIGHT", icon: "🏰", name: "Iron Will", desc: "+15 max HP.",
+      { id: "frt1", path: "fortitude", tier: 1, act: 1, cls: "KNIGHT", icon: "🏰", name: "Iron Will", desc: "+15 max HP.",
         apply() { run.bonusMaxHp += 15; } },
-      { id: "frt2", path: "fortitude", tier: 2, cls: "KNIGHT", icon: "🏰", name: "Fortified", desc: "+8 max shield.",
+      { id: "frt2", path: "fortitude", tier: 2, act: 2, cls: "KNIGHT", icon: "🏰", name: "Fortified", desc: "+8 max shield.",
         apply() { run.bonusShieldMax += 8; } },
-      { id: "frt3", path: "fortitude", tier: 3, cls: "KNIGHT", icon: "🏰", name: "Unbreakable", desc: "Start each floor with 10 shield.",
+      { id: "frt3", path: "fortitude", tier: 3, act: 3, cls: "KNIGHT", icon: "🏰", name: "Unbreakable", desc: "Start each floor with 10 shield.",
         apply() { run.unbreakable = true; } },
       // Path: Retaliate (counter-damage)
-      { id: "ret1", path: "retaliate", tier: 1, cls: "KNIGHT", icon: "⚔️", name: "Vengeance", desc: "Take 2 less damage.",
+      { id: "ret1", path: "retaliate", tier: 1, act: 1, cls: "KNIGHT", icon: "⚔️", name: "Vengeance", desc: "Take 2 less damage.",
         apply() { run.vengeance = true; } },
-      { id: "ret2", path: "retaliate", tier: 2, cls: "KNIGHT", icon: "⚔️", name: "Counter Strike", desc: "After taking damage, deal 3 true.",
+      { id: "ret2", path: "retaliate", tier: 2, act: 2, cls: "KNIGHT", icon: "⚔️", name: "Counter Strike", desc: "After taking damage, deal 3 true.",
         apply() { run.counterStrike = true; } },
-      { id: "ret3", path: "retaliate", tier: 3, cls: "KNIGHT", icon: "⚔️", name: "Retribution", desc: "Counter = missing HP (max 15).",
+      { id: "ret3", path: "retaliate", tier: 3, act: 3, cls: "KNIGHT", icon: "⚔️", name: "Retribution", desc: "Counter equals your missing HP (max 15).",
         apply() { run.retribution = true; } },
       // Path: Valor (ult power)
-      { id: "vlr1", path: "valor", tier: 1, cls: "KNIGHT", icon: "🔥", name: "Battle Cry", desc: "Ult charge +2.",
+      { id: "vlr1", path: "valor", tier: 1, act: 1, cls: "KNIGHT", icon: "🔥", name: "Battle Cry", desc: "Ult charge +2.",
         apply() { run.ultChargeBonus += 2; } },
-      { id: "vlr2", path: "valor", tier: 2, cls: "KNIGHT", icon: "🔥", name: "Earthshatter+", desc: "Ult deals +15 true damage.",
+      { id: "vlr2", path: "valor", tier: 2, act: 2, cls: "KNIGHT", icon: "🔥", name: "Earthshatter+", desc: "Ult deals +15 true damage.",
         apply() { run.earthshatterPlus = true; } },
-      { id: "vlr3", path: "valor", tier: 3, cls: "KNIGHT", icon: "🔥", name: "Devastation", desc: "Ult consumes all shield for damage.",
+      { id: "vlr3", path: "valor", tier: 3, act: 3, cls: "KNIGHT", icon: "🔥", name: "Power Strike", desc: "Ult spends all your shield for extra damage.",
         apply() { run.devastation = true; } }
     ];
+
+    // A passive/upgrade with act N unlocks once you reach floor (N-1)*15.
+    // act1 = floors 1–14, act2 = 15–29, act3 = 30–45. Free pick within an act.
+    function actUnlocked(a) { return run.floor >= (a - 1) * 15; }
 
     // Helpers for passive picker
     function getPassiveChoices(n = 1) {
@@ -689,11 +672,8 @@
       const avail = PASSIVE_TREES.filter(p => {
         if (p.cls !== hero) return false;
         if (active.has(p.id)) return false;
-        // Tier 1: always available if path not started
-        if (p.tier === 1) return true;
-        // Tier N: need tier N-1 of same path
-        const prev = PASSIVE_TREES.find(q => q.path === p.path && q.tier === p.tier - 1 && q.cls === hero);
-        return prev && active.has(prev.id);
+        if (!actUnlocked(p.act)) return false; // gated by progression, not path order
+        return true;
       });
       const pool = avail.slice();
       for (let i = pool.length - 1; i > 0; i--) {
@@ -710,8 +690,10 @@
     // 3 random upgrade choices, never repeating a pick already taken this run
     function pickUpgradeChoices(n = 3) {
       const hero = (combat.playerClass || "ninja").toUpperCase();
+      const act = Math.min(3, Math.ceil(run.floor / 15));
       const avail = RUN_UPGRADES.filter(u => {
         if ((run.pickedUpgrades || []).includes(u.id)) return false;
+        if (!actUnlocked(u.act || 1)) return false;
         if (u.classRequirement === "ANY") return true;
         return u.classRequirement === hero;
       });
@@ -724,14 +706,14 @@
       // Guarantee one class-specific upgrade offer per act (RPG level-up feel):
       // if this act hasn't surfaced a class upgrade yet, force one into the choices.
       if (!run.classUpgradeOfferedActs) run.classUpgradeOfferedActs = [];
-      const needClass = !run.classUpgradeOfferedActs.includes(run.currentAct) &&
+      const needClass = !run.classUpgradeOfferedActs.includes(act) &&
         avail.some(u => u.classRequirement === hero);
       if (needClass && !picks.some(u => u.classRequirement === hero)) {
         const classPick = avail.find(u => u.classRequirement === hero && !picks.includes(u));
         if (classPick) {
           const anyIdx = picks.findIndex(u => u.classRequirement === "ANY");
           picks[anyIdx >= 0 ? anyIdx : picks.length - 1] = classPick;
-          run.classUpgradeOfferedActs.push(run.currentAct);
+          run.classUpgradeOfferedActs.push(act);
         }
       }
       return picks;
@@ -895,15 +877,15 @@
     const BOSS_KITS = {
       15: { id: "bracken", name: "Bracken the Rootbound", epithet: "Warden of the Sprout", introColor: "#7aa65e", persona: "bruiser", bias: { sword: 1.5 }, ultName: "Root Snare", ultTurns: 4,
             ultDesc: "Blind + heavy hit + Disoriented (controls reversed for 2 turns)",
-            ultFn: () => { combat.blindNext = true; combat.disorientedTurns = Math.max(combat.disorientedTurns, 2); dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.25)); if (typeof sprinkleStatusTiles === "function") sprinkleStatusTiles("corrupted", 3); document.body.classList.add("disoriented"); dmgPop("player", "DISORIENTED", "shielded"); setLog("Root Snare", "Root Snare · blind + heavy hit + Disoriented 2t + Corrupts 3 tiles"); } },
+            ultFn: () => { combat.blindNext = true; combat.disorientedTurns = Math.max(combat.disorientedTurns, 2); dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.25)); if (typeof sprinkleStatusTiles === "function") sprinkleStatusTiles("corrupted", 3); document.body.classList.add("disoriented"); dmgPop("player", "DISORIENTED", "shielded"); setLog("Root Snare", "Root Snare · blind + heavy hit + Disoriented 2t + Curses 3 tiles"); } },
       30: { id: "cinder", name: "Squall Queen", epithet: "Crown of the Howling Gale", introColor: "#8a9cc8", persona: "viper", bias: { star: 1.5, sword: 1.2 }, ultName: "Ashstorm", ultTurns: 4,
             passive: "Bloom Counter — each hit she takes adds a Bloom stack (+4% DR per stack, cap 8). At 5+ stacks she heals 2 HP/turn. Stacks decay -1/turn.",
-            ultDesc: "Poison + burst damage + Corrupts tiles. Punishes chip damage — hit her hard and few times.",
-            ultFn: () => { combat.poisonTurns = Math.max(combat.poisonTurns, 3); flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "poison"); dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.35)); if (typeof sprinkleStatusTiles === "function") sprinkleStatusTiles("corrupted", 2); setLog("Ashstorm", "Ashstorm · poison 3t + burst + Corrupts 2 tiles"); } },
+            ultDesc: "Poison + burst damage + Curses tiles. Punishes chip damage — hit her hard and few times.",
+            ultFn: () => { combat.poisonTurns = Math.max(combat.poisonTurns, 3); flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "poison"); dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.35)); if (typeof sprinkleStatusTiles === "function") sprinkleStatusTiles("corrupted", 2); setLog("Ashstorm", "Ashstorm · poison 3t + burst + Curses 2 tiles"); } },
       // The Last Rival = dark Knight kit: final boss at floor 45
       45: { id: "lastrival", name: "The Last Rival", epithet: "The Tower's Final Fear", introColor: "#c86a5a", persona: "mender", bias: { hp: 1.8, shield: 1.3 }, ultName: "Earthshatter", ultTurns: 5,
             passive: "Regenerates 3 HP each turn · every hit applies Fracture (2 true dmg per stack at your turn start)",
-            ultDesc: "Massive hit + Mortal Wound (your healing -50% for 2 turns) + Root Bind (locks 50% of your signature tiles for 2 turns) + Corrupts 2 tiles",
+            ultDesc: "Massive hit + Bleed (your healing -50% for 2 turns) + Root Bind (locks 50% of your signature tiles for 2 turns) + Curses 2 tiles",
             turnStart: () => { if (combat.enemyHp > 0) healEnemy(3); },
             ultFn: () => {
               const d = Math.round(enemyAtkForFloor(run.floor) * 1.6);
@@ -926,7 +908,7 @@
                 if (typeof syncBoundVisuals === "function") syncBoundVisuals();
               }
               if (typeof sprinkleStatusTiles === "function") sprinkleStatusTiles("corrupted", 2);
-              setLog("Earthshatter", `Earthshatter · ${d} dmg + Mortal Wound 2t + Root Bind + Corrupts 2 tiles`);
+              setLog("Earthshatter", `Earthshatter · ${d} dmg + Bleed 2t + Root Bind + Curses 2 tiles`);
             } }
     };
 

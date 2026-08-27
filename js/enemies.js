@@ -914,8 +914,16 @@
             } }
     };
 
+    // Enemy stats use clean per-act tiers (STS-style) instead of a runaway
+    // floor² curve: a gentle climb within each act, peaking at the boss. This
+    // keeps HP in the hundreds (no 1000+ sponges) and damage from one-shotting.
+    function actTier(f) { return Math.min(3, Math.ceil(f / 15)); }
+    function actPos(f) { return (f - (actTier(f) - 1) * 15 - 1) / 14; } // 0..1 within act
+
     function enemyHpForFloor(f) {
-      let hp = Math.round(45 + 14 * f + 0.45 * (f - 1) * (f - 1));
+      const tiers = [ { lo: 70, hi: 140 }, { lo: 160, hi: 290 }, { lo: 300, hi: 480 } ];
+      const t = tiers[actTier(f) - 1];
+      let hp = Math.round(t.lo + (t.hi - t.lo) * actPos(f));
       if (BOSS_REWARDS[f]) hp = Math.round(hp * 1.35);
       if (GAUNTLET_REWARDS[f]) hp = Math.round(hp * 1.2);
       // 🌟 Golden Cosmos: rivals grow with each golden loop
@@ -925,8 +933,12 @@
     }
 
     function enemyAtkForFloor(f) {
+      const tiers = [ { lo: 14, hi: 26 }, { lo: 30, hi: 46 }, { lo: 52, hi: 78 } ];
+      const t = tiers[actTier(f) - 1];
+      let atk = Math.round(t.lo + (t.hi - t.lo) * actPos(f));
       const loop = (typeof run !== "undefined" && run.ngLoop) || 0;
-      return Math.max(3, Math.round(settings.enemyAtk + (f - 1) * 0.8 + 0.028 * (f - 1) * (f - 1)) + 2 * loop);
+      if (loop > 0) atk += 2 * loop;
+      return Math.max(3, atk);
     }
 
     const combat = {

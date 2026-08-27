@@ -789,7 +789,7 @@
       { id: "twinStorm", tier: "hard", icon: "🌪️", name: "Twin Storm", desc: "Rival gains +1 AP every 3rd turn.", color: "#7078a0",
         apply(c) { c.twinStorm = true; } },
       { id: "mirrorMatch", tier: "hard", icon: "🦴", name: "Mirror Match", desc: "Enemy starts with Fracture 3 — plan your Shatter.", color: "#8a50c0",
-        apply(c) { c.fractureStacks = Math.min(5, c.fractureStacks + 3); c.fractureTurns = Math.max(c.fractureTurns, 5); } },
+        apply(c) { c.fractureStacks = Math.min(6, c.fractureStacks + 3); c.fractureTurns = Math.max(c.fractureTurns, 5); } },
       { id: "toxicMist", tier: "hard", icon: "☠️", name: "Toxic Mist", desc: "Both fighters start poisoned 3 turns.", color: "#5a8a3a",
         apply(c) { c.poisonTurns = Math.max(c.poisonTurns || 0, 3); c.enemyPoisonTurns = Math.max(c.enemyPoisonTurns || 0, 3); } },
       { id: "volatileFloor", tier: "hard", icon: "🌋", name: "Scorched Soil", desc: "Every match deals 1 damage to you.", color: "#d44a2a",

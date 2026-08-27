@@ -954,7 +954,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (combat.playerHp <= 0 && combat.playerClass === "knight" && !combat.knightDeathSaveUsed) {
         combat.playerHp = 1;
         combat.knightDeathSaveUsed = true;
-        combat.fractureStacks = Math.min(5, combat.fractureStacks + 5);
+        combat.fractureStacks = Math.min(6, combat.fractureStacks + 5);
         combat.fractureTurns = Math.max(combat.fractureTurns, 3);
         setLog("Iron Will", "Survived with 1 HP! +5 Fracture");
         dmgPop("player", "Iron Will!", "heal");
@@ -1194,7 +1194,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
             heal += 6;
             hasSigMatch = true;
             sigHpCount++;
-            combat.fractureStacks = Math.min(5, combat.fractureStacks + 1);
+            combat.fractureStacks = Math.min(6, combat.fractureStacks + 1);
             combat.fractureTurns = Math.max(combat.fractureTurns, 2);
             bitsExtra.push(`Fracture ${combat.fractureStacks}`);
           } else {
@@ -1382,13 +1382,13 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           }
         } else if (cls === "knight") {
           if (isStar) {
-            combat.fractureStacks = Math.min(5, combat.fractureStacks + 2);
+            combat.fractureStacks = Math.min(6, combat.fractureStacks + 2);
             combat.fractureTurns = Math.max(combat.fractureTurns, 2);
             const n = convertRandomTiles(3, "hp");
             bitsExtra.push(`Earthquake +2 Fracture · ${n}→❤️`);
           }
           if (isCross) {
-            combat.fractureStacks = Math.min(5, combat.fractureStacks + 3);
+            combat.fractureStacks = Math.min(6, combat.fractureStacks + 3);
             combat.fractureTurns = Math.max(combat.fractureTurns, 2);
             combat.ap = Math.min(AP_MAX, combat.ap + 1);
             bitsExtra.push(`Sunder +3 Fracture · +1 AP`);
@@ -1526,7 +1526,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         // Bulwark (Knight): shield matches apply 1 Fracture stack (once per turn)
         if (!forEnemy && shieldApplied > 0 && run.bulwark && !combat._bulwarkUsed) {
           combat._bulwarkUsed = true;
-          combat.fractureStacks = Math.min(5, combat.fractureStacks + 1);
+          combat.fractureStacks = Math.min(6, combat.fractureStacks + 1);
           combat.fractureTurns = Math.max(combat.fractureTurns, 2);
           flyEffect(matchedList[0] ? getCell(matchedList[0].r, matchedList[0].c) : document.getElementById("playerPortrait"),
                     document.getElementById("enemyPortrait"), "fracture");

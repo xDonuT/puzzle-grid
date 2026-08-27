@@ -999,7 +999,7 @@ const screenMenu = document.getElementById("screen-menu");
         { icon: "🛡️", name: "Iron Mantle", desc: "+5 max shield", costType: "hp", cost: 8, apply() { combat.tempShieldCapBonus += 5; } },
         { icon: "⚡", name: "Surge", desc: "+1 max AP", costType: "hp", cost: 15, apply() { combat.ap = Math.min(AP_MAX + 1, combat.ap + 1); } },
         { icon: "🔮", name: "Enchant", desc: "Add a special tile to board", costType: "shield", cost: 5, apply() { if (typeof window.placeRandomSpecial === "function") window.placeRandomSpecial(); } },
-        { icon: "💀", name: "Fracture Shard", desc: "Apply 2 Fracture to enemy", costType: "hp", cost: 12, apply() { combat.fractureStacks = Math.min(5, combat.fractureStacks + 2); combat.fractureTurns = Math.max(combat.fractureTurns, 3); } },
+        { icon: "💀", name: "Fracture Shard", desc: "Apply 2 Fracture to enemy", costType: "hp", cost: 12, apply() { combat.fractureStacks = Math.min(6, combat.fractureStacks + 2); combat.fractureTurns = Math.max(combat.fractureTurns, 3); } },
         { icon: "🌟", name: "Golden Nectar", desc: "+4 ult charge", costType: "shield", cost: 6, apply() { combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + 4); } },
       ];
       // Pick 4 random items

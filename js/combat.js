@@ -1726,7 +1726,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "enemy", { mega: true });
           shakeBoard("strong");
           await sleep(420);
-          const spDmg = Math.max(1, Math.round(enemyAtkForFloor(run.floor) * diffStats().atkMul * 1.5));
+          const spDmg = Math.max(1, Math.round(enemyAtkForFloor(run.floor) * diffStats().atkMul * 1.3));
           dealDamageToPlayer(spDmg);
           applyArchetypePassiveOnHit();
           if (combat.commonPassive && typeof combat.commonPassive.onAttack === "function") combat.commonPassive.onAttack();

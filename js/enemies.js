@@ -879,18 +879,18 @@
     const BOSS_KITS = {
       15: { id: "bracken", name: "Bracken the Rootbound", epithet: "Warden of the Sprout", introColor: "#7aa65e", persona: "bruiser", bias: { sword: 1.5 }, ultName: "Root Snare", ultTurns: 4,
             ultDesc: "Blind + heavy hit + Disoriented (controls reversed for 2 turns)",
-            ultFn: () => { combat.blindNext = true; combat.disorientedTurns = Math.max(combat.disorientedTurns, 2); dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.4)); if (typeof sprinkleStatusTiles === "function") sprinkleStatusTiles("corrupted", 3); document.body.classList.add("disoriented"); dmgPop("player", "DISORIENTED", "shielded"); setLog("Root Snare", "Root Snare · blind + heavy hit + Disoriented 2t + Corrupts 3 tiles"); } },
+            ultFn: () => { combat.blindNext = true; combat.disorientedTurns = Math.max(combat.disorientedTurns, 2); dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.25)); if (typeof sprinkleStatusTiles === "function") sprinkleStatusTiles("corrupted", 3); document.body.classList.add("disoriented"); dmgPop("player", "DISORIENTED", "shielded"); setLog("Root Snare", "Root Snare · blind + heavy hit + Disoriented 2t + Corrupts 3 tiles"); } },
       30: { id: "cinder", name: "Squall Queen", epithet: "Crown of the Howling Gale", introColor: "#8a9cc8", persona: "viper", bias: { star: 1.5, sword: 1.2 }, ultName: "Ashstorm", ultTurns: 4,
             passive: "Bloom Counter — each hit she takes adds a Bloom stack (+4% DR per stack, cap 8). At 5+ stacks she heals 2 HP/turn. Stacks decay -1/turn.",
             ultDesc: "Poison + burst damage + Corrupts tiles. Punishes chip damage — hit her hard and few times.",
-            ultFn: () => { combat.poisonTurns = Math.max(combat.poisonTurns, 3); flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "poison"); dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.5)); if (typeof sprinkleStatusTiles === "function") sprinkleStatusTiles("corrupted", 2); setLog("Ashstorm", "Ashstorm · poison 3t + burst + Corrupts 2 tiles"); } },
+            ultFn: () => { combat.poisonTurns = Math.max(combat.poisonTurns, 3); flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "poison"); dealDamageToPlayer(Math.round(enemyAtkForFloor(run.floor) * 1.35)); if (typeof sprinkleStatusTiles === "function") sprinkleStatusTiles("corrupted", 2); setLog("Ashstorm", "Ashstorm · poison 3t + burst + Corrupts 2 tiles"); } },
       // The Last Rival = dark Knight kit: final boss at floor 45
       45: { id: "lastrival", name: "The Last Rival", epithet: "The Tower's Final Fear", introColor: "#c86a5a", persona: "mender", bias: { hp: 1.8, shield: 1.3 }, ultName: "Earthshatter", ultTurns: 5,
             passive: "Regenerates 3 HP each turn · every hit applies Fracture (2 true dmg per stack at your turn start)",
             ultDesc: "Massive hit + Mortal Wound (your healing -50% for 2 turns) + Root Bind (locks 50% of your signature tiles for 2 turns) + Corrupts 2 tiles",
             turnStart: () => { if (combat.enemyHp > 0) healEnemy(3); },
             ultFn: () => {
-              const d = Math.round(enemyAtkForFloor(run.floor) * 1.8);
+              const d = Math.round(enemyAtkForFloor(run.floor) * 1.6);
               combat.playerMortalWoundTurns = Math.max(combat.playerMortalWoundTurns, 2);
               dealDamageToPlayer(d);
               // Root Bind: lock 50% of player's signature tiles
@@ -926,7 +926,7 @@
 
     function enemyAtkForFloor(f) {
       const loop = (typeof run !== "undefined" && run.ngLoop) || 0;
-      return Math.max(3, Math.round(settings.enemyAtk + (f - 1) * 0.9 + 0.04 * (f - 1) * (f - 1)) + 2 * loop);
+      return Math.max(3, Math.round(settings.enemyAtk + (f - 1) * 0.8 + 0.028 * (f - 1) * (f - 1)) + 2 * loop);
     }
 
     const combat = {

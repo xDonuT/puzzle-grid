@@ -788,6 +788,8 @@
         apply(c) { c.empowerEachTurn = true; } },
       { id: "thornAura", tier: "easy", icon: "🌵", name: "Thorn Aura", desc: "When hit, deal 2 true damage back.", color: "#7a9a4a",
         apply(c) { c.thornAura = (c.thornAura || 0) + 2; } },
+      { id: "towerVigor", tier: "easy", icon: "🌿", name: "Tower's Vigor", desc: "+15 Max HP and +10 Shield this floor.", color: "#6a9a6a",
+        apply(c) { c.playerMaxHp += 15; c.playerHp = Math.min(c.playerMaxHp, c.playerHp + 15); c.shield = Math.min(settings.shieldMax + (run.bonusShieldMax || 0), c.shield + 10); } },
       // ---- Hard (challenges) ----
       { id: "wilt", tier: "hard", icon: "🥀", name: "Wilt", desc: "Your healing is halved this floor.", color: "#9060a0",
         apply(c) { c.wilt = true; } },

@@ -862,6 +862,7 @@ const screenMenu = document.getElementById("screen-menu");
       map.currentNode = null;
       map.visitedNodes = {};
       run.floor = 0;
+      run.classUpgradeOfferedActs = [];
       showScreen("game");
       showStoryIntro(() => showMap());
     }
@@ -1471,7 +1472,8 @@ const screenMenu = document.getElementById("screen-menu");
           maxCombo: run.maxCombo || 0,
           ngLoop: run.ngLoop || 0,
           gameMap: run.gameMap || null,
-          currentAct: run.currentAct || 1
+          currentAct: run.currentAct || 1,
+          classUpgradeOfferedActs: run.classUpgradeOfferedActs || []
         };
         localStorage.setItem(SAVE_KEY, JSON.stringify(data));
       } catch (_) {}
@@ -1513,6 +1515,7 @@ const screenMenu = document.getElementById("screen-menu");
       run.floor = 1;
       run.ngLoop = nextRunNg;
       nextRunNg = 0;
+      run.classUpgradeOfferedActs = [];
       combat.tutorial = false;
       run.bonusMaxHp = 0;
       run.bonusShieldMax = 0;
@@ -1641,6 +1644,7 @@ const screenMenu = document.getElementById("screen-menu");
       if (d.difficulty) settings.difficulty = d.difficulty;
       run.gameMap = d.gameMap || null;
       run.currentAct = d.currentAct || 1;
+      run.classUpgradeOfferedActs = d.classUpgradeOfferedActs || [];
       // Map layout changed (45-floor campaign): regenerate incompatible maps.
       // Player restarts the current act with all upgrades/passives intact.
       if (run.gameMap && !isMapCompatible(run.gameMap)) {

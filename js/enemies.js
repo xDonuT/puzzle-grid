@@ -720,7 +720,21 @@
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
       }
-      return pool.slice(0, n);
+      const picks = pool.slice(0, n);
+      // Guarantee one class-specific upgrade offer per act (RPG level-up feel):
+      // if this act hasn't surfaced a class upgrade yet, force one into the choices.
+      if (!run.classUpgradeOfferedActs) run.classUpgradeOfferedActs = [];
+      const needClass = !run.classUpgradeOfferedActs.includes(run.currentAct) &&
+        avail.some(u => u.classRequirement === hero);
+      if (needClass && !picks.some(u => u.classRequirement === hero)) {
+        const classPick = avail.find(u => u.classRequirement === hero && !picks.includes(u));
+        if (classPick) {
+          const anyIdx = picks.findIndex(u => u.classRequirement === "ANY");
+          picks[anyIdx >= 0 ? anyIdx : picks.length - 1] = classPick;
+          run.classUpgradeOfferedActs.push(run.currentAct);
+        }
+      }
+      return picks;
     }
 
     // Non-permanent reward pools for regular floors — temporary perks that make

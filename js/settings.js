@@ -115,7 +115,7 @@
     function autoDetectLite() {
       if (settings.liteMode !== null) return; // user already chose
       const cores = navigator.hardwareConcurrency || 4;
-      settings.liteMode = cores < 4;
+      settings.liteMode = cores <= 4;
       persistSettings();
     }
     autoDetectLite();

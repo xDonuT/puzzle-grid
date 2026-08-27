@@ -933,12 +933,14 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       }
 
       const before = combat.playerHp;
+      let absorbed = 0;
       if (combat.shield > 0) {
         // Mana Shield passive: shield absorbs 60% instead of 50%
         const shieldRatio = run.manaShield ? 0.6 : 0.5;
         const toShield = Math.min(combat.shield, Math.floor(dmg * shieldRatio));
         const toHp = dmg - toShield;
         combat.shield -= toShield;
+        absorbed = toShield;
         if (toHp > 0) combat.playerHp = Math.max(0, combat.playerHp - toHp);
         if (toShield > 0) dmgPop("player", `🛡${toShield}`, "shielded");
         // Acidic Barrier (Wizard): every 10 damage absorbed by Shield applies +1 Poison
@@ -961,6 +963,9 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       }
       const lost = before - combat.playerHp;
       if (combat.stats) combat.stats.taken += lost;
+      if (lost > 0) {
+        setLog(`🩸 -${lost} HP`, `You took ${lost} damage` + (absorbed > 0 ? ` (${absorbed} blocked by shield)` : ""));
+      }
       // Knight Lifedrinker: heal 30% of damage actually taken (sustain on hits)
       if (combat.playerClass === "knight" && lost > 0 && combat.playerHp > 0) {
         const lh = Math.round(lost * 0.3);

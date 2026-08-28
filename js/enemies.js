@@ -756,9 +756,7 @@
       { id: "oakheart", tier: "rare", name: "Oak Heart", desc: "+12 Max HP forever.",
         grant() { permMaxHp(12); return { label: "❤️ +12 Max HP, forever" }; } },
       { id: "stoneward", tier: "rare", name: "Stone Ward", desc: "+8 Shield cap forever.",
-        grant() { run.bonusShieldMax += 8; return { label: "🛡️ +8 Shield cap, forever" }; } },
-      { id: "extraAp", tier: "rare", name: "Extra Action", desc: "+1 Max AP forever.",
-        grant() { run.bonusApMax += 1; AP_MAX = 3 + run.bonusApMax; return { label: "⚡ +1 Max AP, forever" }; } }
+        grant() { run.bonusShieldMax += 8; return { label: "🛡️ +8 Shield cap, forever" }; } }
     ];
 
     // Floor modifiers — picked after the reward. Easy = benefits player (normal reward).

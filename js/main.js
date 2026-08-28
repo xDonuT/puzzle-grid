@@ -249,35 +249,39 @@ const screenMenu = document.getElementById("screen-menu");
       const rr = document.getElementById("upgradeReroll");
       if (!ov || !wrap) { onPick(); return; }
       if (rr) rr.style.display = "none";
-      if (t) t.textContent = "Challenge Bonus";
-      if (s) s.textContent = "Pick a benefit — you earned it";
+      if (t) t.textContent = "Challenge Reward";
+      if (s) s.textContent = "You braved the risk — pick your permanent prize";
       wrap.innerHTML = "";
-      const easyPool = FLOOR_MODIFIERS.filter(m => m.tier === "easy" && !(run.pickedModifierIds || []).includes(m.id));
-      const pool = (easyPool.length ? easyPool : FLOOR_MODIFIERS.filter(m => m.tier === "easy")).slice();
+      // Hand-picked rare boons (permanent, build-growth) — a payoff worth the risk.
+      const pool = (FLOOR_REWARDS_RARE || []).slice();
       for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-      const picks = pool.slice(0, 3);
-      picks.forEach(st => {
+      const picks = pool.slice(0, 2);
+      picks.forEach(boon => {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "upgrade-card glow-general";
-        if (st.color) btn.style.borderColor = st.color;
-        const title = document.createElement("div");
-        title.className = "up-card-title";
-        title.textContent = (st.icon || "") + " " + st.name;
-        const descEl = document.createElement("div");
-        descEl.className = "up-card-desc";
-        descEl.textContent = st.desc;
-        btn.append(title, descEl);
+        buildRewardCard(btn, { name: boon.name, desc: boon.desc, tier: "rare" }, { permanent: true });
         btn.addEventListener("click", () => {
-          if (!run.pickedModifierIds) run.pickedModifierIds = [];
-          run.pickedModifierIds.push(st.id);
-          run.pendingModifierEasy = st;
+          const label = boon.grant();
           ov.classList.remove("open");
           onPick();
+          if (label && label.label) addRewardLabels([label.label]);
         });
         wrap.appendChild(btn);
       });
       ov.classList.add("open");
+    }
+
+    // Ensure the challenge's permanent prize shows up on the victory recap.
+    function addRewardLabels(labels) {
+      if (!Array.isArray(labels)) return;
+      if (!run.pickLog) run.pickLog = [];
+      run.pickLog.push(...labels);
+      const rewardMsg = document.getElementById("rewardMsg");
+      if (rewardMsg) {
+        const add = labels.map(l => `🏆 ${l}`).join("<br>");
+        rewardMsg.innerHTML += (rewardMsg.innerHTML ? "<br>" : "") + add;
+      }
     }
 
     function showFloorBanner() {

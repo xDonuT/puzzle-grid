@@ -2473,13 +2473,20 @@ const screenMenu = document.getElementById("screen-menu");
         ult = "Earthshatter: Spends ALL ❤️ on board — 5 + 5 dmg per ❤️, true, heal 3 HP per ❤️ + Shatter all Cracked (stacks×4 bonus) + Bleed 2t.";
         shapes = "⭐ +2 Cracked + 3→Potion · 💥 +3 Cracked + 1 AP · ⚡ Shatter (stacks×3)";
       }
+      // Collapsible tap-to-read rows — keeps long descriptions compact.
+      const expandable = (label, full) => {
+        const preview = full.length > 44 ? full.slice(0, 44).trim() + "…" : full;
+        return `
+          <div class="expand-row" tabindex="0" role="button">
+            <div class="info-section" style="margin:10px 0 2px">${label}</div>
+            <div class="expand-preview">${preview}</div>
+            <div class="expand-body" hidden><div class="info-body">${full}</div></div>
+          </div>`;
+      };
       return `
-        <div class="info-section">Passive</div>
-        <div class="info-body">${passive}</div>
-        <div class="info-section">Ultimate</div>
-        <div class="info-body">${ult}</div>
-        <div class="info-section">Shape bonuses</div>
-        <div class="info-body">${shapes}</div>
+        ${expandable("Passive", passive)}
+        ${expandable("Ultimate", ult)}
+        ${expandable("Shape bonuses", shapes)}
         <div class="info-section">Active statuses</div>
         <div class="info-body">${statusSummaryPlayer()}</div>
         ${runUpgradeSection()}
@@ -2799,6 +2806,13 @@ const screenMenu = document.getElementById("screen-menu");
       if (e.target === infoOverlay) infoOverlay.classList.remove("open");
     });
     document.addEventListener("click", e => {
+      const row = e.target.closest(".expand-row");
+      if (row) {
+        const open = row.classList.toggle("on");
+        const body = row.querySelector(".expand-body");
+        if (body) body.hidden = !open;
+        return;
+      }
       const tile = e.target.closest(".skill-tile");
       if (!tile) return;
       const group = tile.closest(".skill-group");

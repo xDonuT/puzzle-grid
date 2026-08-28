@@ -1244,6 +1244,12 @@ const screenMenu = document.getElementById("screen-menu");
         }
         if (isBossFloor(run.floor)) {
           run.bossesSlain = (run.bossesSlain || 0) + 1;
+          // Final boss: no reward pick — the run just ended, and the last
+          // permanent kit was already awarded before floor 45 (on floor 44).
+          if (run.floor >= MAX_FLOOR) {
+            showVictoryOverlay({ label: null, permanent: false });
+            return;
+          }
           openUpgradePicker(upgradeLabel => {
             openPassivePicker(passiveLabel => {
               showVictoryOverlay({ label: upgradeLabel, permanent: true, passiveLabel });
@@ -1277,6 +1283,15 @@ const screenMenu = document.getElementById("screen-menu");
                   showVictoryOverlay({ label: permanentLabel, permanent: true, tempLabel: label, passiveLabel });
                 }
               })
+            });
+          });
+        } else if (run.floor === 44) {
+          // The floor before the final boss is where the last permanent kit is
+          // awarded — so it's actually usable for the floor-45 climax instead of
+          // being wasted at the end of the run.
+          openUpgradePicker(upgradeLabel => {
+            openPassivePicker(passiveLabel => {
+              showVictoryOverlay({ label: upgradeLabel, permanent: true, passiveLabel });
             });
           });
         } else {
@@ -2473,20 +2488,36 @@ const screenMenu = document.getElementById("screen-menu");
     }
 
     function runUpgradeSection() {
+      const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
       const picked = run.pickedUpgrades || [];
       const passives = run.passives || [];
-      const upgradeLines = picked.map(id => {
-        const u = RUN_UPGRADES.find(u => u.id === id);
-        return u ? `<b>${u.name}</b> — ${u.desc}` : id;
-      });
-      const passiveLines = passives.map(id => {
+      const firstEmoji = s => { const m = String(s).match(/^\s*(\p{Extended_Pictographic})/u); return m ? m[1] : "⭐"; };
+
+      // Compact "skill slot" tile: number badge + icon, description via tap/hover.
+      const tile = (num, ico, name, desc, variant) => `
+        <div class="skill-tile ${variant}" tabindex="0" role="button"
+             data-name="${esc(name)}" data-desc="${esc(desc)}"
+             title="${esc(name)} — ${esc(desc)}">
+          <span class="skill-num">${num}</span>
+          <span class="skill-ico">${ico}</span>
+        </div>`;
+
+      const upgradeTiles = picked.map((id, i) => {
+        const u = RUN_UPGRADES.find(z => z.id === id);
+        if (!u) return "";
+        return tile(i + 1, firstEmoji(u.name), u.name, u.desc, "upg");
+      }).join("");
+
+      const passiveTiles = passives.map((id, i) => {
         const p = typeof PASSIVE_TREES !== "undefined" ? PASSIVE_TREES.find(x => x.id === id) : null;
-        return p ? `${p.icon} <b>${p.name}</b> — ${p.desc || ""}` : id;
-      });
-      const sections = [];
-      if (upgradeLines.length) sections.push(`<div class="info-section">Permanent Upgrades</div><div class="info-body">${upgradeLines.join("<br>")}</div>`);
-      if (passiveLines.length) sections.push(`<div class="info-section">Passives</div><div class="info-body">${passiveLines.join("<br>")}</div>`);
-      return sections.join("");
+        if (!p) return "";
+        return tile(i + 1, p.icon || "✨", p.name, p.desc || "", "psv");
+      }).join("");
+
+      const group = (label, tiles) => tiles
+        ? `<div class="skill-group"><div class="info-section">${label}</div><div class="info-grid">${tiles}</div><div class="skill-cap" hidden>Tap a slot to read it</div></div>`
+        : "";
+      return group("Permanent Upgrades", upgradeTiles) + group("Passives", passiveTiles);
     }
 
     function statusSummaryPlayer() {
@@ -2766,6 +2797,21 @@ const screenMenu = document.getElementById("screen-menu");
     });
     infoOverlay.addEventListener("click", e => {
       if (e.target === infoOverlay) infoOverlay.classList.remove("open");
+    });
+    document.addEventListener("click", e => {
+      const tile = e.target.closest(".skill-tile");
+      if (!tile) return;
+      const group = tile.closest(".skill-group");
+      if (!group) return;
+      const cap = group.querySelector(".skill-cap");
+      if (!cap) return;
+      const isOpen = cap.dataset.open === tile.dataset.name;
+      cap.dataset.open = isOpen ? "" : tile.dataset.name;
+      cap.hidden = false;
+      cap.innerHTML = isOpen
+        ? `<span style="opacity:.7">Tap a slot to read it</span>`
+        : `<b>${tile.dataset.name}</b> — ${tile.dataset.desc}`;
+      group.querySelectorAll(".skill-tile").forEach(x => x.classList.toggle("on", x === tile && !isOpen));
     });
     const btnPassportClose = document.getElementById("btnPassportClose");
     if (btnPassportClose) btnPassportClose.addEventListener("click", () => passportOverlay.classList.remove("open"));

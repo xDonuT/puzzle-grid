@@ -2423,6 +2423,58 @@ body.ult-hitstop .board-wrap {
       color: #5a5048;
       line-height: 1.4;
     }
+    .info-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .skill-tile {
+      position: relative;
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: linear-gradient(160deg, #fdf8ef, #f3ead8);
+      border: 2px solid #d8cbae;
+      box-shadow: 0 1px 3px rgba(90,80,72,.18);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      cursor: pointer;
+      transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+      user-select: none;
+    }
+    .skill-tile.on {
+      transform: scale(1.12);
+      border-color: #7aa65e;
+      box-shadow: 0 0 0 3px rgba(122,166,94,.35);
+    }
+    .skill-num {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 3px;
+      border-radius: 9px;
+      background: #7aa65e;
+      color: #fff;
+      font-size: 0.62rem;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: 0;
+    }
+    .skill-tile.upg .skill-num { background: #e0a52f; }
+    .skill-cap {
+      margin-top: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #6a5c4a;
+      line-height: 1.35;
+      min-height: 1em;
+    }
     .portrait { touch-action: none; user-select: none; }
 
     .gauntlet-row {
@@ -4100,7 +4152,7 @@ body.ult-hitstop .board-wrap {
       <div class="help-line">Each act is a small map — pick your path node by node. <strong>Mystery nodes</strong> flip risk-or-reward cards, shrines grant boons, and <strong>elites</strong> (floors 12, 27, 42) guard permanent boosts for those brave enough to fight them.</div>
 
       <div class="help-sect">🎁 Rewards &amp; Upgrades</div>
-      <div class="help-line">Every floor clear grants a temporary perk for the next floor — plus a modifier you choose (benefit or challenge). Beating a boss (15, 30, 45) lets you pick a <strong>permanent upgrade</strong> and a passive from your hero's tree.</div>
+      <div class="help-line">Every floor clear grants a temporary perk for the next floor — plus a modifier you choose (benefit or challenge). Beating a boss (15, 30) lets you pick a <strong>permanent upgrade</strong> and a passive from your hero's tree — and the floor right before the final boss (44) does too, so your last permanent kit actually matters in the climactic fight.</div>
 
       <div class="help-sect">🌟 Golden Cosmos</div>
       <div class="help-line">Clear floor 45 once and the tower blooms gold forever. New Game+ offers <strong>Golden Loops</strong>: stronger rivals, richer recap stats, and an endless climb for glory. How far can the gold go?</div>

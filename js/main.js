@@ -448,7 +448,7 @@ const screenMenu = document.getElementById("screen-menu");
           if (label) parts.push(permanent ? `Permanent: ${label}` : label);
           if (upg) parts.push(`Upgrade: ${upg}`);
           msg = `🎁 ${parts.join("<br>🎁 ")}`;
-          if (temp) msg += `<br>⚡ Rare perk for next floor: ${temp}`;
+          if (temp) msg += `<br>⚡ Rare permanent boon: ${temp}`;
         }
         if (mod) {
           msg += `<br>${mod.icon} Modifier: ${mod.name}`;
@@ -1278,7 +1278,7 @@ const screenMenu = document.getElementById("screen-menu");
             openPassivePicker(passiveLabel => {
               openRewardPicker(buildEliteTempChoices(), {
                 title: "Elite Reward",
-                sub: "Pick a rare perk for the next floor",
+                sub: "Pick a rare, permanent boon",
                 onPick: label => openModifierPicker(mod => {
                   run.pendingModifier = mod;
                   if (mod && mod.tier === "hard") {
@@ -1310,7 +1310,7 @@ const screenMenu = document.getElementById("screen-menu");
         } else {
           openRewardPicker(buildFloorRewardChoices(), {
             title: "Floor Reward",
-            sub: "Pick one — it applies to the next floor",
+            sub: "Pick a permanent boon — it stays all run",
             onPick: label => openModifierPicker(mod => {
               run.pendingModifier = mod;
               if (mod && mod.tier === "hard") {

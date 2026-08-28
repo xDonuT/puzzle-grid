@@ -723,37 +723,42 @@
     // the next fight noticeably easier. Applied at floor start (or immediately
     // for the instant-heal perk).
     // Common (5) · Uncommon (4) · Rare (2), weighted 50 / 35 / 15.
+    // Floor rewards are PERMANENT, compact stacking boons — every floor makes
+    // your build a little stronger for the rest of the run (STS-style growth).
+    // Small increments replace the old "next floor only" buffs that players
+    // never got to feel.
+    function permMaxHp(amt) {
+      run.bonusMaxHp += amt;
+      combat.playerMaxHp += amt;
+      combat.playerHp = Math.min(combat.playerMaxHp, combat.playerHp + amt);
+    }
     const FLOOR_REWARDS_COMMON = [
-      { id: "healNow", tier: "common", name: "Patch Up", desc: "Restore 14 HP right now.",
+      { id: "healNow", tier: "common", name: "Patch Up", desc: "Restore 12 HP right now.",
         grant() {
-          const amt = 14;
+          const amt = 12;
           combat.playerHp = Math.min(combat.playerMaxHp, combat.playerHp + amt);
           return { label: `Heal ${amt} HP right now` };
         } },
-      { id: "shieldNext", tier: "common", name: "Ward", desc: "+6 shield at the start of next floor.",
-        grant() { run.pending.shield += 6; return { label: "+6 shield next floor" }; } },
-      { id: "swordBoost", tier: "common", name: "Sharpen", desc: "+3 sword damage next floor.",
-        grant() { run.pending.swordBoost += 3; return { label: "+3 sword damage next floor" }; } },
-      { id: "bonusAp", tier: "common", name: "Extra Action", desc: "+1 AP next floor.",
-        grant() { run.pending.bonusAp += 1; return { label: "+1 AP next floor" }; } },
-      { id: "enemySlow", tier: "common", name: "Slow Enemy", desc: "Enemy ultimate takes 1 more turn next floor.",
-        grant() { run.pending.enemySlow += 1; return { label: "Enemy ult +1 turn next floor" }; } }
+      { id: "hardy", tier: "common", name: "Tough Root", desc: "+2 Max HP forever.",
+        grant() { permMaxHp(2); return { label: "❤️ +2 Max HP, forever" }; } },
+      { id: "bark", tier: "common", name: "Bark Guard", desc: "+1 Shield cap forever.",
+        grant() { run.bonusShieldMax += 1; return { label: "🛡️ +1 Shield cap, forever" }; } }
     ];
     const FLOOR_REWARDS_UNCOMMON = [
-      { id: "empower", tier: "uncommon", name: "Empower", desc: "Your first damaging match next floor deals +50%.",
-        grant() { run.pending.empower += 1; return { label: "Empower next floor" }; } },
-      { id: "enemyPoison", tier: "uncommon", name: "Poison", desc: "The rival starts next floor poisoned for 2 turns.",
-        grant() { run.pending.enemyPoison += 2; return { label: "Poison enemy 2 turns next floor" }; } },
-      { id: "starBlessing", tier: "uncommon", name: "Sun Blessing", desc: "Start next floor with +2 ult charge.",
-        grant() { run.pending.feverBoost += 2; return { label: "☀️ Start next floor with +2 ult charge" }; } },
-      { id: "critNext", tier: "uncommon", name: "Fated Edge", desc: "+15% Critical Chance next floor.",
-        grant() { run.pending.critChance += 15; return { label: "⚔️ +15% Critical Chance next floor" }; } }
+      { id: "swordPerm", tier: "uncommon", name: "Sharpen", desc: "+1 sword damage forever.",
+        grant() { run.bonusSwordDmg += 1; return { label: "⚔️ +1 Sword damage, forever" }; } },
+      { id: "starPerm", tier: "uncommon", name: "Dazzle", desc: "+1 star damage forever.",
+        grant() { run.bonusStarDmg += 1; return { label: "⭐ +1 Star damage, forever" }; } },
+      { id: "vigor", tier: "uncommon", name: "Sun Salve", desc: "+5 Max HP & heal 5 forever.",
+        grant() { permMaxHp(5); return { label: "☀️ +5 Max HP (heal 5), forever" }; } }
     ];
     const FLOOR_REWARDS_RARE = [
-      { id: "shieldConvert", tier: "rare", name: "Blade Shield", desc: "25% of Shield gained becomes Sword Damage next floor.",
-        grant() { run.pending.shieldConvert = 0.25; return { label: "🛡️⚔️ 25% of Shield gained becomes Sword Damage next floor" }; } },
-      { id: "starFever", tier: "rare", name: "Golden Hour", desc: "Start next floor very close to Sun Surge.",
-        grant() { run.pending.feverBoost += 4; return { label: "☀️ Start next floor significantly closer to Sun Surge" }; } }
+      { id: "oakheart", tier: "rare", name: "Oak Heart", desc: "+12 Max HP forever.",
+        grant() { permMaxHp(12); return { label: "❤️ +12 Max HP, forever" }; } },
+      { id: "stoneward", tier: "rare", name: "Stone Ward", desc: "+8 Shield cap forever.",
+        grant() { run.bonusShieldMax += 8; return { label: "🛡️ +8 Shield cap, forever" }; } },
+      { id: "extraAp", tier: "rare", name: "Extra Action", desc: "+1 Max AP forever.",
+        grant() { run.bonusApMax += 1; AP_MAX = 3 + run.bonusApMax; return { label: "⚡ +1 Max AP, forever" }; } }
     ];
 
     // Floor modifiers — picked after the reward. Easy = benefits player (normal reward).
@@ -919,7 +924,10 @@
     function actPos(f) { return (f - (actTier(f) - 1) * 15 - 1) / 14; } // 0..1 within act
 
     function enemyHpForFloor(f) {
-      const tiers = [ { lo: 100, hi: 200 }, { lo: 230, hi: 420 }, { lo: 430, hi: 700 } ];
+      // Raised to absorb the persistent floor boons (every clear now stacks a
+      // permanent +Max HP / +dmg). Normal fights stay in the hundreds; only the
+      // final boss edges past 1000.
+      const tiers = [ { lo: 130, hi: 260 }, { lo: 290, hi: 520 }, { lo: 520, hi: 850 } ];
       const t = tiers[actTier(f) - 1];
       let hp = Math.round(t.lo + (t.hi - t.lo) * actPos(f));
       if (BOSS_REWARDS[f]) hp = Math.round(hp * 1.35);
@@ -931,7 +939,7 @@
     }
 
     function enemyAtkForFloor(f) {
-      const tiers = [ { lo: 16, hi: 30 }, { lo: 34, hi: 52 }, { lo: 58, hi: 90 } ];
+      const tiers = [ { lo: 20, hi: 36 }, { lo: 42, hi: 66 }, { lo: 72, hi: 110 } ];
       const t = tiers[actTier(f) - 1];
       let atk = Math.round(t.lo + (t.hi - t.lo) * actPos(f));
       const loop = (typeof run !== "undefined" && run.ngLoop) || 0;

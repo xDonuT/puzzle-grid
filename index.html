@@ -1133,6 +1133,17 @@
       transition: transform 0.15s ease, background 0.15s ease;
     }
     .action-btn:active { transform: scale(0.96); }
+    .action-btn.no-ap {
+      color: #c43a2e;
+      animation: btnShake .35s ease;
+    }
+    @keyframes btnShake {
+      0%,100% { transform: translateX(0); }
+      20% { transform: translateX(-3px); }
+      40% { transform: translateX(3px); }
+      60% { transform: translateX(-2px); }
+      80% { transform: translateX(2px); }
+    }
     .action-btn.free {
       border: none;
       background: transparent;

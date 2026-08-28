@@ -2444,6 +2444,22 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
   }
 });
 
+    function shuffleNoApFlash() {
+      if (!btnShuffle) return;
+      const prev = btnShuffle.innerHTML;
+      const prevTitle = btnShuffle.title;
+      btnShuffle.classList.add("no-ap");
+      btnShuffle.innerHTML = "No AP!";
+      btnShuffle.title = "Need 1 AP to shuffle";
+      clearTimeout(combat._noApTimer);
+      combat._noApTimer = setTimeout(() => {
+        btnShuffle.classList.remove("no-ap");
+        btnShuffle.innerHTML = prev;
+        btnShuffle.title = prevTitle;
+        if (typeof refreshCombatUI === "function") refreshCombatUI();
+      }, 750);
+    }
+
     btnShuffle.addEventListener("click", () => {
       if (busy || !combat.playerTurn) return;
       if ((combat.freeShuffles || 0) > 0) {
@@ -2451,7 +2467,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       } else if ((combat.extraFreeShuffles || 0) > 0) {
         combat.extraFreeShuffles -= 1;
       } else {
-        if (combat.ap <= 0) return;
+        if (combat.ap <= 0) { shuffleNoApFlash(); return; }
         combat.ap -= 1;
       }
       busy = true;

@@ -330,6 +330,29 @@
       });
     }
 
+    // Generic two-button confirm dialog → resolves true/false.
+    function confirmOverlay({ title, body, yesLabel = "Yes", noLabel = "No", yesClass = "primary" }) {
+      return new Promise(resolve => {
+        const ov = document.createElement("div");
+        ov.className = "overlay open";
+        ov.style.zIndex = "10001";
+        const uid = "cf_" + Math.random().toString(36).slice(2, 8);
+        ov.innerHTML = `
+          <div class="overlay-panel" style="max-width:300px;text-align:center;padding:20px">
+            <div style="font-size:1.2rem;font-weight:800;color:#2a3a5c;margin-bottom:10px">${title}</div>
+            <div style="font-size:0.88rem;color:#5a5048;margin-bottom:16px;line-height:1.5">${body}</div>
+            <div style="display:flex;gap:10px;justify-content:center">
+              <button type="button" class="action-btn ${yesClass}" id="${uid}yes" style="min-height:48px;min-width:104px;font-size:0.85rem;font-weight:700">${yesLabel}</button>
+              <button type="button" class="action-btn" id="${uid}no" style="min-height:48px;min-width:104px;font-size:0.85rem;font-weight:700">${noLabel}</button>
+            </div>
+          </div>`;
+        document.body.appendChild(ov);
+        const cleanup = (result) => { ov.remove(); resolve(result); };
+        ov.querySelector("#" + uid + "yes").addEventListener("click", () => cleanup(true));
+        ov.querySelector("#" + uid + "no").addEventListener("click", () => cleanup(false));
+      });
+    }
+
     function pickVoice(arr) {
       if (!arr || !arr.length) return null;
       return arr[Math.floor(Math.random() * arr.length)];
@@ -2424,8 +2447,20 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       refreshCombatUI();
     }
 
-    btnEnd.addEventListener("click", () => {
+    btnEnd.addEventListener("click", async () => {
   if (busy || !combat.playerTurn) return;
+  // Guardrail: if the ultimate is charged and castable but the player is about
+  // to pass, confirm it's intentional so a charged ult isn't wasted by accident.
+  if (ultReady() && combat.ap > 0) {
+    const go = await confirmOverlay({
+      title: "🔥 Ultimate ready!",
+      body: "Your ultimate is charged. Pass your turn without using it?",
+      yesLabel: "Pass anyway",
+      noLabel: "Use it",
+      yesClass: ""
+    });
+    if (!go) return; // stay on your turn — go cast it
+  }
   // Track unused AP for next turn bonus – always +1 if any AP is left (Momentum: up to +2)
   const leftover = combat.ap;
   if (combat.ap > 0) {
@@ -2440,18 +2475,16 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
   }
   // Ninja Shadow Step: prompt if 4+ swords cleared this turn and not used yet
   if (combat.playerClass === "ninja" && combat.swordsClearedThisTurn >= 4 && !combat.shadowStepUsed) {
-    (async () => {
-      const use = await showShadowStepPrompt();
-      if (use && combat.playerHp > 3) {
-        combat.playerHp = Math.max(1, combat.playerHp - 3);
-        combat.ap = Math.min(AP_MAX, combat.ap + 1);
-        combat.shadowStepUsed = true;
-        setLog("Shadow Step · −3 HP · +1 AP");
-        refreshCombatUI();
-        return; // don't end turn — player continues with extra AP
-      }
-      enemyTurn();
-    })();
+    const use = await showShadowStepPrompt();
+    if (use && combat.playerHp > 3) {
+      combat.playerHp = Math.max(1, combat.playerHp - 3);
+      combat.ap = Math.min(AP_MAX, combat.ap + 1);
+      combat.shadowStepUsed = true;
+      setLog("Shadow Step · −3 HP · +1 AP");
+      refreshCombatUI();
+      return; // don't end turn — player continues with extra AP
+    }
+    enemyTurn();
   } else {
     enemyTurn();
   }

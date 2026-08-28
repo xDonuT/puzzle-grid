@@ -1192,25 +1192,6 @@
     }
     @keyframes endGlowFade { 0%,100%{opacity:.35} 50%{opacity:1} }
     @keyframes endApGlow { 0%,100%{box-shadow: 0 0 0 2px rgba(60,180,80,0.25), 0 0 12px 2px rgba(60,180,80,0.18)} 50%{box-shadow: 0 0 0 3px rgba(60,180,80,0.4), 0 0 18px 4px rgba(60,180,80,0.3)} }
-    .bank-chip {
-      position: absolute;
-      top: -8px;
-      right: -8px;
-      min-width: 22px;
-      height: 22px;
-      padding: 0 5px;
-      border-radius: 12px;
-      background: #7aa65e;
-      color: #fff;
-      font-size: 0.68rem;
-      font-weight: 900;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 1px 3px rgba(70,110,50,0.4);
-      pointer-events: none;
-      z-index: 2;
-    }
     #btnShuffle {
       position: relative;
       height: 30px;
@@ -1284,7 +1265,6 @@
 /* End wrap — simple container for pill button */
 .end-wrap {
   display: inline-flex;
-  position: relative;
 }
 .end-wrap.dim .action-btn.end-btn {
   color: #8a7a68;
@@ -4033,7 +4013,6 @@ body.ult-hitstop .board-wrap {
         <button type="button" class="action-btn" id="btnShuffle" title="Shuffle board">Shuffle</button>
         <div class="end-wrap" id="endWrap">
           <button type="button" class="action-btn end-btn" id="btnEnd" title="Pass turn">Pass Turn</button>
-          <div class="bank-chip" id="bankChip" hidden>+1</div>
         </div>
       </div>
     </div>

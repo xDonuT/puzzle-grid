@@ -718,19 +718,6 @@
         endWrap.classList.toggle("dim", dimmed);
         endWrap.classList.toggle("enemy-turn", !combat.playerTurn);
         endWrap.classList.toggle("ap-empty", combat.playerTurn && !busy && combat.ap <= 0);
-        // "+1 bank" hint: passing the turn banks unused AP, so show it when there's AP left.
-        const bankChip = document.getElementById("bankChip");
-        if (bankChip) {
-          const canBank = combat.playerTurn && !busy && combat.ap > 0;
-          bankChip.hidden = !canBank;
-          if (canBank) {
-            const bonus = run.momentum ? Math.min(2, combat.ap) : 1;
-            bankChip.textContent = "+" + bonus;
-            bankChip.title = bonus > 1
-              ? `Pass to bank +${bonus} AP next turn`
-              : "Pass to bank +1 AP next turn";
-          }
-        }
       }
       updatePhaseVisual();
       const turnPill = document.getElementById("turnPill") || (turnNumEl ? turnNumEl.parentElement : null);

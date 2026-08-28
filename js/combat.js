@@ -2468,11 +2468,18 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
     });
 
     playerPortraitEl.addEventListener("click", () => {
-      if (ultReady() && combat.playerTurn && !busy && combat.ap > 0) {
-        useUltimate();
-      } else {
-        openInfo("player");
+      // If the ult is charged but uncastable, say WHY instead of silently
+      // opening the info panel — otherwise a pre-loaded ult + 0 AP feels broken.
+      if (ultReady() && combat.playerTurn && !busy) {
+        if (combat.ap > 0) {
+          useUltimate();
+        } else {
+          dmgPop("player", "Need 1 AP!", "dmg");
+          setLog("Need 1 AP for your ultimate");
+        }
+        return;
       }
+      openInfo("player");
     });
 
     // ----- Screens & settings -----

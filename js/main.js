@@ -402,11 +402,13 @@ const screenMenu = document.getElementById("screen-menu");
         add("↩️", "Reflect", s.reflect);
         vs.innerHTML = chips.join("") || '<span class="victory-chip">No actions</span>';
       }
-      // reward may be a string (picker pick) or { label, permanent, tempLabel }
+      // reward may be a string (picker pick) or { label, permanent, tempLabel, upgradeLabel }
       const label = typeof reward === "string" ? reward : reward && reward.label;
       const permanent = typeof reward === "string" ? true : reward && reward.permanent !== false;
       const temp = reward && reward.tempLabel;
+      const upg = reward && reward.upgradeLabel;
       if (label) { if (!run.pickLog) run.pickLog = []; run.pickLog.push(label); }
+      if (upg) { if (!run.pickLog) run.pickLog = []; run.pickLog.push(upg); }
       if (temp) { if (!run.pickLog) run.pickLog = []; run.pickLog.push(temp); }
       const rewardMsg = document.getElementById("rewardMsg");
       const mod = run.pendingModifier;
@@ -441,10 +443,12 @@ const screenMenu = document.getElementById("screen-menu");
             ? "Elite defeated!"
             : "Rival defeated.";
         let msg = "";
-        if (label) {
-          msg = permanent
-            ? `🎁 Permanent: ${label}${temp ? `<br>⚡ Rare perk for next floor: ${temp}` : ""}`
-            : `🎁 ${label}`;
+        if (label || upg) {
+          let parts = [];
+          if (label) parts.push(permanent ? `Permanent: ${label}` : label);
+          if (upg) parts.push(`Upgrade: ${upg}`);
+          msg = `🎁 ${parts.join("<br>🎁 ")}`;
+          if (temp) msg += `<br>⚡ Rare perk for next floor: ${temp}`;
         }
         if (mod) {
           msg += `<br>${mod.icon} Modifier: ${mod.name}`;
@@ -1268,23 +1272,32 @@ const screenMenu = document.getElementById("screen-menu");
               permanentLabel = perm.label;
             }
           }
-          openPassivePicker(passiveLabel => {
-            openRewardPicker(buildEliteTempChoices(), {
-              title: "Elite Reward",
-              sub: "Pick a rare perk for the next floor",
-              onPick: label => openModifierPicker(mod => {
-                run.pendingModifier = mod;
-                if (mod && mod.tier === "hard") {
-                  run.pendingModifierRare = true;
-                  openEasyBonusPicker(() => {
-                    showVictoryOverlay({ label: permanentLabel, permanent: true, tempLabel: label, passiveLabel });
-                  });
-                } else {
-                  showVictoryOverlay({ label: permanentLabel, permanent: true, tempLabel: label, passiveLabel });
-                }
-              })
+          // The floor-27 elite (last stop before the Act-2 boss) also grants a
+          // permanent upgrade pick, so the player gets one more before floor 30.
+          const afterUpgrade = (upgradeLabel) => {
+            openPassivePicker(passiveLabel => {
+              openRewardPicker(buildEliteTempChoices(), {
+                title: "Elite Reward",
+                sub: "Pick a rare perk for the next floor",
+                onPick: label => openModifierPicker(mod => {
+                  run.pendingModifier = mod;
+                  if (mod && mod.tier === "hard") {
+                    run.pendingModifierRare = true;
+                    openEasyBonusPicker(() => {
+                      showVictoryOverlay({ label: permanentLabel, permanent: true, tempLabel: label, passiveLabel, upgradeLabel });
+                    });
+                  } else {
+                    showVictoryOverlay({ label: permanentLabel, permanent: true, tempLabel: label, passiveLabel, upgradeLabel });
+                  }
+                })
+              });
             });
-          });
+          };
+          if (run.floor === 27) {
+            openUpgradePicker(afterUpgrade);
+          } else {
+            afterUpgrade(null);
+          }
         } else if (run.floor === 44) {
           // The floor before the final boss is where the last permanent kit is
           // awarded — so it's actually usable for the floor-45 climax instead of

@@ -528,6 +528,7 @@
       pendingModifierRare: false,
       pendingModifierEasy: null,
       blessings: {},         // special -> chosen blessing id ("bloom"/"cross"/"x")
+      shapeSkills: { star: null, cross: null, charged: null }, // shape -> chosen skill id (any class)
       elapsedMs: 0,
       floorElapsedMs: 0,
       gameMap: null,     // STS-style branching map
@@ -799,6 +800,37 @@
 
     // Which floor grants which blessed enhanced tile (one per floor, before act-1 boss).
     const FLOOR_BLESSING = { 3: "bloom", 6: "cross", 9: "x" };
+
+    // Shape skills — the player freely assigns one Star, one Cross, and one
+    // Charged skill of their choice (from any class) via the in-combat picker.
+    // They are no longer locked to a character; unpicked shapes give nothing.
+    // Effects mirror the former Wizard/Ninja/Knight shape bonuses verbatim.
+    const SHAPE_SKILLS = {
+      star: [
+        { id: "petalWard", shape: "star", icon: "🛡️", name: "Petal Ward",
+          desc: "Star: +12 Shield and turn 3 random tiles into Shield." },
+        { id: "shadowDance", shape: "star", icon: "⚡", name: "Shadow Dance",
+          desc: "Star: +2 Action Points and turn 4 random tiles into Swords." },
+        { id: "earthquake", shape: "star", icon: "💥", name: "Earthquake",
+          desc: "Star: +2 Cracked and turn 3 random tiles into Potions." }
+      ],
+      cross: [
+        { id: "manaLock", shape: "cross", icon: "🔒", name: "Mana Lock",
+          desc: "Cross: lock the rival's Mana for 2 turns (they gain no Shield)." },
+        { id: "marked", shape: "cross", icon: "🎯", name: "Marked",
+          desc: "Cross: +2 Mark stacks (+15% dmg each) and +1 Action Point." },
+        { id: "sunder", shape: "cross", icon: "🧱", name: "Sunder",
+          desc: "Cross: +3 Cracked and +1 Action Point." }
+      ],
+      charged: [
+        { id: "shieldStrike", shape: "charged", icon: "🛡️", name: "Shield Strike",
+          desc: "Charged: steal up to 3 Shield from the rival." },
+        { id: "shadowStrike", shape: "charged", icon: "🗡️", name: "Shadow Strike",
+          desc: "Charged: deal true damage = Swords cleared ×4 (8–24)." },
+        { id: "shatter", shape: "charged", icon: "🧨", name: "Shatter",
+          desc: "Charged: consume all Cracked for true damage (stacks ×3)." }
+      ]
+    };
 
     // Floor modifiers — picked after the reward. Easy = benefits player (normal reward).
     // Hard = hurts player but guarantees a rare-tier reward next floor.

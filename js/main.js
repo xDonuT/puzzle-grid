@@ -358,6 +358,61 @@ const screenMenu = document.getElementById("screen-menu");
       }));
     }
 
+    // Shape Skills picker — freely assign one Star, one Cross, one Charged
+    // skill (from any class) mid-combat via the HUD ✦ button. Unpicked = none.
+    function openShapeSkillPicker() {
+      const ov = document.getElementById("shapeSkillOverlay");
+      const rows = document.getElementById("shapeRows");
+      const doneBtn = document.getElementById("btnShapeSkillDone");
+      if (!ov || !rows || typeof SHAPE_SKILLS === "undefined") return;
+      const sk = run.shapeSkills || {};
+      rows.innerHTML = "";
+      const shapeMeta = {
+        star:     { icon: "⭐", label: "Star",     hint: "5+ in a line" },
+        cross:    { icon: "✚", label: "Cross",    hint: "plus-shaped" },
+        charged:  { icon: "⚡", label: "Charged",  hint: "charged 4+" }
+      };
+      ["star", "cross", "charged"].forEach(shape => {
+        const meta = shapeMeta[shape];
+        const cur = sk[shape];
+        const row = document.createElement("div");
+        row.className = "shape-row";
+        let cards = "";
+        SHAPE_SKILLS[shape].forEach(s => {
+          const active = s.id === cur;
+          cards += `
+            <button type="button" class="shape-skill-card${active ? " on" : ""}" data-shape="${shape}" data-id="${s.id}">
+              <span class="shape-skill-ico">${s.icon}</span>
+              <span class="shape-skill-text">
+                <div class="shape-skill-name">${s.name}${active ? " ✓" : ""}</div>
+                <div class="shape-skill-owner">${s.desc}</div>
+              </span>
+            </button>`;
+        });
+        row.innerHTML = `
+          <div class="shape-row-head"><span class="shape-pill">${meta.icon} ${meta.label}</span>${meta.hint}</div>
+          <div class="shape-row-grid">${cards}</div>`;
+        row.querySelectorAll(".shape-skill-card").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const id = btn.dataset.id;
+            const shapeKey = btn.dataset.shape;
+            // Tap again to clear that shape's skill.
+            if (sk[shapeKey] === id) sk[shapeKey] = null;
+            else sk[shapeKey] = id;
+            openShapeSkillPicker();
+          });
+        });
+        rows.appendChild(row);
+      });
+      ov.classList.add("open");
+    }
+
+    function closeShapeSkillPicker() {
+      const ov = document.getElementById("shapeSkillOverlay");
+      if (ov) ov.classList.remove("open");
+      if (typeof saveRun === "function") saveRun();
+    }
+
     function showFloorBanner() {
       // Boss floors get a dramatic intro splash instead of the quick banner
       if (BOSS_KITS[run.floor]) { showBossIntro(BOSS_KITS[run.floor]); return; }
@@ -1585,7 +1640,9 @@ const screenMenu = document.getElementById("screen-menu");
           ngLoop: run.ngLoop || 0,
           gameMap: run.gameMap || null,
           currentAct: run.currentAct || 1,
-          classUpgradeOfferedActs: run.classUpgradeOfferedActs || []
+          classUpgradeOfferedActs: run.classUpgradeOfferedActs || [],
+          blessings: run.blessings || {},
+          shapeSkills: run.shapeSkills || { star: null, cross: null, charged: null }
         };
         localStorage.setItem(SAVE_KEY, JSON.stringify(data));
       } catch (_) {}
@@ -1667,6 +1724,8 @@ const screenMenu = document.getElementById("screen-menu");
       run.pendingModifier = null;
       run.pendingModifierRare = false;
       run.pendingModifierEasy = null;
+      run.blessings = {};
+      run.shapeSkills = { star: null, cross: null, charged: null };
       run.elapsedMs = 0;
       run.floorElapsedMs = 0;
       run.gameMap = null;
@@ -1757,6 +1816,8 @@ const screenMenu = document.getElementById("screen-menu");
       run.gameMap = d.gameMap || null;
       run.currentAct = d.currentAct || 1;
       run.classUpgradeOfferedActs = d.classUpgradeOfferedActs || [];
+      run.blessings = d.blessings || {};
+      run.shapeSkills = d.shapeSkills || { star: null, cross: null, charged: null };
       // Map layout changed (45-floor campaign): regenerate incompatible maps.
       // Player restarts the current act with all upgrades/passives intact.
       if (run.gameMap && !isMapCompatible(run.gameMap)) {
@@ -2277,6 +2338,14 @@ const screenMenu = document.getElementById("screen-menu");
 
     document.getElementById("btnMenuSettings").addEventListener("click", openSettings);
     document.getElementById("btnGameSettings").addEventListener("click", openSettings);
+    const btnShapeSkills = document.getElementById("btnShapeSkills");
+    if (btnShapeSkills) btnShapeSkills.addEventListener("click", openShapeSkillPicker);
+    const btnShapeDone = document.getElementById("btnShapeSkillDone");
+    if (btnShapeDone) btnShapeDone.addEventListener("click", closeShapeSkillPicker);
+    const shapeSkillOv = document.getElementById("shapeSkillOverlay");
+    if (shapeSkillOv) shapeSkillOv.addEventListener("click", e => {
+      if (e.target === shapeSkillOv) closeShapeSkillPicker();
+    });
     document.getElementById("btnSettingsClose").addEventListener("click", closeSettings);
     document.getElementById("btnSettingsSave").addEventListener("click", saveSettings);
 
@@ -2554,21 +2623,16 @@ const screenMenu = document.getElementById("screen-menu");
 
     function heroInfoHtml(cls) {
       const s = HERO_STATS[cls] || HERO_STATS.ninja;
-      const sig = SIGNATURE[cls];
-      const sigLabel = { sword: "⚔️ Sword", shield: "🛡️ Shield", hp: "❤️ Potion" }[sig] || sig;
-      let passive = "", ult = "", shapes = "";
+      let passive = "", ult = "";
       if (cls === "ninja") {
         passive = "Shadow Step: First hit dodged, then 20% dodge. Clear 4+ Sword tiles in one turn → prompt: −3 HP for +1 extra swap (once per turn).";
         ult = "Assassinate: Spends ALL ⚔️ on board — 5 + 6 dmg per ⚔️, true. ×2 if enemy <30% HP. Costs −3 HP, grants Afterglow.";
-        shapes = "⭐ +2 AP + 4→Sword · 💥 +2 Mark (+15% dmg each) + 1 AP · ⚡ True dmg = Swords×4 (min 8, max 24)";
       } else if (cls === "wizard") {
         passive = "Arcane Reflection: 40%+ of damage taken reflected as true dmg (scales with floor). Shield matches deal Runic damage if the Runic tree is picked.";
         ult = "Moonstorm: Spends ALL 🛡️ on board — 5 + 5 dmg per 🛡️, true. Each spent shield chains to a damage tile (⚔️/⭐) and fires its damage at the enemy as FREE separate damage. Leaves a Moonstorm Barrier (up to 12 Shield) and steals up to 3 enemy Shield.";
-        shapes = "⭐ +12 Shield + 3→Shield · 💥 Mana Lock 2t · ⚡ Steal up to 3 Shield";
       } else {
         passive = "Regen +3 HP each turn. Iron Will: survive a lethal hit once per battle at 1 HP, gain +5 Cracked. Cracked stacks deal true dmg at enemy turn start — or cash them in early with a Bloom match (Shatter: stacks×3).";
         ult = "Earthshatter: Spends ALL ❤️ on board — 5 + 5 dmg per ❤️, true, heal 3 HP per ❤️ + Shatter all Cracked (stacks×4 bonus) + Bleed 2t.";
-        shapes = "⭐ +2 Cracked + 3→Potion · 💥 +3 Cracked + 1 AP · ⚡ Shatter (stacks×3)";
       }
       // Collapsible tap-to-read rows — keeps long descriptions compact.
       const expandable = (label, full) => {
@@ -2583,7 +2647,7 @@ const screenMenu = document.getElementById("screen-menu");
       return `
         ${expandable("Passive", passive)}
         ${expandable("Ultimate", ult)}
-        ${expandable("Shape bonuses", shapes)}
+        ${shapeSkillsSection()}
         ${tileBlessingsSection()}
         <div class="info-section">Active statuses</div>
         <div class="info-body">${statusSummaryPlayer()}</div>
@@ -2623,6 +2687,32 @@ const screenMenu = document.getElementById("screen-menu");
         ? `<div class="skill-group"><div class="info-section">${label}</div><div class="info-grid">${tiles}</div><div class="skill-cap" hidden>Tap a slot to read it</div></div>`
         : "";
       return group("Permanent Upgrades", upgradeTiles) + group("Passives", passiveTiles);
+    }
+
+    // Shape Skills passport section — the freely-assigned Star/Cross/Charged
+    // kit (from any class), icon-only tiles, tap to read.
+    function shapeSkillsSection() {
+      const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      const sk = run.shapeSkills || {};
+      const meta = { star: { icon: "⭐", label: "Star" }, cross: { icon: "✚", label: "Cross" }, charged: { icon: "⚡", label: "Charged" } };
+      const made = [];
+      ["star", "cross", "charged"].forEach((shape, i) => {
+        const id = sk[shape];
+        let found = null;
+        if (typeof SHAPE_SKILLS !== "undefined" && SHAPE_SKILLS[shape] && id) found = SHAPE_SKILLS[shape].find(o => o.id === id) || null;
+        const icon = found ? found.icon : (meta[shape].icon);
+        const name = found ? found.name : "None";
+        const desc = found ? found.desc : "No skill — matches make extra shapes but nothing special";
+        made.push(`
+          <div class="skill-tile psv" tabindex="0" role="button"
+               data-name="${esc(name)}" data-desc="${esc(desc)}"
+               title="${esc(name)} — ${esc(desc)}">
+            <span class="skill-num">${i + 1}</span>
+            <span class="skill-ico">${icon}</span>
+          </div>`);
+      });
+      const any = ["star", "cross", "charged"].some(s => sk[s]);
+      return `<div class="skill-group"><div class="info-section">Shape Skills</div><div class="info-grid">${made.join("")}</div><div class="skill-cap" hidden>${any ? "Tap a slot to read it" : "Assign skills mid-fight via the ✦ button"}</div></div>`;
     }
 
     // Tile Blessings passport section — the three chosen enhanced-tile styles

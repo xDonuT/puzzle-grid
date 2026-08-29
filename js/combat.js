@@ -1375,73 +1375,68 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
                   document.getElementById("enemyPortrait"), "fracture");
       }
 
-      // ---- Hero shape bonuses (player only) ----
+      // ---- Shape skills (player only) ----
+      // The player freely assigns one Star, one Cross, one Charged skill of
+      // their choice (any class) via the in-combat picker. Unpicked = no bonus.
       if (!forEnemy) {
-        const cls = combat.playerClass;
-        if (cls === "wizard") {
-          if (isStar) {
-            sh += 12;
-            const n = convertRandomTiles(3, "shield");
-            bitsExtra.push(`Petal Ward +12 shield · ${n}→🛡️`);
+        const sk = run.shapeSkills || {};
+        // Star skills
+        if (isStar && sk.star === "petalWard") {
+          sh += 12;
+          const n = convertRandomTiles(3, "shield");
+          bitsExtra.push(`Petal Ward +12 shield · ${n}→🛡️`);
+        } else if (isStar && sk.star === "shadowDance") {
+          combat.ap = Math.min(AP_MAX, combat.ap + 2);
+          const n = convertRandomTiles(4, "sword");
+          bitsExtra.push(`Shadow Dance +2 AP · ${n}→⚔️`);
+        } else if (isStar && sk.star === "earthquake") {
+          combat.fractureStacks = Math.min(6, combat.fractureStacks + 2);
+          combat.fractureTurns = Math.max(combat.fractureTurns, 2);
+          const n = convertRandomTiles(3, "hp");
+          bitsExtra.push(`Earthquake +2 Cracked · ${n}→❤️`);
+        }
+        // Cross skills
+        if (isCross && sk.cross === "manaLock") {
+          combat.manaLockTurns = Math.max(combat.manaLockTurns, 2);
+          bitsExtra.push("Mana Lock 2t");
+        } else if (isCross && sk.cross === "marked") {
+          combat.markStacks = Math.min(3, combat.markStacks + 2);
+          combat.ap = Math.min(AP_MAX, combat.ap + 1);
+          bitsExtra.push(`Marked ${combat.markStacks} · +1 AP`);
+        } else if (isCross && sk.cross === "sunder") {
+          combat.fractureStacks = Math.min(6, combat.fractureStacks + 3);
+          combat.fractureTurns = Math.max(combat.fractureTurns, 2);
+          combat.ap = Math.min(AP_MAX, combat.ap + 1);
+          bitsExtra.push(`Sunder +3 Cracked · +1 AP`);
+        }
+        // Charged skills
+        if (isCharged && sk.charged === "shieldStrike") {
+          const steal = Math.min(3, combat.enemyShield);
+          if (steal > 0) {
+            combat.enemyShield -= steal;
+            const shielded = applyShielding(steal);
+            const dmgFromOverflow = steal - shielded;
+            let stealMsg = `Shield Strike ${steal}`;
+            if (dmgFromOverflow > 0) stealMsg += ` (+${dmgFromOverflow} overflow dmg)`;
+            bitsExtra.push(stealMsg);
           }
-          if (isCross) {
-            combat.manaLockTurns = Math.max(combat.manaLockTurns, 2);
-            bitsExtra.push("Mana Lock 2t");
-          }
-          if (isCharged) {
-            const steal = Math.min(3, combat.enemyShield);
-            if (steal > 0) {
-              combat.enemyShield -= steal;
-              const shielded = applyShielding(steal);
-              const dmgFromOverflow = steal - shielded;
-              let stealMsg = `Shield Strike ${steal}`;
-              if (dmgFromOverflow > 0) stealMsg += ` (+${dmgFromOverflow} overflow dmg)`;
-              bitsExtra.push(stealMsg);
-            }
-          }
-        } else if (cls === "ninja") {
-          if (isStar) {
-            combat.ap = Math.min(AP_MAX, combat.ap + 2);
-            const n = convertRandomTiles(4, "sword");
-            bitsExtra.push(`Shadow Dance +2 AP · ${n}→⚔️`);
-          }
-          if (isCross) {
-            combat.markStacks = Math.min(3, combat.markStacks + 2);
-            combat.ap = Math.min(AP_MAX, combat.ap + 1);
-            bitsExtra.push(`Marked ${combat.markStacks} · +1 AP`);
-          }
-          if (isCharged) {
-            const swords = combat.swordsClearedThisTurn;
-            const execDmg = Math.max(8, Math.min(24, swords * 4));
-            dealDamageToEnemy(execDmg, { trueDmg: true, source: "sword" });
-            bitsExtra.push(`Shadow Strike ${execDmg}!`);
-          }
-        } else if (cls === "knight") {
-          if (isStar) {
-            combat.fractureStacks = Math.min(6, combat.fractureStacks + 2);
-            combat.fractureTurns = Math.max(combat.fractureTurns, 2);
-            const n = convertRandomTiles(3, "hp");
-            bitsExtra.push(`Earthquake +2 Cracked · ${n}→❤️`);
-          }
-          if (isCross) {
-            combat.fractureStacks = Math.min(6, combat.fractureStacks + 3);
-            combat.fractureTurns = Math.max(combat.fractureTurns, 2);
-            combat.ap = Math.min(AP_MAX, combat.ap + 1);
-            bitsExtra.push(`Sunder +3 Cracked · +1 AP`);
-          }
-          if (isCharged && combat.fractureStacks > 0) {
-            let shatterDmg = combat.fractureStacks * 3;
-            // Shatter+ passive: ×1.5 damage
-            if (run.shatterPlus) shatterDmg = Math.round(shatterDmg * 1.5);
-            combat.fractureStacks = 0;
-            combat.fractureTurns = 0;
-            dealDamageToEnemy(shatterDmg, { trueDmg: true, source: "fracture" });
-            bitsExtra.push(`Shatter ${shatterDmg}!`);
-            // Earthquake passive: stun enemy 1 turn on shatter
-            if (run.earthquake) {
-              combat.enemyStunTurns = Math.max(combat.enemyStunTurns || 0, 1);
-              bitsExtra.push("Earthquake Dizzy!");
-            }
+        } else if (isCharged && sk.charged === "shadowStrike") {
+          const swords = combat.swordsClearedThisTurn;
+          const execDmg = Math.max(8, Math.min(24, swords * 4));
+          dealDamageToEnemy(execDmg, { trueDmg: true, source: "sword" });
+          bitsExtra.push(`Shadow Strike ${execDmg}!`);
+        } else if (isCharged && sk.charged === "shatter" && combat.fractureStacks > 0) {
+          let shatterDmg = combat.fractureStacks * 3;
+          // Shatter+ passive: ×1.5 damage
+          if (run.shatterPlus) shatterDmg = Math.round(shatterDmg * 1.5);
+          combat.fractureStacks = 0;
+          combat.fractureTurns = 0;
+          dealDamageToEnemy(shatterDmg, { trueDmg: true, source: "fracture" });
+          bitsExtra.push(`Shatter ${shatterDmg}!`);
+          // Earthquake passive: stun enemy 1 turn on shatter
+          if (run.earthquake) {
+            combat.enemyStunTurns = Math.max(combat.enemyStunTurns || 0, 1);
+            bitsExtra.push("Earthquake Dizzy!");
           }
         }
       }

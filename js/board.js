@@ -661,7 +661,13 @@
         }
 
         const shape = analyzeShapes(mark);
-        shape.apRefund = !!((shape.isCross && shape.crossKind !== "l") || xDetonated.length > 0);
+        shape.seals = { bloom: 0, cross: 0, x: xDetonated.length };
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            if (mark[r][c] && specials[r][c] === "bloom") shape.seals.bloom++;
+            if (mark[r][c] && specials[r][c] === "cross") shape.seals.cross++;
+          }
+        }
         shape.comboLevel = combo; // current cascade depth for combat hooks
         // First Strike modifier: first player match is charged
         if (combat.playerTurn && combat.pendingChargedFirst && !shape.charged) {
@@ -697,16 +703,10 @@
           }
         }
 
-        // Shape AP refunds (player turn only) – charged 4-lines no longer refund AP
-        if (combat.playerTurn) {
-          const baseApGain = (shape.isCross && shape.crossKind !== "l" ? 1 : 0) + xDetonated.length;
-          // Seal Mastery: seals refund 1 additional AP
-          const apGain = baseApGain + (run.crossAp && baseApGain > 0 ? baseApGain : 0);
-          if (apGain > 0) {
-            combat.ap = Math.min(AP_MAX, combat.ap + apGain);
-            refreshCombatUI();
-          }
-        }
+        // Tile Blessing effects (AP flow, burst, ult, heal, shield, status) are
+        // applied centrally in applyMatchCombat (combat.js) using shape.seals —
+        // cross/X seals no longer auto-refund AP by default; that is now the
+        // Flow blessing choice.
 
         if (combo >= 2) {
           setComboTheater(combo);

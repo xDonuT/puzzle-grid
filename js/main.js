@@ -252,15 +252,30 @@ const screenMenu = document.getElementById("screen-menu");
       if (t) t.textContent = "Challenge Reward";
       if (s) s.textContent = "You braved the risk — pick your permanent prize";
       wrap.innerHTML = "";
-      // Hand-picked rare boons (permanent, build-growth) — a payoff worth the risk.
-      const pool = (FLOOR_REWARDS_RARE || []).slice();
-      for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-      const picks = pool.slice(0, 2);
-      picks.forEach(boon => {
+      // Chance-based payout — a gamble. Each bonus card independently rolls
+      // rare (~40%) or uncommon, but we guarantee at least one rare so a
+      // challenge always pays something real.
+      const rarePool = (FLOOR_REWARDS_RARE || []).slice();
+      const unPool = (FLOOR_REWARDS_UNCOMMON || []).slice();
+      const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+      shuffle(rarePool); shuffle(unPool);
+      const picks = [];
+      let gotRare = false;
+      for (let i = 0; i < 3; i++) {
+        const useRare = Math.random() < 0.4;
+        let boon = (useRare ? rarePool : unPool).pop();
+        if (!boon) boon = (useRare ? unPool : rarePool).pop(); // fallback pool
+        if (!boon) break;
+        if (boon.tier === "rare") gotRare = true;
+        picks.push(boon);
+      }
+      // Guarantee at least one rare so a challenge always pays something real.
+      if (!gotRare && picks.length && rarePool.length) picks[0] = rarePool.pop();
+      picks.slice(0, 3).forEach(boon => {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "upgrade-card glow-general";
-        buildRewardCard(btn, { name: boon.name, desc: boon.desc, tier: "rare" }, { permanent: true });
+        buildRewardCard(btn, { name: boon.name, desc: boon.desc, tier: boon.tier || "common" }, { permanent: true });
         btn.addEventListener("click", () => {
           const label = boon.grant();
           ov.classList.remove("open");
@@ -282,6 +297,65 @@ const screenMenu = document.getElementById("screen-menu");
         const add = labels.map(l => `🏆 ${l}`).join("<br>");
         rewardMsg.innerHTML += (rewardMsg.innerHTML ? "<br>" : "") + add;
       }
+    }
+
+    // Tile Blessing ceremony — the player earns a choice for one enhanced tile
+    // (bloom/cross/X) on its blessed floor. Icon-tile cards, tap to pick, ~1.5s.
+    function openTileBlessingPicker(special, onDone) {
+      const ov = document.getElementById("tileBlessingOverlay");
+      const panel = document.getElementById("blessingPanel");
+      const em = document.getElementById("blessingEmblem");
+      const title = document.getElementById("blessingTitle");
+      const sub = document.getElementById("blessingSub");
+      const cards = document.getElementById("blessingCards");
+      if (!ov || !panel || !cards || !TILE_BLESSINGS || !TILE_BLESSINGS[special]) { onDone(); return; }
+
+      const cfg = {
+        bloom: { icon: "🌸", label: "Bloom Blessing", note: "Match a Bloom to trigger it stepping on the 3×3 clear", color: "#d4789a" },
+        cross: { icon: "✚", label: "Cross Blessing", note: "Match a Cross to trigger it bursting its row + column", color: "#e0a52f" },
+        x:     { icon: "✖", label: "X Blessing", note: "Match an X to trigger it cutting both diagonals", color: "#e06040" }
+      }[special] || { icon: "🌸", label: "Tile Blessing", note: "", color: "#7aa65e" };
+
+      panel.style.setProperty("--bc", cfg.color);
+      em.textContent = cfg.icon;
+      title.textContent = cfg.label;
+      sub.textContent = cfg.note || "Choose what this tile does";
+      sub.style.color = "#7a6e64";
+
+      cards.innerHTML = "";
+      panel.classList.remove("plant", "show");
+
+      TILE_BLESSINGS[special].forEach(b => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "blessing-card";
+        btn.style.setProperty("--bc", cfg.color);
+        btn.innerHTML =
+          `<span class="blessing-ico">${b.icon}</span>` +
+          `<span class="blessing-text"><div class="blessing-name">${b.name}</div>` +
+          `<div class="blessing-note">${b.desc}</div></span>`;
+        btn.addEventListener("click", () => {
+          if (btn.classList.contains("on")) return;
+          cards.querySelectorAll(".blessing-card").forEach(c => c.classList.remove("on"));
+          btn.classList.add("on");
+          run.blessings[special] = b.id;
+          if (typeof codexReveal === "function") codexReveal("blessings", special);
+          const chosen = btn.querySelector(".blessing-name");
+          if (chosen) chosen.textContent = b.icon + " " + b.name;
+          setTimeout(() => {
+            ov.classList.remove("open");
+            panel.classList.remove("plant", "show");
+            onDone();
+          }, 1500);
+        });
+        cards.appendChild(btn);
+      });
+
+      ov.classList.add("open");
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        panel.classList.add("plant");
+        setTimeout(() => panel.classList.add("show"), 350);
+      }));
     }
 
     function showFloorBanner() {
@@ -1312,7 +1386,11 @@ const screenMenu = document.getElementById("screen-menu");
             });
           });
         } else {
-          openRewardPicker(buildFloorRewardChoices(), {
+          // Enhanced-tile Blessing door: floors 3/6/9 grant the pick of what a
+          // Bloom / Cross / X tile does — run before the normal reward pick.
+          const blessSpecial = (typeof FLOOR_BLESSING !== "undefined") ? (FLOOR_BLESSING[run.floor] || null) : null;
+          const needsBless = blessSpecial && !(run.blessings || {})[blessSpecial];
+          const rewardFlow = () => openRewardPicker(buildFloorRewardChoices(), {
             title: "Floor Reward",
             sub: "Pick a permanent boon — it stays all run",
             onPick: label => openModifierPicker(mod => {
@@ -1327,6 +1405,8 @@ const screenMenu = document.getElementById("screen-menu");
               }
             })
           });
+          if (needsBless) openTileBlessingPicker(blessSpecial, rewardFlow);
+          else rewardFlow();
         }
       } else if (combat.playerHp <= 0) {
         gameOver = true;
@@ -2504,6 +2584,7 @@ const screenMenu = document.getElementById("screen-menu");
         ${expandable("Passive", passive)}
         ${expandable("Ultimate", ult)}
         ${expandable("Shape bonuses", shapes)}
+        ${tileBlessingsSection()}
         <div class="info-section">Active statuses</div>
         <div class="info-body">${statusSummaryPlayer()}</div>
         ${runUpgradeSection()}
@@ -2542,6 +2623,32 @@ const screenMenu = document.getElementById("screen-menu");
         ? `<div class="skill-group"><div class="info-section">${label}</div><div class="info-grid">${tiles}</div><div class="skill-cap" hidden>Tap a slot to read it</div></div>`
         : "";
       return group("Permanent Upgrades", upgradeTiles) + group("Passives", passiveTiles);
+    }
+
+    // Tile Blessings passport section — the three chosen enhanced-tile styles
+    // (Bloom → Cross → X), icon-only tiles, tap to read.
+    function tileBlessingsSection() {
+      const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      const bs = run.blessings || {};
+      const order = ["bloom", "cross", "x"];
+      const made = [];
+      order.forEach((special, i) => {
+        const id = bs[special];
+        const found = (typeof TILE_BLESSINGS !== "undefined" && TILE_BLESSINGS[special] && id)
+          ? TILE_BLESSINGS[special].find(o => o.id === id) : null;
+        const icon = found ? found.icon : (special === "bloom" ? "🌸" : special === "cross" ? "✚" : "✖");
+        const name = found ? found.name : "Not claimed";
+        const desc = found ? found.desc : "Clear this tile's floor to earn a pick";
+        made.push(`
+          <div class="skill-tile psv" tabindex="0" role="button"
+               data-name="${esc(name)}" data-desc="${esc(desc)}"
+               title="${esc(name)} — ${esc(desc)}">
+            <span class="skill-num">${i + 1}</span>
+            <span class="skill-ico">${icon}</span>
+          </div>`);
+      });
+      const any = order.some(s => bs[s]);
+      return `<div class="skill-group"><div class="info-section">Tile Blessings</div><div class="info-grid">${made.join("")}</div><div class="skill-cap" hidden>${any ? "Tap a slot to read it" : "Earn picks on floors 3, 6, 9"}</div></div>`;
     }
 
     function statusSummaryPlayer() {

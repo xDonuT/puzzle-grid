@@ -1446,6 +1446,72 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         }
       }
 
+      // ── Tile Blessings (player only) — the build flavor you chose on floors 3/6/9.
+      // Seals cleared this match (shape.seals) each trigger their blessed effect.
+      if (!forEnemy) {
+        const seals = shape.seals || { bloom: 0, cross: 0, x: 0 };
+        const bs = run.blessings || {};
+        const addUlt = n => {
+          if (n <= 0) return;
+          const before = combat.sigBank;
+          combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + n);
+          if (before < settings.ultNeed && combat.sigBank >= settings.ultNeed) showUltReadyBanner();
+        };
+        // X seals (diagonal detonation)
+        if (seals.x > 0) {
+          const id = bs.x;
+          if (id === "flow") {
+            combat.ap = Math.min(AP_MAX, combat.ap + seals.x);
+            bitsExtra.push(`Flow +${seals.x} AP`);
+          } else if (id === "ward") {
+            sh += 4 * seals.x;
+            bitsExtra.push(`Ward +${4 * seals.x} shield`);
+          } else if (id === "venom") {
+            combat.enemyPoisonTurns = Math.max(combat.enemyPoisonTurns || 0, 2);
+            combat.enemyPoisonDmg = Math.max(combat.enemyPoisonDmg || 0, 2 * seals.x);
+            flyEffect(matchedList[0] ? getCell(matchedList[0].r, matchedList[0].c) : document.getElementById("playerPortrait"),
+                      document.getElementById("enemyPortrait"), "poison");
+            bitsExtra.push(`Venom ☠️${seals.x}`);
+          } else if (id === "momentum") {
+            dmg += 5 * seals.x;
+            bitsExtra.push(`Momentum +${5 * seals.x} dmg`);
+          }
+        }
+        // Cross seals (row+column detonation)
+        if (seals.cross > 0) {
+          const id = bs.cross;
+          if (id === "flow") {
+            combat.ap = Math.min(AP_MAX, combat.ap + seals.cross);
+            bitsExtra.push(`Flow +${seals.cross} AP`);
+          } else if (id === "burst") {
+            dmg += 5 * seals.cross;
+            bitsExtra.push(`Burst +${5 * seals.cross} dmg`);
+          } else if (id === "pump") {
+            addUlt(seals.cross);
+            bitsExtra.push(`Pump +${seals.cross} charge`);
+          } else if (id === "sustain") {
+            heal += 5 * seals.cross;
+            bitsExtra.push(`Sustain +${5 * seals.cross} HP`);
+          }
+        }
+        // Bloom seals (3×3 detonation)
+        if (seals.bloom > 0) {
+          const id = bs.bloom;
+          if (id === "quake") {
+            dmg += 6 * seals.bloom;
+            bitsExtra.push(`Quake +${6 * seals.bloom} dmg`);
+          } else if (id === "radiance") {
+            addUlt(seals.bloom);
+            bitsExtra.push(`Radiance +${seals.bloom} charge`);
+          } else if (id === "field") {
+            combat.enemyBurnTurns = Math.max(combat.enemyBurnTurns || 0, 3);
+            combat.enemyBurnDmg = Math.max(combat.enemyBurnDmg || 0, 3 * seals.bloom);
+            bitsExtra.push(`Ember 🔥${3 * seals.bloom}`);
+          }
+          // "ripple" (base) has no extra effect — the 3×3 clear is the payoff.
+        }
+      }
+
       // Empower / blind / weaken
       if (!forEnemy && dmg > 0) {
         if (combat.empowerNext) {

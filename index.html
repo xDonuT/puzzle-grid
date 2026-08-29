@@ -2030,6 +2030,90 @@ body.ult-hitstop .board-wrap {
     }
     .upgrade-card:hover { transform: scale(1.02); border-color: rgba(60, 45, 30, 0.25); }
 
+    /* ─── Tile Blessing ceremony ─── */
+    .blessing-panel {
+      max-width: 340px;
+      width: 92%;
+      margin: auto;
+      text-align: center;
+      user-select: none;
+    }
+    .blessing-emblem {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 6px;
+      border-radius: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.3rem;
+      background: linear-gradient(160deg, #fdf8ef, #f3ead8);
+      border: 2.5px solid var(--bc, #7aa65e);
+      box-shadow: 0 4px 16px rgba(90,80,72,.22);
+      opacity: 0;
+      transform: scale(0.6) translateY(10px);
+      transition: transform 0.55s cubic-bezier(0.34,1.4,0.64,1), opacity 0.45s ease;
+    }
+    .blessing-panel.plant .blessing-emblem {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+    .blessing-title {
+      font-weight: 900;
+      font-size: 1.4rem;
+      margin: 4px 0 2px;
+      color: var(--bc, #3d6a2a);
+    }
+    .blessing-sub {
+      color: #7a6e64;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin: 0 0 12px;
+    }
+    .blessing-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .blessing-card {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-align: left;
+      padding: 0;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.6);
+      border: 1.5px solid rgba(60,45,30,0.1);
+      overflow: hidden;
+      cursor: pointer;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, opacity 0.3s ease;
+    }
+    .blessing-panel.show .blessing-card { opacity: 1; transform: translateY(0); }
+    .blessing-card:hover { transform: scale(1.02); border-color: var(--bc, #7aa65e); }
+    .blessing-card.on {
+      transform: scale(1.03);
+      border-color: var(--bc, #27a13f);
+      box-shadow: 0 0 0 2.5px var(--bc, #7aa65e), 0 6px 18px rgba(90,80,72,.22);
+    }
+    .blessing-ico {
+      flex: 0 0 auto;
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      background: #fdf8ef;
+      border: 2px solid #d8cbae;
+    }
+    .blessing-text { padding: 8px 12px 8px 0; }
+    .blessing-name { font-weight: 900; font-size: 1rem; }
+    .blessing-note { color: #7a6e64; font-size: 0.82rem; font-weight: 600; margin-top: 2px; }
+
     /* Card header row: archetype tag + badges */
     .up-card-top {
       display: flex;
@@ -4246,6 +4330,16 @@ body.ult-hitstop .board-wrap {
       <div class="banner-kicker" id="floorBannerKicker">Floor</div>
       <div class="banner-title" id="floorBannerTitle">1</div>
       <div class="banner-sub" id="floorBannerSub"></div>
+    </div>
+  </div>
+
+  <!-- TILE BLESSING CEREMONY -->
+  <div class="overlay" id="tileBlessingOverlay">
+    <div class="panel blessing-panel" id="blessingPanel">
+      <div class="blessing-emblem" id="blessingEmblem"></div>
+      <div class="blessing-title" id="blessingTitle">Tile Blessed</div>
+      <div class="blessing-sub" id="blessingSub">Choose what this tile does</div>
+      <div class="blessing-cards" id="blessingCards"></div>
     </div>
   </div>
 

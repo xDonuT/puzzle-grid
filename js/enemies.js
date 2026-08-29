@@ -527,6 +527,7 @@
       pendingModifier: null,
       pendingModifierRare: false,
       pendingModifierEasy: null,
+      blessings: {},         // special -> chosen blessing id ("bloom"/"cross"/"x")
       elapsedMs: 0,
       floorElapsedMs: 0,
       gameMap: null,     // STS-style branching map
@@ -758,6 +759,46 @@
       { id: "stoneward", tier: "rare", name: "Stone Ward", desc: "+8 Shield cap forever.",
         grant() { run.bonusShieldMax += 8; return { label: "🛡️ +8 Shield cap, forever" }; } }
     ];
+
+    // Tile Blessings — player picks what each enhanced tile (bloom/cross/X) DOES.
+    // Previously cross/X seals auto-refunded AP; now that bonus is a chosen build.
+    // Each blessing: { special, id, icon, name, desc, tier }. Applied once per run
+    // on its blessed floor, stored in run.blessings[special] = id.
+    const TILE_BLESSINGS = {
+      bloom: [
+        { id: "ripple", special: "bloom", icon: "🌸", name: "Ripple", tier: "base",
+          desc: "Blooms burst a wide 3×3 clear. Keep the classic wide control." },
+        { id: "quake", special: "bloom", icon: "🌋", name: "Quake", tier: "dmg",
+          desc: "Each Bloom cleared deals bonus burst damage." },
+        { id: "radiance", special: "bloom", icon: "☀️", name: "Radiance", tier: "ult",
+          desc: "Each Bloom cleared grants ultimate charge." },
+        { id: "field", special: "bloom", icon: "🕸️", name: "Field", tier: "status",
+          desc: "Each Bloom leaves ember tiles that burn the rival." }
+      ],
+      cross: [
+        { id: "flow", special: "cross", icon: "⚡", name: "Flow", tier: "ap",
+          desc: "Each cross cleared refunds +1 action point. The engine choice." },
+        { id: "burst", special: "cross", icon: "🔥", name: "Burst", tier: "dmg",
+          desc: "Each cross cleared deals bonus damage down its row and column." },
+        { id: "pump", special: "cross", icon: "⭐", name: "Pump", tier: "ult",
+          desc: "Each cross cleared grants ultimate charge." },
+        { id: "sustain", special: "cross", icon: "🩸", name: "Sustain", tier: "heal",
+          desc: "Each cross cleared heals you." }
+      ],
+      x: [
+        { id: "flow", special: "x", icon: "⚡", name: "Flow", tier: "ap",
+          desc: "Each X cleared refunds +1 action point. The engine choice." },
+        { id: "ward", special: "x", icon: "🛡️", name: "Ward", tier: "shld",
+          desc: "Each X cleared grants you shield." },
+        { id: "venom", special: "x", icon: "☠️", name: "Venom", tier: "status",
+          desc: "Each X cleared poisons the rival." },
+        { id: "momentum", special: "x", icon: "💨", name: "Momentum", tier: "combo",
+          desc: "Each X cleared boosts this cascade's damage." }
+      ]
+    };
+
+    // Which floor grants which blessed enhanced tile (one per floor, before act-1 boss).
+    const FLOOR_BLESSING = { 3: "bloom", 6: "cross", 9: "x" };
 
     // Floor modifiers — picked after the reward. Easy = benefits player (normal reward).
     // Hard = hurts player but guarantees a rare-tier reward next floor.

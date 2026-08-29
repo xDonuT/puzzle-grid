@@ -529,6 +529,7 @@
       pendingModifierEasy: null,
       blessings: {},         // special -> chosen blessing id ("bloom"/"cross"/"x")
       shapeSkills: { star: null, cross: null, charged: null }, // shape -> chosen skill id (any class)
+      actBattles: 0,       // battles won in current act (drives Bloom/Cross/X blessing doors)
       elapsedMs: 0,
       floorElapsedMs: 0,
       gameMap: null,     // STS-style branching map

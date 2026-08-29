@@ -1000,6 +1000,7 @@ const screenMenu = document.getElementById("screen-menu");
       map.visitedNodes = {};
       run.floor = 0;
       run.classUpgradeOfferedActs = [];
+      run.actBattles = 0;
       showScreen("game");
       showStoryIntro(() => showMap());
     }
@@ -1011,6 +1012,7 @@ const screenMenu = document.getElementById("screen-menu");
         // Advance to next act
         map.currentAct++;
         run.currentAct = map.currentAct;
+        run.actBattles = 0; // fresh battle counter for the new act
         map.currentNode = null;
         // Show act transition banner then map
         showActBanner(map.currentAct, () => showMap());
@@ -1441,9 +1443,13 @@ const screenMenu = document.getElementById("screen-menu");
             });
           });
         } else {
-          // Enhanced-tile Blessing door: floors 3/6/9 grant the pick of what a
-          // Bloom / Cross / X tile does — run before the normal reward pick.
-          const blessSpecial = (typeof FLOOR_BLESSING !== "undefined") ? (FLOOR_BLESSING[run.floor] || null) : null;
+          // This is a won normal battle (not boss/elite). Count it toward the
+          // act's battle total, which drives the Bloom/Cross/X blessing doors
+          // so mysteries/shops can never skip a blessing window.
+          run.actBattles = (run.actBattles || 0) + 1;
+          // Enhanced-tile Blessing door: the 3rd/6th/9th battle win of the act
+          // grants the pick of what a Bloom / Cross / X tile does.
+          const blessSpecial = (typeof FLOOR_BLESSING !== "undefined") ? (FLOOR_BLESSING[run.actBattles] || null) : null;
           const needsBless = blessSpecial && !(run.blessings || {})[blessSpecial];
           const rewardFlow = () => openRewardPicker(buildFloorRewardChoices(), {
             title: "Floor Reward",
@@ -1642,7 +1648,8 @@ const screenMenu = document.getElementById("screen-menu");
           currentAct: run.currentAct || 1,
           classUpgradeOfferedActs: run.classUpgradeOfferedActs || [],
           blessings: run.blessings || {},
-          shapeSkills: run.shapeSkills || { star: null, cross: null, charged: null }
+          shapeSkills: run.shapeSkills || { star: null, cross: null, charged: null },
+          actBattles: run.actBattles || 0
         };
         localStorage.setItem(SAVE_KEY, JSON.stringify(data));
       } catch (_) {}
@@ -1726,6 +1733,7 @@ const screenMenu = document.getElementById("screen-menu");
       run.pendingModifierEasy = null;
       run.blessings = {};
       run.shapeSkills = { star: null, cross: null, charged: null };
+      run.actBattles = 0;
       run.elapsedMs = 0;
       run.floorElapsedMs = 0;
       run.gameMap = null;
@@ -1818,6 +1826,7 @@ const screenMenu = document.getElementById("screen-menu");
       run.classUpgradeOfferedActs = d.classUpgradeOfferedActs || [];
       run.blessings = d.blessings || {};
       run.shapeSkills = d.shapeSkills || { star: null, cross: null, charged: null };
+      run.actBattles = d.actBattles | 0;
       // Map layout changed (45-floor campaign): regenerate incompatible maps.
       // Player restarts the current act with all upgrades/passives intact.
       if (run.gameMap && !isMapCompatible(run.gameMap)) {

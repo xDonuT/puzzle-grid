@@ -359,12 +359,21 @@ const screenMenu = document.getElementById("screen-menu");
     }
 
     // Shape Skills picker — freely assign one Star, one Cross, one Charged
-    // skill (from any class) mid-combat via the HUD ✦ button. Unpicked = none.
-    function openShapeSkillPicker() {
+    // skill (from any class). Earned after a Tile Blessing (floors 3/6/9): the
+    // player freely assigns one Star, one Cross, one Charged skill, then taps
+    // Continue. onDone() is invoked to resume the victory flow.
+    function openShapeSkillPicker(onDone) {
       const ov = document.getElementById("shapeSkillOverlay");
       const rows = document.getElementById("shapeRows");
       const doneBtn = document.getElementById("btnShapeSkillDone");
-      if (!ov || !rows || typeof SHAPE_SKILLS === "undefined") return;
+      const emblem = document.getElementById("shapeEmblem");
+      const title = document.getElementById("shapeSkillTitle");
+      const sub = document.getElementById("shapeSkillSub");
+      if (!ov || !rows || typeof SHAPE_SKILLS === "undefined") { if (onDone) onDone(); return; }
+      pickerOnDone = onDone || null;
+      if (emblem) emblem.textContent = "🏆";
+      if (title) title.textContent = "Shape Skills Earned";
+      if (sub) sub.textContent = "Choose your Star, Cross & Charged skills — any class";
       const sk = run.shapeSkills || {};
       rows.innerHTML = "";
       const shapeMeta = {
@@ -399,18 +408,24 @@ const screenMenu = document.getElementById("screen-menu");
             // Tap again to clear that shape's skill.
             if (sk[shapeKey] === id) sk[shapeKey] = null;
             else sk[shapeKey] = id;
-            openShapeSkillPicker();
+            openShapeSkillPicker(pickerOnDone);
           });
         });
         rows.appendChild(row);
       });
+      if (doneBtn) doneBtn.textContent = "Continue";
       ov.classList.add("open");
     }
+
+    let pickerOnDone = null;
 
     function closeShapeSkillPicker() {
       const ov = document.getElementById("shapeSkillOverlay");
       if (ov) ov.classList.remove("open");
       if (typeof saveRun === "function") saveRun();
+      const fn = pickerOnDone;
+      pickerOnDone = null;
+      if (typeof fn === "function") fn();
     }
 
     function showFloorBanner() {
@@ -1466,7 +1481,11 @@ const screenMenu = document.getElementById("screen-menu");
               }
             })
           });
-          if (needsBless) openTileBlessingPicker(blessSpecial, rewardFlow);
+          // Milestone battle (3rd/6th/9th win of the act): offer the earned Tile
+          // Blessing pick, then the earned Shape Skills pick, then the reward.
+          const afterBlessing = () => openShapeSkillPicker(() => rewardFlow());
+          if (needsBless) openTileBlessingPicker(blessSpecial, afterBlessing);
+          else if (blessSpecial) openShapeSkillPicker(() => rewardFlow());
           else rewardFlow();
         }
       } else if (combat.playerHp <= 0) {
@@ -2347,14 +2366,8 @@ const screenMenu = document.getElementById("screen-menu");
 
     document.getElementById("btnMenuSettings").addEventListener("click", openSettings);
     document.getElementById("btnGameSettings").addEventListener("click", openSettings);
-    const btnShapeSkills = document.getElementById("btnShapeSkills");
-    if (btnShapeSkills) btnShapeSkills.addEventListener("click", openShapeSkillPicker);
     const btnShapeDone = document.getElementById("btnShapeSkillDone");
     if (btnShapeDone) btnShapeDone.addEventListener("click", closeShapeSkillPicker);
-    const shapeSkillOv = document.getElementById("shapeSkillOverlay");
-    if (shapeSkillOv) shapeSkillOv.addEventListener("click", e => {
-      if (e.target === shapeSkillOv) closeShapeSkillPicker();
-    });
     document.getElementById("btnSettingsClose").addEventListener("click", closeSettings);
     document.getElementById("btnSettingsSave").addEventListener("click", saveSettings);
 

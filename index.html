@@ -2136,13 +2136,17 @@ body.ult-hitstop .board-wrap {
       min-width: 74px;
       text-align: center;
     }
-    .shape-row-grid { display: flex; flex-direction: column; gap: 8px; }
-    #shapeRows { max-height: 58vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 2px; }
+    .shape-row-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    #shapeRows { max-height: 60vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 2px; }
     .shape-skill-card {
       width: 100%;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       text-align: left;
       padding: 0;
       border-radius: 14px;
@@ -2159,19 +2163,29 @@ body.ult-hitstop .board-wrap {
     }
     .shape-skill-ico {
       flex: 0 0 auto;
-      width: 46px;
-      height: 46px;
-      border-radius: 12px;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.4rem;
+      font-size: 1.1rem;
       background: #fdf8ef;
       border: 2px solid #d8cbae;
     }
-    .shape-skill-text { padding: 8px 12px 8px 0; }
-    .shape-skill-name { font-weight: 900; font-size: 0.95rem; }
-    .shape-skill-owner { font-size: 0.68rem; font-weight: 800; color: #9a8c78; margin-top: 1px; }
+    .shape-skill-text { padding: 8px 10px 8px 0; }
+    .shape-skill-name { font-weight: 900; font-size: 0.9rem; }
+    .shape-skill-owner { font-size: 0.66rem; font-weight: 800; color: #9a8c78; margin-top: 1px; }
+    .shape-skill-best {
+      display: inline-block;
+      margin-top: 3px;
+      font-size: 0.62rem;
+      font-weight: 900;
+      color: #fff;
+      background: linear-gradient(150deg, #8a6bb8, #6a4a9e);
+      padding: 1px 7px;
+      border-radius: 999px;
+    }
     .blessing-done {
       margin-top: 14px;
       width: 100%;

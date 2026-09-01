@@ -529,7 +529,6 @@
       pendingModifierEasy: null,
       blessings: {},         // special -> chosen blessing id ("bloom"/"cross"/"x")
       shapeSkills: { star: null, cross: null, charged: null }, // shape -> chosen skill id (any class)
-      actBattles: 0,       // battles won in current act (drives Bloom/Cross/X blessing doors)
       elapsedMs: 0,
       floorElapsedMs: 0,
       gameMap: null,     // STS-style branching map
@@ -799,13 +798,52 @@
       ]
     };
 
-    // Which floor grants which blessed enhanced tile (one per floor, before act-1 boss).
-    const FLOOR_BLESSING = { 3: "bloom", 6: "cross", 9: "x" };
+    // Which tile Blessing is earned as the player reaches each floor — gated on
+    // run.floor so mysteries/shops can never skip a blessing window (a blessing
+    // is offered on the first battle win after its floor threshold is crossed).
+    const FLOOR_BLESSING = {
+      3:  "bloom",
+      9:  "cross",
+      15: "x"
+    };
+    // Which Shape Skills milestone is earned as the player reaches each floor,
+    // interleaved with the blessings so only one new system surfaces at a time.
+    const FLOOR_SHAPE_SKILL = {
+      6:  "star",
+      12: "charged",
+      18: "cross"
+    };
 
-    // Shape skills — the player freely assigns one Star, one Cross, and one
-    // Charged skill of their choice (from any class) via the in-combat picker.
-    // They are no longer locked to a character; unpicked shapes give nothing.
-    // Effects mirror the former Wizard/Ninja/Knight shape bonuses verbatim.
+    // Return the special ("bloom"/"cross"/"x") of the next unclaimed Tile Blessing
+    // whose floor threshold the player has already matched (or exceeded). A mystery
+    // or shop crossing the floor never fires this by itself — it's only consulted
+    // on a battle win — so reaching the floor is enough; the exact floor number never
+    // has to line up with a battle.
+    function getNextBlessing() {
+      const keys = Object.keys(FLOOR_BLESSING).map(Number).sort((a, b) => a - b);
+      const bs = run.blessings || {};
+      for (const f of keys) {
+        const id = FLOOR_BLESSING[f];
+        if (run.floor >= f && !bs[id]) return id;
+      }
+      return null;
+    }
+
+    // Same as getNextBlessing but for Shape Skills ("star"/"charged"/"cross").
+    function getNextShapeSkill() {
+      const keys = Object.keys(FLOOR_SHAPE_SKILL).map(Number).sort((a, b) => a - b);
+      const ss = run.shapeSkills || {};
+      for (const f of keys) {
+        const id = FLOOR_SHAPE_SKILL[f];
+        if (run.floor >= f && !ss[id]) return id;
+      }
+      return null;
+    }
+
+    // Shape skills — the player picks one skill for each shape (Star / Cross /
+    // Charged) from any class, one shape at a time, as they earn each milestone.
+    // bestFor tags a skill as the "natural" pick for a class; untagged skills are
+    // universal utilities usable by everyone.
     const SHAPE_SKILLS = {
       star: [
         { id: "petalWard", shape: "star", icon: "🛡️", name: "Petal Ward",
@@ -813,7 +851,13 @@
         { id: "shadowDance", shape: "star", icon: "⚡", name: "Shadow Dance",
           desc: "Star: +2 Action Points and turn 4 random tiles into Swords." },
         { id: "earthquake", shape: "star", icon: "💥", name: "Earthquake",
-          desc: "Star: +2 Cracked and turn 3 random tiles into Potions." }
+          desc: "Star: +2 Cracked and turn 3 random tiles into Potions." },
+        { id: "celestialBloom", shape: "star", icon: "🌸", name: "Celestial Bloom", bestFor: "knight",
+          desc: "Star: heal 5 HP per Star matched." },
+        { id: "starfall", shape: "star", icon: "🌠", name: "Starfall", bestFor: "wizard",
+          desc: "Star: +8 Shield and turn 4 random tiles into Shield." },
+        { id: "nova", shape: "star", icon: "✨", name: "Nova",
+          desc: "Star: +1 Action Point per Star matched." }
       ],
       cross: [
         { id: "manaLock", shape: "cross", icon: "🔒", name: "Mana Lock",
@@ -821,7 +865,13 @@
         { id: "marked", shape: "cross", icon: "🎯", name: "Marked",
           desc: "Cross: +2 Mark stacks (+15% dmg each) and +1 Action Point." },
         { id: "sunder", shape: "cross", icon: "🧱", name: "Sunder",
-          desc: "Cross: +3 Cracked and +1 Action Point." }
+          desc: "Cross: +3 Cracked and +1 Action Point." },
+        { id: "venomCross", shape: "cross", icon: "☠️", name: "Venom Cross", bestFor: "ninja",
+          desc: "Cross: Poison the rival for 3 stacks." },
+        { id: "mirrorCross", shape: "cross", icon: "🪞", name: "Mirror Cross", bestFor: "knight",
+          desc: "Cross: steal the rival's Shield (max 10)." },
+        { id: "tidal", shape: "cross", icon: "🌊", name: "Tidal",
+          desc: "Cross: +2 ultimate charge per Cross matched." }
       ],
       charged: [
         { id: "shieldStrike", shape: "charged", icon: "🛡️", name: "Shield Strike",
@@ -829,7 +879,13 @@
         { id: "shadowStrike", shape: "charged", icon: "🗡️", name: "Shadow Strike",
           desc: "Charged: deal true damage = Swords cleared ×4 (8–24)." },
         { id: "shatter", shape: "charged", icon: "🧨", name: "Shatter",
-          desc: "Charged: consume all Cracked for true damage (stacks ×3)." }
+          desc: "Charged: consume all Cracked for true damage (stacks ×3)." },
+        { id: "feedback", shape: "charged", icon: "🔮", name: "Feedback", bestFor: "wizard",
+          desc: "Charged: +2 ultimate charge and turn 2 random tiles into Shield." },
+        { id: "bloodSurge", shape: "charged", icon: "❤️", name: "Blood Surge", bestFor: "ninja",
+          desc: "Charged: heal 3 HP per Sword cleared this turn." },
+        { id: "brilliance", shape: "charged", icon: "💎", name: "Brilliance",
+          desc: "Charged: +4 ultimate charge." }
       ]
     };
 

@@ -1394,6 +1394,17 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           combat.fractureTurns = Math.max(combat.fractureTurns, 2);
           const n = convertRandomTiles(3, "hp");
           bitsExtra.push(`Earthquake +2 Cracked · ${n}→❤️`);
+        } else if (isStar && sk.star === "celestialBloom") {
+          const heal = 5;
+          combat.playerHp = Math.min(combat.playerMaxHp, combat.playerHp + heal);
+          bitsExtra.push(`Celestial Bloom +${heal} HP`);
+        } else if (isStar && sk.star === "starfall") {
+          sh += 8;
+          const n = convertRandomTiles(4, "shield");
+          bitsExtra.push(`Starfall +8 shield · ${n}→🛡️`);
+        } else if (isStar && sk.star === "nova") {
+          combat.ap = Math.min(AP_MAX, combat.ap + 1);
+          bitsExtra.push("Nova +1 AP");
         }
         // Cross skills
         if (isCross && sk.cross === "manaLock") {
@@ -1408,6 +1419,24 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           combat.fractureTurns = Math.max(combat.fractureTurns, 2);
           combat.ap = Math.min(AP_MAX, combat.ap + 1);
           bitsExtra.push(`Sunder +3 Cracked · +1 AP`);
+        } else if (isCross && sk.cross === "venomCross") {
+          combat.enemyPoisonTurns = Math.max(combat.enemyPoisonTurns || 0, 2);
+          combat.enemyPoisonDmg = Math.max(combat.enemyPoisonDmg || 0, 3);
+          bitsExtra.push(`Venom Cross poison ${Math.max(combat.enemyPoisonDmg || 0, 3)}`);
+        } else if (isCross && sk.cross === "mirrorCross") {
+          const steal = Math.min(10, combat.enemyShield);
+          if (steal > 0) {
+            combat.enemyShield -= steal;
+            applyShielding(steal);
+            bitsExtra.push(`Mirror Cross steal ${steal}`);
+          } else {
+            bitsExtra.push("Mirror Cross (no shield to steal)");
+          }
+        } else if (isCross && sk.cross === "tidal") {
+          const before = combat.sigBank;
+          combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + 2);
+          if (before < settings.ultNeed && combat.sigBank >= settings.ultNeed) showUltReadyBanner();
+          bitsExtra.push("Tidal +2 ult");
         }
         // Charged skills
         if (isCharged && sk.charged === "shieldStrike") {
@@ -1438,6 +1467,21 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
             combat.enemyStunTurns = Math.max(combat.enemyStunTurns || 0, 1);
             bitsExtra.push("Earthquake Dizzy!");
           }
+        } else if (isCharged && sk.charged === "feedback") {
+          const before = combat.sigBank;
+          combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + 2);
+          if (before < settings.ultNeed && combat.sigBank >= settings.ultNeed) showUltReadyBanner();
+          const n = convertRandomTiles(2, "shield");
+          bitsExtra.push(`Feedback +2 ult · ${n}→🛡️`);
+        } else if (isCharged && sk.charged === "bloodSurge") {
+          const heal = Math.min(combat.playerMaxHp, combat.playerHp + combat.swordsClearedThisTurn * 3) - combat.playerHp;
+          combat.playerHp += heal;
+          bitsExtra.push(`Blood Surge +${heal} HP`);
+        } else if (isCharged && sk.charged === "brilliance") {
+          const before = combat.sigBank;
+          combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + 4);
+          if (before < settings.ultNeed && combat.sigBank >= settings.ultNeed) showUltReadyBanner();
+          bitsExtra.push("Brilliance +4 ult");
         }
       }
 

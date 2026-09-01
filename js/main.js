@@ -358,11 +358,11 @@ const screenMenu = document.getElementById("screen-menu");
       }));
     }
 
-    // Shape Skills picker — freely assign one Star, one Cross, one Charged
-    // skill (from any class). Earned after a Tile Blessing (floors 3/6/9): the
-    // player freely assigns one Star, one Cross, one Charged skill, then taps
-    // Continue. onDone() is invoked to resume the victory flow.
-    function openShapeSkillPicker(onDone) {
+    // Shape Skills training-pick — one shape at a time. openShapeSkillPicker(shapeKey)
+    // shows only that shape's cards so the player reads each system one at a time
+    // as milestones are earned (floor 6 Star, 12 Charged, 18 Cross). onDone() is
+    // invoked to resume the victory flow.
+    function openShapeSkillPicker(shapeKey, onDone) {
       const ov = document.getElementById("shapeSkillOverlay");
       const rows = document.getElementById("shapeRows");
       const doneBtn = document.getElementById("btnShapeSkillDone");
@@ -371,50 +371,56 @@ const screenMenu = document.getElementById("screen-menu");
       const sub = document.getElementById("shapeSkillSub");
       if (!ov || !rows || typeof SHAPE_SKILLS === "undefined") { if (onDone) onDone(); return; }
       pickerOnDone = onDone || null;
+      // Surface the shape just earned (defaulting to Star for safety).
+      const openShape = shapeKey && SHAPE_SKILLS[shapeKey] ? shapeKey : "star";
       if (emblem) emblem.textContent = "🏆";
-      if (title) title.textContent = "Shape Skills Earned";
-      if (sub) sub.textContent = "Choose your Star, Cross & Charged skills — any class";
+      if (title) title.textContent = "Shape Skill Earned";
+      if (sub) sub.textContent = `Choose your ${shapeMeta(openShape).label} skill — from any class`;
       const sk = run.shapeSkills || {};
       rows.innerHTML = "";
-      const shapeMeta = {
+      const meta = shapeMeta(openShape);
+      const cur = sk[openShape];
+      let cards = "";
+      SHAPE_SKILLS[openShape].forEach(s => {
+        const active = s.id === cur;
+        const best = s.bestFor ? `<span class="shape-skill-best">Best for ${(CHARACTERS[s.bestFor] && CHARACTERS[s.bestFor].name) || s.bestFor}</span>` : "";
+        cards += `
+          <button type="button" class="shape-skill-card${active ? " on" : ""}" data-shape="${openShape}" data-id="${s.id}">
+            <span class="shape-skill-ico">${s.icon}</span>
+            <span class="shape-skill-text">
+              <div class="shape-skill-name">${s.name}${active ? " ✓" : ""}</div>
+              <div class="shape-skill-owner">${s.desc}</div>
+              ${best}
+            </span>
+          </button>`;
+      });
+      const row = document.createElement("div");
+      row.className = "shape-row";
+      row.innerHTML = `
+        <div class="shape-row-head"><span class="shape-pill">${meta.icon} ${meta.label}</span>${meta.hint}</div>
+        <div class="shape-row-grid">${cards}</div>`;
+      row.querySelectorAll(".shape-skill-card").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.id;
+          const shp = btn.dataset.shape;
+          // Tap again to clear that shape's skill.
+          if (sk[shp] === id) sk[shp] = null;
+          else sk[shp] = id;
+          openShapeSkillPicker(shp, pickerOnDone);
+        });
+      });
+      rows.appendChild(row);
+      if (doneBtn) doneBtn.textContent = "Continue";
+      ov.classList.add("open");
+    }
+
+    function shapeMeta(shape) {
+      const m = {
         star:     { icon: "⭐", label: "Star",     hint: "5+ in a line" },
         cross:    { icon: "✚", label: "Cross",    hint: "plus-shaped" },
         charged:  { icon: "⚡", label: "Charged",  hint: "charged 4+" }
       };
-      ["star", "cross", "charged"].forEach(shape => {
-        const meta = shapeMeta[shape];
-        const cur = sk[shape];
-        const row = document.createElement("div");
-        row.className = "shape-row";
-        let cards = "";
-        SHAPE_SKILLS[shape].forEach(s => {
-          const active = s.id === cur;
-          cards += `
-            <button type="button" class="shape-skill-card${active ? " on" : ""}" data-shape="${shape}" data-id="${s.id}">
-              <span class="shape-skill-ico">${s.icon}</span>
-              <span class="shape-skill-text">
-                <div class="shape-skill-name">${s.name}${active ? " ✓" : ""}</div>
-                <div class="shape-skill-owner">${s.desc}</div>
-              </span>
-            </button>`;
-        });
-        row.innerHTML = `
-          <div class="shape-row-head"><span class="shape-pill">${meta.icon} ${meta.label}</span>${meta.hint}</div>
-          <div class="shape-row-grid">${cards}</div>`;
-        row.querySelectorAll(".shape-skill-card").forEach(btn => {
-          btn.addEventListener("click", () => {
-            const id = btn.dataset.id;
-            const shapeKey = btn.dataset.shape;
-            // Tap again to clear that shape's skill.
-            if (sk[shapeKey] === id) sk[shapeKey] = null;
-            else sk[shapeKey] = id;
-            openShapeSkillPicker(pickerOnDone);
-          });
-        });
-        rows.appendChild(row);
-      });
-      if (doneBtn) doneBtn.textContent = "Continue";
-      ov.classList.add("open");
+      return m[shape] || { icon: "❔", label: shape, hint: "" };
     }
 
     let pickerOnDone = null;
@@ -1015,7 +1021,6 @@ const screenMenu = document.getElementById("screen-menu");
       map.visitedNodes = {};
       run.floor = 0;
       run.classUpgradeOfferedActs = [];
-      run.actBattles = 0;
       showScreen("game");
       showStoryIntro(() => showMap());
     }
@@ -1027,7 +1032,6 @@ const screenMenu = document.getElementById("screen-menu");
         // Advance to next act
         map.currentAct++;
         run.currentAct = map.currentAct;
-        run.actBattles = 0; // fresh battle counter for the new act
         map.currentNode = null;
         // Show act transition banner then map
         showActBanner(map.currentAct, () => showMap());
@@ -1458,14 +1462,13 @@ const screenMenu = document.getElementById("screen-menu");
             });
           });
         } else {
-          // This is a won normal battle (not boss/elite). Count it toward the
-          // act's battle total, which drives the Bloom/Cross/X blessing doors
-          // so mysteries/shops can never skip a blessing window.
-          run.actBattles = (run.actBattles || 0) + 1;
-          // Enhanced-tile Blessing door: the 3rd/6th/9th battle win of the act
-          // grants the pick of what a Bloom / Cross / X tile does.
-          const blessSpecial = (typeof FLOOR_BLESSING !== "undefined") ? (FLOOR_BLESSING[run.actBattles] || null) : null;
-          const needsBless = blessSpecial && !(run.blessings || {})[blessSpecial];
+          // Won a normal battle (not boss/elite). Consult floor-based milestones:
+          // the next unclaimed Tile Blessing and the next unclaimed Shape Skill
+          // whose floor thresholds the player has matched. Because these check
+          // "floor reached", a mystery/shop crossing a threshold never skips a
+          // window — the next battle win surfaces it.
+          const blessSpecial = (typeof getNextBlessing === "function") ? getNextBlessing() : null;
+          const shapeSpecial = (typeof getNextShapeSkill === "function") ? getNextShapeSkill() : null;
           const rewardFlow = () => openRewardPicker(buildFloorRewardChoices(), {
             title: "Floor Reward",
             sub: "Pick a permanent boon — it stays all run",
@@ -1481,11 +1484,14 @@ const screenMenu = document.getElementById("screen-menu");
               }
             })
           });
-          // Milestone battle (3rd/6th/9th win of the act): offer the earned Tile
-          // Blessing pick, then the earned Shape Skills pick, then the reward.
-          const afterBlessing = () => openShapeSkillPicker(() => rewardFlow());
-          if (needsBless) openTileBlessingPicker(blessSpecial, afterBlessing);
-          else if (blessSpecial) openShapeSkillPicker(() => rewardFlow());
+          // Chain: offer the earned Tile Blessing pick, then the earned Shape
+          // Skill pick (one shape at a time), then the normal floor reward.
+          const afterBlessing = () => {
+            if (shapeSpecial) openShapeSkillPicker(shapeSpecial, rewardFlow);
+            else rewardFlow();
+          };
+          if (blessSpecial) openTileBlessingPicker(blessSpecial, afterBlessing);
+          else if (shapeSpecial) openShapeSkillPicker(shapeSpecial, rewardFlow);
           else rewardFlow();
         }
       } else if (combat.playerHp <= 0) {
@@ -1667,8 +1673,7 @@ const screenMenu = document.getElementById("screen-menu");
           currentAct: run.currentAct || 1,
           classUpgradeOfferedActs: run.classUpgradeOfferedActs || [],
           blessings: run.blessings || {},
-          shapeSkills: run.shapeSkills || { star: null, cross: null, charged: null },
-          actBattles: run.actBattles || 0
+          shapeSkills: run.shapeSkills || { star: null, cross: null, charged: null }
         };
         localStorage.setItem(SAVE_KEY, JSON.stringify(data));
       } catch (_) {}
@@ -1752,7 +1757,6 @@ const screenMenu = document.getElementById("screen-menu");
       run.pendingModifierEasy = null;
       run.blessings = {};
       run.shapeSkills = { star: null, cross: null, charged: null };
-      run.actBattles = 0;
       run.elapsedMs = 0;
       run.floorElapsedMs = 0;
       run.gameMap = null;
@@ -1845,7 +1849,6 @@ const screenMenu = document.getElementById("screen-menu");
       run.classUpgradeOfferedActs = d.classUpgradeOfferedActs || [];
       run.blessings = d.blessings || {};
       run.shapeSkills = d.shapeSkills || { star: null, cross: null, charged: null };
-      run.actBattles = d.actBattles | 0;
       // Map layout changed (45-floor campaign): regenerate incompatible maps.
       // Player restarts the current act with all upgrades/passives intact.
       if (run.gameMap && !isMapCompatible(run.gameMap)) {

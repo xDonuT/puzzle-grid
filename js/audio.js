@@ -539,12 +539,14 @@
     //
     // The three families take their *mood* from Slay the Spire (never their
     // notes - all original material, through the DP-style lens of silences and
-    // space).  The arc leans hopeful:
+    // space).  The arc leans hopeful but stays LOW and warm - nothing bright
+    // or piercing, easy on sensitive ears:
     //   Act 1 "First Light"  ~ The Exordium : bright dawn, singable, forward
     //   Act 2 "The Hollow"    ~ The Unknown  : warm nocturnal, a lone voice
     //   Act 3 "The Crown"     ~ The City     : triumphant resolve, iron march
-    // Every act/mode combo has its own scale, chord bed, lead texture and bell;
-    // an A/B melodic variant alternates each loop so every stage stays fresh.
+    // Every act/mode combo has its own scale, chord bed, lead texture and bell.
+    // Leads sit in a low-mid register (roughly D3–A4); the bass drone, cello
+    // and drums carry the weight.  An A/B melodic variant alternates each loop.
     const BGM_ACTS = {
       1: {
         bpm:    { field: 96,  elite: 110, boss: 132 },
@@ -555,20 +557,19 @@
           elite: [0, 2, 4, 6, 7, 9, 11, 12],   // lydian: soaring lift
           boss:  [0, 2, 4, 5, 7, 9, 10, 12]    // mixolydian: resolved drive
         },
-        fluteB: {                              // alt loop: major-pent shimmer
-          field: [0, 2, 4, 7, 9, 12, 14, 16],
-          elite: [0, 2, 4, 6, 9, 12, 14, 16],
-          boss:  [0, 2, 4, 5, 7, 9, 12, 14]
+        fluteB: {                              // alt loop: warm fifth shapes
+          field: [0, 2, 4, 7, 9, 12],
+          elite: [0, 2, 4, 6, 9, 12],
+          boss:  [0, 2, 4, 5, 7, 12]
         },
         lead: {
-          field: { octave: 12, wave: "sine", vol: 0.065, attack: 0.2 },
-          elite: { octave: 12, wave: "triangle", vol: 0.05, attack: 0.25 },
-          boss:  { octave: 12, wave: "sine", vol: 0.07, attack: 0.15 }
+          field: { octave: 5, wave: "sine", vol: 0.055, attack: 0.25 },
+          elite: { octave: 5, wave: "triangle", vol: 0.045, attack: 0.3 },
+          boss:  { octave: 5, wave: "sine", vol: 0.06, attack: 0.2 }
         },
         ghost:  { field: [3, 5, 7], elite: [6, 3], boss: [2, 4, 6] },
         ghostB: { field: [2, 6],    elite: [4],    boss: [3, 7] },
-        bell:   "none",
-        shimmer: 16
+        bell:   "none"
       },
       2: {
         bpm:    { field: 62,  elite: 58, boss: 96 },
@@ -580,19 +581,18 @@
           boss:  [0, 2, 4, 5, 7, 9, 11, 12]    // lifted to major - desperate hope
         },
         fluteB: {
-          field: [0, 2, 3, 5, 7, 10, 12, 14],
-          elite: [0, 2, 3, 5, 7, 9, 12, 14],
-          boss:  [0, 2, 4, 7, 9, 11, 12, 14]
+          field: [0, 2, 3, 5, 7, 10],
+          elite: [0, 2, 3, 5, 7, 9],
+          boss:  [0, 2, 4, 7, 9, 12]
         },
         lead: {
-          field: { octave: 14, wave: "sine", vol: 0.05, attack: 0.4 },
-          elite: { octave: 14, wave: "triangle", vol: 0.05, attack: 0.35 },
-          boss:  { octave: 12, wave: "triangle", vol: 0.055, attack: 0.2 }
+          field: { octave: 5, wave: "sine", vol: 0.045, attack: 0.45 },
+          elite: { octave: 5, wave: "triangle", vol: 0.045, attack: 0.4 },
+          boss:  { octave: 5, wave: "triangle", vol: 0.05, attack: 0.25 }
         },
         ghost:  { field: [3, 7], elite: [4, 6], boss: [2, 4, 6] },
         ghostB: { field: [5],    elite: [3],    boss: [3, 7] },
-        bell:   "alternate",
-        shimmer: 15
+        bell:   "alternate"
       },
       3: {
         bpm:    { field: 104, elite: 118, boss: 140 },
@@ -604,19 +604,18 @@
           boss:  [0, 2, 4, 5, 7, 9, 11, 12]    // ionian: triumph
         },
         fluteB: {
-          field: [0, 2, 4, 7, 9, 10, 12, 14],
-          elite: [0, 2, 4, 6, 9, 12, 14, 16],
-          boss:  [0, 2, 4, 7, 9, 12, 14, 19]
+          field: [0, 2, 4, 7, 9, 10],
+          elite: [0, 2, 4, 6, 9, 12],
+          boss:  [0, 2, 4, 7, 9, 12]
         },
         lead: {
-          field: { octave: 7, wave: "triangle", vol: 0.06, attack: 0.15 },
-          elite: { octave: 7, wave: "triangle", vol: 0.065, attack: 0.12 },
-          boss:  { octave: 12, wave: "triangle", vol: 0.06, attack: 0.1 }
+          field: { octave: 4, wave: "triangle", vol: 0.055, attack: 0.2 },
+          elite: { octave: 4, wave: "triangle", vol: 0.06, attack: 0.15 },
+          boss:  { octave: 4, wave: "triangle", vol: 0.055, attack: 0.12 }
         },
         ghost:  { field: [0, 4, 6], elite: [6, 3], boss: [2, 4, 6] },
         ghostB: { field: [3, 5],    elite: [7],    boss: [3, 7] },
-        bell:   "rare",
-        shimmer: 19
+        bell:   "rare"
       }
     };
     // Drum patterns: eighth-step accent per mode, one per act so each act
@@ -761,20 +760,12 @@
       const attack = 1.1;
       const release = 0.6;
       [
-        { f: root,          v: 0.07 },
+        { f: root,          v: 0.08 },
         { f: root * 1.5,    v: 0.05 },
-        { f: root * 2,      v: 0.03 }
+        { f: root * 2,      v: 0.025 }
       ].forEach((n) => {
         bgmTone(n.f, t, held, { wave: "sine", vol: n.v, attack, hold: Math.max(held - attack - release, 0.2), release });
       });
-      // Hopeful "shimmer": a faint high sparkle above the drone each bar,
-      // tuned to a consonant scale degree (acts 1 & 3 keep it brightest).
-      if (th.shimmer && audioCtx) {
-        bgmTone(root * Math.pow(SEMI, th.shimmer), t, held * 0.7, {
-          wave: "sine", vol: 0.016, attack: 1.4,
-          hold: Math.max(held * 0.7 - 1.4 - 0.8, 0.15), release: 0.8
-        });
-      }
     }
 
     // A lone low voice (cello-ish): the melody's foundation, one slow descending-
@@ -815,18 +806,19 @@
 
     // Distant bell: alternate-bar stone whisper (act 2) or a cold tower toll
     // once per progression (act 3). Act 1 has no bell - the flute sings instead.
+    // Pitched at the octave above root (low, dark toll), not the 5th above.
     function bgmBell(bar, t, stepDur) {
       const th = bgmTheme();
       const act = bgm.act;
       const root = ftom(bgmRootFreq(), th.chords[bar % th.chords.length]);
-      const f = root * 3;
+      const f = root * 2;
       const dur = stepDur * 7.5;
       const detBase = act === 3 ? 1.004 : 1.0025;
-      const det = detBase + (Math.random() - 0.5) * 0.001; // slight randomisation per strike
-      const vol = act === 3 ? 0.032 : 0.028;
+      const det = detBase + (Math.random() - 0.5) * 0.001;
+      const vol = act === 3 ? 0.024 : 0.02;
       bgmTone(f, t, dur, { wave: "sine", vol, attack: 0.01, hold: dur - 0.01 - 1.8, release: 1.8, pan: -0.3 });
       bgmTone(f * det, t, dur, { wave: "sine", vol: vol * 0.8, attack: 0.01, hold: dur - 0.01 - 1.8, release: 1.8, pan: 0.3 });
-      if (act === 3) bgmTone(f * 1.5, t, dur, { wave: "sine", vol: 0.02, attack: 0.01, hold: dur - 0.01 - 1.8, release: 1.8, pan: 0 });
+      if (act === 3) bgmTone(f * 1.5, t, dur, { wave: "sine", vol: 0.015, attack: 0.01, hold: dur - 0.01 - 1.8, release: 1.8, pan: 0 });
     }
 
     function bgmBellOn(bar) {
@@ -852,24 +844,6 @@
       }
       if (th.drum === "drive" && s % 2 === 1) {
         bgmTone(bgmRootFreq() / 4, t, stepDur * 0.9, { wave: "sine", vol: 0.05, attack: 0.004, glide: bgmRootFreq() / 7 });
-      }
-      // Soft shaker on boss off-beats: filtered noise tap adds rhythmic definition
-      // without breaking the "no noise hats" aesthetic (very quiet, heavily damped).
-      if (mode === "boss" && s % 2 === 1 && audioCtx && bgm) {
-        const len = Math.floor(audioCtx.sampleRate * stepDur * 0.4);
-        const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
-        const d = buf.getChannelData(0);
-        for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-6 * i / len);
-        const src = audioCtx.createBufferSource();
-        src.buffer = buf;
-        const shGain = audioCtx.createGain();
-        shGain.gain.setValueAtTime(0, t);
-        shGain.gain.linearRampToValueAtTime(0.018, t + 0.005);
-        shGain.gain.exponentialRampToValueAtTime(0.0001, t + stepDur * 0.35);
-        src.connect(shGain);
-        shGain.connect(bgm.gain);
-        src.start(t);
-        src.stop(t + stepDur * 0.4 + 0.01);
       }
     }
 

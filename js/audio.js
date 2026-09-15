@@ -567,8 +567,8 @@
           elite: { octave: 5, wave: "triangle", vol: 0.045, attack: 0.3 },
           boss:  { octave: 5, wave: "sine", vol: 0.06, attack: 0.2 }
         },
-        ghost:  { field: [3, 5, 7], elite: [6, 3], boss: [2, 4, 6] },
-        ghostB: { field: [2, 6],    elite: [4],    boss: [3, 7] },
+        ghost:  { field: [3, 7],  elite: [6],      boss: [2, 6] },
+        ghostB: { field: [5],     elite: [3],      boss: [3, 7] },
         bell:   "none"
       },
       2: {
@@ -590,8 +590,8 @@
           elite: { octave: 5, wave: "triangle", vol: 0.045, attack: 0.4 },
           boss:  { octave: 5, wave: "triangle", vol: 0.05, attack: 0.25 }
         },
-        ghost:  { field: [3, 7], elite: [4, 6], boss: [2, 4, 6] },
-        ghostB: { field: [5],    elite: [3],    boss: [3, 7] },
+        ghost:  { field: [3],     elite: [4, 7],   boss: [2, 6] },
+        ghostB: { field: [5],     elite: [3],      boss: [3, 7] },
         bell:   "alternate"
       },
       3: {
@@ -613,8 +613,8 @@
           elite: { octave: 4, wave: "triangle", vol: 0.06, attack: 0.15 },
           boss:  { octave: 4, wave: "triangle", vol: 0.055, attack: 0.12 }
         },
-        ghost:  { field: [0, 4, 6], elite: [6, 3], boss: [2, 4, 6] },
-        ghostB: { field: [3, 5],    elite: [7],    boss: [3, 7] },
+        ghost:  { field: [0, 4],  elite: [6],      boss: [2, 6] },
+        ghostB: { field: [3],     elite: [7],      boss: [3, 7] },
         bell:   "rare"
       }
     };
@@ -640,9 +640,9 @@
     // Per-act reverb character: longer/wetter for the cavernous act 2,
     // tighter and drier for the cold march of act 3.
     const BGM_REVERB = {
-      1: { len: 1.4, decay: 3.2, wet: 0.50 },  // neutral stone hall
-      2: { len: 2.5, decay: 2.0, wet: 0.65 },  // wide, echoing cavern
-      3: { len: 0.9, decay: 4.5, wet: 0.35 }   // tight, cold chamber
+      1: { len: 1.4, decay: 3.2, wet: 0.40 },  // neutral stone hall
+      2: { len: 2.5, decay: 2.0, wet: 0.45 },  // wide, echoing cavern
+      3: { len: 0.9, decay: 4.5, wet: 0.30 }   // tight, cold chamber
     };
 
     let bgm = null;            // { mode, act, step, nextT, gain, running }
@@ -750,8 +750,8 @@
       osc.stop(t + dur + 0.05);
     }
 
-    // Low open-fifth drone: root + fifth + octave, slow-swelling sines. The deep
-    // "hall of echoes" bed - mostly low end, so it feels cavernous, not busy.
+    // Low open-fifth drone: root + fifth, slow-swelling sines. The deep "hall of
+    // echoes" bed - kept to just two partials so it never muddies the lead.
     function bgmDrone(bar, t) {
       const th = bgmTheme();
       const stepDur = 60 / th.bpm / 2;
@@ -760,26 +760,10 @@
       const attack = 1.1;
       const release = 0.6;
       [
-        { f: root,          v: 0.08 },
-        { f: root * 1.5,    v: 0.05 },
-        { f: root * 2,      v: 0.025 }
+        { f: root,       v: 0.07 },
+        { f: root * 1.5, v: 0.04 }
       ].forEach((n) => {
         bgmTone(n.f, t, held, { wave: "sine", vol: n.v, attack, hold: Math.max(held - attack - release, 0.2), release });
-      });
-    }
-
-    // A lone low voice (cello-ish): the melody's foundation, one slow descending-
-    // slash-wandering note every bar, grounded in the low register.
-    function bgmCello(bar, t, stepDur) {
-      const th = bgmTheme();
-      const root = ftom(bgmRootFreq(), th.chords[bar % th.chords.length]);
-      const idx = bar % th.flute.length;
-      const semi = th.flute[idx] - 12;
-      const dur = stepDur * 6.2;
-      bgmTone(root * Math.pow(SEMI, semi), t, dur, {
-        wave: "sine", vol: 0.07, attack: 0.5,
-        hold: dur - 0.5 - 0.8, release: 0.8,
-        glide: root * Math.pow(SEMI, semi - 1) // a gentle trailing bend
       });
     }
 
@@ -792,7 +776,7 @@
       const steps = th.ghost || [3];
       const gi = Math.max(steps.indexOf(s), 0);
       const idx = (bar * 2 + gi) % th.flute.length;
-      const dur = stepDur * 3.4;
+      const dur = stepDur * 2.8;
       const L = th.lead;
       // Subtle stereo spread: slight pan shifts each voice invocation for width
       const pan = ((bar * 3 + gi) % 5 - 2) * 0.12;
@@ -876,7 +860,6 @@
       const s = step % 8;
       if (s === 0) {
         bgmDrone(bar, t);
-        bgmCello(bar, t, stepDur);
         if (bgmBellOn(bar)) bgmBell(bar, t, stepDur);
       }
       const ghostSteps = th.ghost || [];

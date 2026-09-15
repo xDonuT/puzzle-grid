@@ -537,94 +537,94 @@
     // bosses pick a *variant* of their act's family (faster, darker chords,
     // sparser melody, heavier/steadier drum) instead of a different song.
     //
-    // The three families take their *mood* from Slay the Spire (never their
-    // notes - all original material, through the DP-style lens of silences and
-    // space).  The arc leans hopeful but stays LOW and warm - nothing bright
-    // or piercing, easy on sensitive ears:
-    //   Act 1 "First Light"  ~ The Exordium : bright dawn, singable, forward
-    //   Act 2 "The Hollow"    ~ The Unknown  : warm nocturnal, a lone voice
-    //   Act 3 "The Crown"     ~ The City     : triumphant resolve, iron march
-    // Every act/mode combo has its own scale, chord bed, lead texture and bell.
-    // Leads sit in a low-mid register (roughly D3–A4); the bass drone, cello
-    // and drums carry the weight.  An A/B melodic variant alternates each loop.
+    // The three families take their *mood* from Slay the Spire (never their notes -
+    // all original material).  The vibe is warm lo-fi hip-hop: relaxed tempo, real
+    // jazz chords (maj7/m7 pads), pentatonic music-box melodies, and a small warm
+    // room instead of a cave.  Nothing bright or piercing for sensitive ears:
+    //   Act 1 "First Light"  ~ The Exordium : hopeful dust, I–vi–IV–V maj7
+    //   Act 2 "The Hollow"    ~ The Unknown  : m7 haze, a lone music-box note
+//   Act 3 "The Crown"     ~ The City     : resolved major, mellow march
     const BGM_ACTS = {
       1: {
-        bpm:    { field: 96,  elite: 110, boss: 132 },
-        // 4-bar progression roots, I–vi–IV–V (C A F G): hopeful skeleton.
-        chords: { field: [0, 9, 5, 7], elite: [0, 5, 9, 7], boss: [0, 7, 5, 9] },
-        flute: {
-          field: [0, 2, 4, 5, 7, 9, 11, 12],   // ionian: bright, singing
-          elite: [0, 2, 4, 6, 7, 9, 11, 12],   // lydian: soaring lift
-          boss:  [0, 2, 4, 5, 7, 9, 10, 12]    // mixolydian: resolved drive
+        bpm:    { field: 76,  elite: 82,  boss: 92 },
+        // C-Am-F-G: the classic lo-fi pillar progression.
+        chords: { field: [0, 9, 5, 7], elite: [0, 5, 7, 9], boss: [0, 7, 5, 9] },
+        // Chord quality per bar - drives the 3rd (maj=4 / min=3) and 7th.
+        qual:   { field: ["maj", "min", "maj", "maj"], elite: ["maj", "maj", "maj", "min"], boss: ["maj", "maj", "maj", "min"] },
+        flute: {                              // pentatonic: nothing to clash with pads
+          field: [0, 2, 4, 7, 9, 12],         // major pentatonic
+          elite: [0, 2, 4, 6, 7, 9, 12],      // +dreamy sharp-4
+          boss:  [0, 2, 4, 5, 7, 9, 12]
         },
-        fluteB: {                              // alt loop: warm fifth shapes
-          field: [0, 2, 4, 7, 9, 12],
-          elite: [0, 2, 4, 6, 9, 12],
-          boss:  [0, 2, 4, 5, 7, 12]
+        fluteB: {
+          field: [0, 2, 4, 7, 9, 10, 12],
+          elite: [0, 2, 4, 6, 7, 9, 11, 12],
+          boss:  [0, 2, 4, 5, 7, 9, 12]
         },
-        lead: {
-          field: { octave: 5, wave: "sine", vol: 0.055, attack: 0.25 },
-          elite: { octave: 5, wave: "triangle", vol: 0.045, attack: 0.3 },
-          boss:  { octave: 5, wave: "sine", vol: 0.06, attack: 0.2 }
+        lead: {                               // soft music-box
+          field: { octave: 5, wave: "sine",     vol: 0.05,  attack: 0.05 },
+          elite: { octave: 5, wave: "triangle", vol: 0.045, attack: 0.06 },
+          boss:  { octave: 5, wave: "sine",     vol: 0.055, attack: 0.04 }
         },
-        ghost:  { field: [3, 7],  elite: [6],      boss: [2, 6] },
-        ghostB: { field: [5],     elite: [3],      boss: [3, 7] },
-        // True melodic contour per bar (scale-degree indices, not a scale walk):
-        // do-mi-so-fa, do-so-… - skips and falls, never ABCDEFG.
-        motif:  { field: [0, 2, 4, 3], elite: [0, 4, 2, 4], boss: [0, 4, 5, 3] },
-        motifB: { field: [4, 2, 5, 3], elite: [4, 5, 4, 2], boss: [3, 4, 2, 0] },
+        ghost:  { field: [3, 7], elite: [6],    boss: [2, 6] },
+        ghostB: { field: [5],    elite: [3],    boss: [3, 7] },
+        motif:  { field: [0, 2, 3, 1], elite: [0, 3, 4, 2], boss: [0, 2, 4, 3] },
+        motifB: { field: [4, 2, 1, 3], elite: [4, 3, 2, 0], boss: [3, 1, 4, 0] },
+        seventh: "maj7",
         bell:   "none"
       },
       2: {
-        bpm:    { field: 62,  elite: 58, boss: 96 },
-        // i–VI–III–VII (Am F C G): warm minor, hopeful dusk.
+        bpm:    { field: 70,  elite: 76,  boss: 88 },
+        // Am–Fmaj7–Cmaj7–G7: the standard lo-fi minor turnaround.
         chords: { field: [0, 8, 3, 10], elite: [0, 8, 10, 3], boss: [0, 3, 8, 10] },
+        qual:   { field: ["min", "maj", "maj", "min"], elite: ["min", "maj", "min", "maj"], boss: ["min", "maj", "maj", "min"] },
         flute: {
-          field: [0, 2, 3, 5, 7, 9, 10, 12],   // dorian: warm, drifting
-          elite: [0, 2, 3, 5, 7, 9, 11, 12],   // melodic minor: sun through mist
-          boss:  [0, 2, 4, 5, 7, 9, 11, 12]    // lifted to major - desperate hope
+          field: [0, 3, 5, 7, 10, 12],        // minor pentatonic
+          elite: [0, 3, 5, 7, 9, 10, 12],
+          boss:  [0, 2, 4, 5, 7, 9, 12]
         },
         fluteB: {
-          field: [0, 2, 3, 5, 7, 10],
-          elite: [0, 2, 3, 5, 7, 9],
-          boss:  [0, 2, 4, 7, 9, 12]
+          field: [0, 3, 5, 7, 10, 12, 14],
+          elite: [0, 3, 5, 7, 9, 10, 12],
+          boss:  [0, 3, 5, 7, 10, 12, 14]
         },
         lead: {
-          field: { octave: 5, wave: "sine", vol: 0.045, attack: 0.45 },
-          elite: { octave: 5, wave: "triangle", vol: 0.045, attack: 0.4 },
-          boss:  { octave: 5, wave: "triangle", vol: 0.05, attack: 0.25 }
+          field: { octave: 5, wave: "sine",     vol: 0.042, attack: 0.08 },
+          elite: { octave: 5, wave: "triangle", vol: 0.042, attack: 0.06 },
+          boss:  { octave: 5, wave: "triangle", vol: 0.05,  attack: 0.05 }
         },
-        ghost:  { field: [3],     elite: [4, 7],   boss: [2, 6] },
-        ghostB: { field: [5],     elite: [3],      boss: [3, 7] },
-        // Warm minor contour: re-la rise then drifting fall.
-        motif:  { field: [0, 3, 5, 3], elite: [2, 4, 5, 4], boss: [0, 4, 3, 5] },
-        motifB: { field: [3, 2, 4, 2], elite: [4, 5, 4, 2], boss: [5, 4, 3, 0] },
+        ghost:  { field: [3],    elite: [4, 7], boss: [2, 6] },
+        ghostB: { field: [5],    elite: [3],    boss: [3, 7] },
+        motif:  { field: [0, 2, 3, 1], elite: [0, 3, 4, 2], boss: [0, 1, 3, 2] },
+        motifB: { field: [3, 1, 4, 2], elite: [4, 2, 1, 0], boss: [4, 3, 1, 0] },
+        seventh: "m7",
         bell:   "alternate"
       },
       3: {
-        bpm:    { field: 104, elite: 118, boss: 140 },
-        // Heroic bed in D: I–IV–V–vi shapes.
+        bpm:    { field: 82,  elite: 88,  boss: 100 },
+        // D-G-A-B: heroic but mellow.
         chords: { field: [0, 5, 7, 9], elite: [0, 5, 9, 7], boss: [0, 7, 5, 9] },
+        qual:   { field: ["maj", "maj", "maj", "min"], elite: ["maj", "maj", "min", "maj"], boss: ["maj", "maj", "maj", "min"] },
         flute: {
-          field: [0, 2, 4, 5, 7, 9, 10, 12],   // mixolydian: sure-footed
-          elite: [0, 2, 4, 6, 7, 9, 11, 12],   // lydian: glory
-          boss:  [0, 2, 4, 5, 7, 9, 11, 12]    // ionian: triumph
+          field: [0, 2, 4, 7, 9, 12],         // major pentatonic
+          elite: [0, 2, 4, 6, 7, 9, 12],
+          boss:  [0, 2, 4, 5, 7, 9, 12]
         },
         fluteB: {
-          field: [0, 2, 4, 7, 9, 10],
-          elite: [0, 2, 4, 6, 9, 12],
-          boss:  [0, 2, 4, 7, 9, 12]
+          field: [0, 2, 4, 7, 9, 10, 12],
+          elite: [0, 2, 4, 6, 7, 9, 11, 12],
+          boss:  [0, 2, 4, 7, 9, 12, 14]
         },
         lead: {
-          field: { octave: 4, wave: "triangle", vol: 0.055, attack: 0.2 },
-          elite: { octave: 4, wave: "triangle", vol: 0.06, attack: 0.15 },
-          boss:  { octave: 4, wave: "triangle", vol: 0.055, attack: 0.12 }
+          field: { octave: 4, wave: "triangle", vol: 0.05,  attack: 0.06 },
+          elite: { octave: 4, wave: "triangle", vol: 0.055, attack: 0.05 },
+          boss:  { octave: 4, wave: "triangle", vol: 0.05,  attack: 0.04 }
         },
-        ghost:  { field: [0, 4],  elite: [6],      boss: [2, 6] },
-        ghostB: { field: [3],     elite: [7],      boss: [3, 7] },
-        // Heroic contour: climbing fanfare, then a resolving fall.
-        motif:  { field: [0, 2, 4, 5], elite: [2, 4, 6, 4], boss: [0, 3, 4, 5] },
-        motifB: { field: [2, 4, 2, 0], elite: [4, 5, 4, 2], boss: [5, 4, 2, 0] },
+        ghost:  { field: [0, 4],  elite: [6],    boss: [2, 6] },
+        ghostB: { field: [3],     elite: [7],    boss: [3, 7] },
+        motif:  { field: [0, 2, 3, 4], elite: [2, 4, 5, 3], boss: [0, 3, 4, 2] },
+        motifB: { field: [2, 1, 0, 3], elite: [4, 3, 2, 1], boss: [4, 2, 1, 0] },
+        seventh: "maj7",
         bell:   "rare"
       }
     };
@@ -647,12 +647,12 @@
     const SEMI = Math.pow(2, 1 / 12);
     const ftom = (root, semi) => root * Math.pow(SEMI, semi);
 
-    // Per-act reverb character: longer/wetter for the cavernous act 2,
-    // tighter and drier for the cold march of act 3.
+    // Per-act reverb character: small warm room, not a cathedral. Short
+    // decay, low wet - just enough glue for lo-fi dust. Act 2 a touch wetter.
     const BGM_REVERB = {
-      1: { len: 1.4, decay: 3.2, wet: 0.40 },  // neutral stone hall
-      2: { len: 2.5, decay: 2.0, wet: 0.45 },  // wide, echoing cavern
-      3: { len: 0.9, decay: 4.5, wet: 0.30 }   // tight, cold chamber
+      1: { len: 0.8, decay: 5.5, wet: 0.22 },  // cozy room
+      2: { len: 1.1, decay: 4.0, wet: 0.28 },  // slightly deeper, still warm
+      3: { len: 0.7, decay: 6.0, wet: 0.18 }   // tight and dry - intimate
     };
 
     let bgm = null;            // { mode, act, step, nextT, gain, running }
@@ -682,10 +682,12 @@
       const ghost = (fam.ghost && fam.ghost[mode]) || [3];
       const ghostB = (alt && fam.ghostB && fam.ghostB[mode]) || ghost;
       const motifA = (fam.motif && fam.motif[mode]) || [0, 2, 4, 3];
+      const qualA = (fam.qual && fam.qual[mode]) || null;
       return {
         ...fam,
         bpm: fam.bpm[mode] || fam.bpm.field,
         chords: fam.chords[mode] || fam.chords.field,
+        qual: qualA,
         drum: (BGM_DRUMS[act] || BGM_DRUMS[1])[mode] || "uneven",
         flute,
         ghost: ghostB,
@@ -762,20 +764,27 @@
       osc.stop(t + dur + 0.05);
     }
 
-    // Low open-fifth drone: root + fifth, slow-swelling sines. The deep "hall of
-    // echoes" bed - kept to just two partials so it never muddies the lead.
+    // Warm lo-fi chord pad: root + 3rd + 5th + 7th.  Quality per bar driven by
+    // th.qual (maj / min) and th.seventh (maj7 = +11, m7 = +10).  Soft sines
+    // only, all under 400 Hz - sits behind the music-box lead, never fights.
     function bgmDrone(bar, t) {
       const th = bgmTheme();
       const stepDur = 60 / th.bpm / 2;
       const root = ftom(bgmRootFreq(), th.chords[bar % th.chords.length]);
+      const qual = (th.qual && th.qual[bar % th.qual.length]) || "maj";
+      const isMin = qual === "min";
+      // Root 3rd 5th 7th - 7th follows the chord quality (m7 on min, maj7 on maj).
+      const seventh = (th.seventh === "m7" || th.seventh === "maj7") ? (isMin ? 10 : 11) : 0;
+      const pad = [0, isMin ? 3 : 4, 7].concat(seventh ? [seventh] : []);
       const held = stepDur * 8 - 1.2;
       const attack = 1.1;
       const release = 0.6;
-      [
-        { f: root,       v: 0.07 },
-        { f: root * 1.5, v: 0.04 }
-      ].forEach((n) => {
-        bgmTone(n.f, t, held, { wave: "sine", vol: n.v, attack, hold: Math.max(held - attack - release, 0.2), release });
+      const vols = [0.055, 0.032, 0.028, 0.022];
+      pad.forEach((o, i) => {
+        bgmTone(root * Math.pow(SEMI, o), t, held, {
+          wave: "sine", vol: vols[i] || 0.018,
+          attack, hold: Math.max(held - attack - release, 0.2), release
+        });
       });
     }
 

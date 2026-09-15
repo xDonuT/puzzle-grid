@@ -569,6 +569,10 @@
         },
         ghost:  { field: [3, 7],  elite: [6],      boss: [2, 6] },
         ghostB: { field: [5],     elite: [3],      boss: [3, 7] },
+        // True melodic contour per bar (scale-degree indices, not a scale walk):
+        // do-mi-so-fa, do-so-… - skips and falls, never ABCDEFG.
+        motif:  { field: [0, 2, 4, 3], elite: [0, 4, 2, 4], boss: [0, 4, 5, 3] },
+        motifB: { field: [4, 2, 5, 3], elite: [4, 5, 4, 2], boss: [3, 4, 2, 0] },
         bell:   "none"
       },
       2: {
@@ -592,6 +596,9 @@
         },
         ghost:  { field: [3],     elite: [4, 7],   boss: [2, 6] },
         ghostB: { field: [5],     elite: [3],      boss: [3, 7] },
+        // Warm minor contour: re-la rise then drifting fall.
+        motif:  { field: [0, 3, 5, 3], elite: [2, 4, 5, 4], boss: [0, 4, 3, 5] },
+        motifB: { field: [3, 2, 4, 2], elite: [4, 5, 4, 2], boss: [5, 4, 3, 0] },
         bell:   "alternate"
       },
       3: {
@@ -615,6 +622,9 @@
         },
         ghost:  { field: [0, 4],  elite: [6],      boss: [2, 6] },
         ghostB: { field: [3],     elite: [7],      boss: [3, 7] },
+        // Heroic contour: climbing fanfare, then a resolving fall.
+        motif:  { field: [0, 2, 4, 5], elite: [2, 4, 6, 4], boss: [0, 3, 4, 5] },
+        motifB: { field: [2, 4, 2, 0], elite: [4, 5, 4, 2], boss: [5, 4, 2, 0] },
         bell:   "rare"
       }
     };
@@ -671,6 +681,7 @@
       const flute = (alt && fam.fluteB && fam.fluteB[mode]) ? fam.fluteB[mode] : base;
       const ghost = (fam.ghost && fam.ghost[mode]) || [3];
       const ghostB = (alt && fam.ghostB && fam.ghostB[mode]) || ghost;
+      const motifA = (fam.motif && fam.motif[mode]) || [0, 2, 4, 3];
       return {
         ...fam,
         bpm: fam.bpm[mode] || fam.bpm.field,
@@ -678,6 +689,7 @@
         drum: (BGM_DRUMS[act] || BGM_DRUMS[1])[mode] || "uneven",
         flute,
         ghost: ghostB,
+        motif: (alt && fam.motifB && fam.motifB[mode]) ? fam.motifB[mode] : motifA,
         lead: (fam.lead && fam.lead[mode]) || fam.lead || {}
       };
     }
@@ -775,7 +787,10 @@
       const root = ftom(bgmRootFreq(), th.chords[bar % th.chords.length]);
       const steps = th.ghost || [3];
       const gi = Math.max(steps.indexOf(s), 0);
-      const idx = (bar * 2 + gi) % th.flute.length;
+      // Motif contour (per-bar scale degree) instead of a linear scale walk.
+      const idx = (th.motif && th.motif[bar % th.motif.length] != null)
+        ? th.motif[bar % th.motif.length] % th.flute.length
+        : ((bar * 2 + gi) % th.flute.length);
       const dur = stepDur * 2.8;
       const L = th.lead;
       // Subtle stereo spread: slight pan shifts each voice invocation for width

@@ -262,11 +262,7 @@
     }
 
     // ---------- Combat state ----------
-    let AP_MAX = 3;
-    const BASE_HP = 100;
-    const MAX_FLOOR = 45;
-
-    // Random enemy name pools — garden-storm themed
+    // AP_MAX/BASE_HP/MAX_FLOOR are shared constants now defined in settings.js.
     const ENEMY_NAMES = [
       "Gale", "Bramble", "Frost", "Mist", "Sleet",
       "Jinx", "Clover", "Willow", "Burr", "Quill",
@@ -396,7 +392,7 @@
       thorn:  { name: "Thorns",        desc: "Reflects 1 damage when hit",
                 onHit: () => { dealDamageToPlayer(1, { noFracture: true }); } },
       wisp:   { name: "Drift",         desc: "At turn start, shifts one random tile",
-                onTurnStart: () => { if (typeof board !== "undefined" && typeof ROWS !== "undefined") { const r = Math.floor(Math.random() * ROWS); const c = Math.floor(Math.random() * COLS); const c2 = (c + 1) % COLS; const tmp = board[r][c]; board[r][c] = board[r][c2]; board[r][c2] = tmp; const ts = specials[r][c]; specials[r][c] = specials[r][c2]; specials[r][c2] = ts; rebuildVisual(); } } },
+                onTurnStart: () => { if (typeof board !== "undefined" && typeof ROWS !== "undefined") { const r = Math.floor(Math.random() * ROWS); const c = Math.floor(Math.random() * COLS); const c2 = (c + 1) % COLS; const tmp = board[r][c]; board[r][c] = board[r][c2]; board[r][c2] = tmp; const ts = specials[r][c]; specials[r][c] = specials[r][c2]; specials[r][c2] = ts; const tst = tileStatus[r] && tileStatus[r][c]; if (tileStatus[r]) { tileStatus[r][c] = tileStatus[r][c2]; tileStatus[r][c2] = tst; } rebuildVisual(); } } },
       root:   { name: "Sprout",        desc: "Heals 1 HP each turn",
                 onTurnStart: () => { if (combat.enemyHp > 0) healEnemy(1); } },
     };
@@ -520,10 +516,11 @@
       bonusSwordDmg: 0,
       bonusStarDmg: 0,
       bonusHeal: 0,
+      lastFloorRewardOffered: [], // ids offered on the previous floor (avoid immediate repeats)
       floorShieldBonus: 0,
       feverEarly: 0,
       enemyUltSlow: 0,
-      pending: { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 },
+      pending: { extraPick: 0, reroll: 0, bonusAp: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, critChance: 0 },
       pendingModifier: null,
       pendingModifierRare: false,
       pendingModifierEasy: null,
@@ -537,11 +534,7 @@
 
     // Boss floors are marked here (also drives boss HP scaling); rewards are now
     // chosen via the 3-card upgrade picker instead of fixed grants.
-    const BOSS_REWARDS = {
-      15: { label: "Boss", apply: () => {} },
-      30: { label: "Boss", apply: () => {} },
-      45: { label: "Boss", apply: () => {} }
-    };
+    const BOSS_FLOORS = new Set([15, 30, 45]);
 
     // Post-boss upgrade pool — each pick may be taken once per run.
     // name = card title · desc = short effect line
@@ -686,7 +679,7 @@
     }
 
     function isBossFloor(f) {
-      return !!(BOSS_REWARDS && BOSS_REWARDS[f]);
+      return BOSS_FLOORS.has(f);
     }
 
     // 3 random upgrade choices, never repeating a pick already taken this run
@@ -734,6 +727,63 @@
       combat.playerMaxHp += amt;
       combat.playerHp = Math.min(combat.playerMaxHp, combat.playerHp + amt);
     }
+    // Rare floor rewards are SYSTEM-CHANGING perks that reuse mechanics already
+    // proven in RUN_UPGRADES / PASSIVE_TREES — perks the player actually feels,
+    // not just bigger stat numbers. Each is granted by wrapping the existing
+    // RUN_UPGRADES entry, so it inherits its (already load-safe) apply logic and
+    // is persisted through run.pickedUpgrades exactly like picking it from a
+    // boss. Pushing the id into pickedUpgrades also keeps it from being offered
+    // twice by the upgrade picker.
+    function floorRareFromUpgrade(u) {
+      return {
+        id: "floorRare_" + u.id,
+        tier: "rare",
+        name: u.name,
+        desc: u.desc,
+        grant() {
+          if (u && typeof u.apply === "function") u.apply();
+          if (u && !(run.pickedUpgrades || []).includes(u.id)) {
+            if (!run.pickedUpgrades) run.pickedUpgrades = [];
+            run.pickedUpgrades.push(u.id);
+          }
+          const lbl = u && u.name ? u.name.replace(/^[^ ]+\s/, "") : "Rare bonus";
+          return { label: "⭐ " + (lbl || "Rare bonus") };
+        }
+      };
+    }
+
+    // Generic (any-class) Rares — impactful build-changers every hero can use.
+    const FLOOR_REWARDS_RARE_GENERIC = [
+      floorRareFromUpgrade(RUN_UPGRADES.find(u => u.id === "apCarry")),
+      floorRareFromUpgrade(RUN_UPGRADES.find(u => u.id === "boardWhisper")),
+      floorRareFromUpgrade(RUN_UPGRADES.find(u => u.id === "ultCharge"))
+    ];
+
+    // Class-aware Rares — one build-defining perk per class, promoted from its
+    // own RUN_UPGRADES pool so the Rare slot tails the hero's identity.
+    const FLOOR_REWARDS_RARE_CLASS = {
+      NINJA: [
+        floorRareFromUpgrade(RUN_UPGRADES.find(u => u.id === "poisonMaster")),
+        floorRareFromUpgrade(RUN_UPGRADES.find(u => u.id === "venomousBlade"))
+      ],
+      WIZARD: [
+        floorRareFromUpgrade(RUN_UPGRADES.find(u => u.id === "reflectBoost")),
+        floorRareFromUpgrade(RUN_UPGRADES.find(u => u.id === "acidicBarrier"))
+      ],
+      KNIGHT: [
+        floorRareFromUpgrade(RUN_UPGRADES.find(u => u.id === "bulwark")),
+        floorRareFromUpgrade(RUN_UPGRADES.find(u => u.id === "mortalStrike"))
+      ]
+    };
+
+    // ---- Act-scaled reward magnitudes (Option A) ----
+    // Later acts grant bigger permanent bonuses so the everyday picks keep up
+    // with enemy HP (130 → 1147). Card desc accepts the next-floor number.
+    function actScale(nextFloor) {
+      const t = Math.min(3, Math.ceil((nextFloor || run.floor + 1) / 15));
+      return { stat: t, maxHp: 5 * t, sig: t + 1 };
+    }
+
     const FLOOR_REWARDS_COMMON = [
       { id: "healNow", tier: "common", name: "Patch Up", desc: "Restore 12 HP right now.",
         grant() {
@@ -741,24 +791,20 @@
           combat.playerHp = Math.min(combat.playerMaxHp, combat.playerHp + amt);
           return { label: `Heal ${amt} HP right now` };
         } },
-      { id: "hardy", tier: "common", name: "Tough Root", desc: "+2 Max HP forever.",
-        grant() { permMaxHp(2); return { label: "❤️ +2 Max HP, forever" }; } },
-      { id: "bark", tier: "common", name: "Bark Guard", desc: "+1 Shield cap forever.",
-        grant() { run.bonusShieldMax += 1; return { label: "🛡️ +1 Shield cap, forever" }; } }
+      { id: "bark", tier: "common", name: "Bark Guard", desc: n => `+${actScale(n).stat} Shield cap forever.`,
+        grant(nextFloor) { const s = actScale(nextFloor).stat; run.bonusShieldMax += s; return { label: `🛡️ +${s} Shield cap, forever` }; } },
+      { id: "healAmp", tier: "common", name: "Herbal Remedy", desc: n => `+${actScale(n).stat} Heal Amount forever (potions and HP tiles heal more).`,
+        grant(nextFloor) { const s = actScale(nextFloor).stat; run.bonusHeal += s; return { label: `💚 +${s} Heal Amount, forever` }; } },
+      { id: "headStart", tier: "common", name: "Head Start", desc: n => `+${actScale(n).sig} Signature charge at the start of each floor.`,
+        grant(nextFloor) { const s = actScale(nextFloor).sig; run.floorChargeBonus = (run.floorChargeBonus || 0) + s; return { label: `⚡ +${s} Signature charge at floor start` }; } }
     ];
     const FLOOR_REWARDS_UNCOMMON = [
-      { id: "swordPerm", tier: "uncommon", name: "Sharpen", desc: "+1 sword damage forever.",
-        grant() { run.bonusSwordDmg += 1; return { label: "⚔️ +1 Sword damage, forever" }; } },
-      { id: "starPerm", tier: "uncommon", name: "Dazzle", desc: "+1 star damage forever.",
-        grant() { run.bonusStarDmg += 1; return { label: "⭐ +1 Star damage, forever" }; } },
-      { id: "vigor", tier: "uncommon", name: "Sun Salve", desc: "+5 Max HP & heal 5 forever.",
-        grant() { permMaxHp(5); return { label: "☀️ +5 Max HP (heal 5), forever" }; } }
-    ];
-    const FLOOR_REWARDS_RARE = [
-      { id: "oakheart", tier: "rare", name: "Oak Heart", desc: "+12 Max HP forever.",
-        grant() { permMaxHp(12); return { label: "❤️ +12 Max HP, forever" }; } },
-      { id: "stoneward", tier: "rare", name: "Stone Ward", desc: "+8 Shield cap forever.",
-        grant() { run.bonusShieldMax += 8; return { label: "🛡️ +8 Shield cap, forever" }; } }
+      { id: "swordPerm", tier: "uncommon", name: "Sharpen", desc: n => `+${actScale(n).stat} sword damage forever.`,
+        grant(nextFloor) { const s = actScale(nextFloor).stat; run.bonusSwordDmg += s; return { label: `⚔️ +${s} Sword damage, forever` }; } },
+      { id: "starPerm", tier: "uncommon", name: "Dazzle", desc: n => `+${actScale(n).stat} star damage forever.`,
+        grant(nextFloor) { const s = actScale(nextFloor).stat; run.bonusStarDmg += s; return { label: `⭐ +${s} Star damage, forever` }; } },
+      { id: "vigor", tier: "uncommon", name: "Sun Salve", desc: n => `+${actScale(n).maxHp} Max HP & heal ${actScale(n).maxHp} forever.`,
+        grant(nextFloor) { const s = actScale(nextFloor).maxHp; permMaxHp(s); return { label: `☀️ +${s} Max HP (heal ${s}), forever` }; } }
     ];
 
     // Tile Blessings — player picks what each enhanced tile (bloom/cross/X) DOES.
@@ -949,54 +995,63 @@
     }
 
     // Regular floors: 2 Commons + 1 Uncommon (that top slot rolls Rare ~40%)
-    function buildFloorRewardChoices() {
-      const taken = new Set();
-      if (run.pendingModifierRare) {
-        run.pendingModifierRare = false;
-        const rares = pickDistinct(FLOOR_REWARDS_RARE, 2, taken);
-        const extra = pickDistinct(FLOOR_REWARDS_UNCOMMON, 1, taken);
-        return [...rares, ...extra];
-      }
-      const commons = pickDistinct(FLOOR_REWARDS_COMMON, 2, taken);
-      const topIsRare = Math.random() < 0.4;
-      const topPool = topIsRare ? FLOOR_REWARDS_RARE : FLOOR_REWARDS_UNCOMMON;
-      const top = pickDistinct(topPool, 1, taken)[0];
-      return [top, ...commons];
+    // Rare pool for the current hero = their class perks mixed with the generic
+    // system perks. Skips any perk the player already owns (its RUN_UPGRADES id
+    // is in run.pickedUpgrades) and any that was just offered, so a hero never
+    // sees the same Rare twice in a short stretch and never a duplicate of an
+    // upgrade they've already picked.
+    function buildRarePool() {
+      const hero = (combat.playerClass || "ninja").toUpperCase();
+      const owned = new Set(run.pickedUpgrades || []);
+      const pool = (FLOOR_REWARDS_RARE_CLASS[hero] || []).concat(FLOOR_REWARDS_RARE_GENERIC);
+      return pool.filter(r => {
+        const baseId = r.id.replace(/^floorRare_/, "");
+        return !owned.has(baseId);
+      });
     }
 
-    // --- Branch system (Whispering Staircase) — dormant, for future endless tower ---
-    const BRANCH_FLOORS = [];
-
-    const BRANCH_BUFFS = [
-      { id: "bHealFull", name: "Full Restore", desc: "Heal to max HP", icon: "💚", apply() { combat.playerHp = combat.playerMaxHp; } },
-      { id: "bEmpower", name: "Empower", desc: "Next damaging match +50%", icon: "⚔️", apply() { combat.empowerNext = true; } },
-      { id: "bSwordBoost", name: "Sharpen", desc: "+3 sword damage this fight", icon: "🗡️", apply() { combat.tempSwordDmg = (combat.tempSwordDmg || 0) + 3; } },
-      { id: "bEnemyPoison", name: "Poison", desc: "Enemy starts poisoned 2 turns", icon: "☠️", apply() { combat.enemyPoisonTurns = Math.max(combat.enemyPoisonTurns || 0, 2); } },
-      { id: "bCharge", name: "Star Surge", desc: "+3 ult charge", icon: "⭐", apply() { combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + 3); } },
-      { id: "bCrit", name: "Fated Edge", desc: "+20% crit this fight", icon: "🎯", apply() { combat.critChance = (combat.critChance || 0) + 20; } },
-      { id: "bMaxHp", name: "Tower's Gift", desc: "+6 Max HP, heal to full", icon: "❤️", apply() { run.bonusMaxHp += 6; combat.playerMaxHp += 6; combat.playerHp = combat.playerMaxHp; } },
-      { id: "bShield", name: "Ward", desc: "+8 shield now", icon: "🛡️", apply() { combat.shield = Math.min(settings.shieldMax + run.bonusShieldMax, combat.shield + 8); } },
-      { id: "bStarDmg", name: "Star Power", desc: "+3 star damage this fight", icon: "⭐", apply() { combat.tempStarDmg = (combat.tempStarDmg || 0) + 3; } },
-      { id: "bFreeAp", name: "Second Wind", desc: "+2 AP this turn", icon: "⚡", apply() { combat.ap = Math.min(AP_MAX + 2, combat.ap + 2); } }
-    ];
-
-    const BRANCH_DEBUFFS = [
-      { id: "bdTimeRush", name: "Time Rush", desc: "Enemy specials/ults 40% faster", icon: "⏱️", apply(c) { c.enemySpeedMult = 0.6; } },
-      { id: "bdGlass", name: "Glass Cannon", desc: "Take +50% damage, −50% healing", icon: "💥", apply(c) { c.glassCannon = true; } },
-      { id: "bdShatter", name: "Shield Weakness", desc: "Shield cap = 8", icon: "🛡️", apply(c) { c.shieldCapOverride = 8; } },
-      { id: "bdFracture", name: "Fractured Armor", desc: "Shield cap −3", icon: "🛡️", apply(c) { c.shieldCapOverride = Math.max(8, (c.shieldCap || 12) - 3); } },
-      { id: "bdPoison", name: "Poisoned Blood", desc: "Start with 3 Poison", icon: "☠️", apply(c) { c.poisonTurns = Math.max(c.poisonTurns || 0, 3); } },
-      { id: "bdBleed", name: "Bleeding Edge", desc: "Sword matches deal 1 self-damage", icon: "🗡️", apply(c) { c.branchBleedingEdge = true; } },
-      { id: "bdHeavy", name: "Heavy Footing", desc: "Enemy starts with +2 Shield", icon: "🛡️", apply(c) { c.enemyShield += 2; } },
-      { id: "bdCripple", name: "Crippled Start", desc: "Enter at 75% HP", icon: "💔", apply(c) { c.playerHp = Math.max(1, Math.floor(c.playerHp * 0.75)); } }
-    ];
+    function buildFloorRewardChoices() {
+      const taken = new Set();
+      // Skip cards that were just offered last floor so the same pair doesn't
+      // reappear back-to-back. Recycles when a slot's pool runs out.
+      const recent = new Set(run.lastFloorRewardOffered || []);
+      const fresh = (pool, n) => {
+        const unpref = pickDistinct(pool.filter(e => !recent.has(e.id)), n, taken);
+        return unpref.length === n ? unpref : pickDistinct(pool, n, taken);
+      };
+      const rares = buildRarePool();
+      if (run.pendingModifierRare) {
+        run.pendingModifierRare = false;
+        const rarePicks = rares.length
+          ? pickDistinct(rares, Math.min(2, rares.length), taken)
+          : [];
+        const extra = fresh(FLOOR_REWARDS_UNCOMMON, 3 - rarePicks.length);
+        const offer = [...rarePicks, ...extra];
+        run.lastFloorRewardOffered = offer.map(r => r.id);
+        return offer;
+      }
+      const commons = fresh(FLOOR_REWARDS_COMMON, 2);
+      const topIsRare = Math.random() < 0.4;
+      let top;
+      if (topIsRare && rares.length) {
+        top = pickDistinct(rares, 1, taken)[0];
+      } else {
+        top = fresh(FLOOR_REWARDS_UNCOMMON, 1)[0];
+      }
+      // If every Rare is already owned we still want an Uncommon tier to show.
+      if (!top) top = fresh(FLOOR_REWARDS_UNCOMMON, 1)[0];
+      const offer = [top, ...commons];
+      run.lastFloorRewardOffered = offer.map(r => r.id);
+      return offer;
+    }
 
     // Elite floors: both Rares + 1 Uncommon for the temp perk
     function buildEliteTempChoices() {
       const taken = new Set();
-      const rares = pickDistinct(FLOOR_REWARDS_RARE, FLOOR_REWARDS_RARE.length, taken);
-      const extra = pickDistinct(FLOOR_REWARDS_UNCOMMON, 1, taken)[0];
-      return [...rares, extra];
+      const pool = buildRarePool();
+      const rares = pool.length ? pickDistinct(pool, Math.min(2, pool.length), taken) : [];
+      const extra = pickDistinct(FLOOR_REWARDS_UNCOMMON, 3 - rares.length, taken);
+      return [...rares, ...extra];
     }
 
     // Gauntlet floors: small permanent stat (paired with the Rare temp perk)
@@ -1058,7 +1113,7 @@
       const tiers = [ { lo: 130, hi: 260 }, { lo: 290, hi: 520 }, { lo: 520, hi: 850 } ];
       const t = tiers[actTier(f) - 1];
       let hp = Math.round(t.lo + (t.hi - t.lo) * actPos(f));
-      if (BOSS_REWARDS[f]) hp = Math.round(hp * 1.35);
+      if (BOSS_FLOORS.has(f)) hp = Math.round(hp * 1.35);
       if (GAUNTLET_REWARDS[f]) hp = Math.round(hp * 1.2);
       // 🌟 Golden Cosmos: rivals grow with each golden loop
       const loop = (typeof run !== "undefined" && run.ngLoop) || 0;
@@ -1140,8 +1195,6 @@
       // Poison / Acid stacks
       poisonStacks: 0,
       acidStacks: 0,
-      // Branch debuff flags
-      branchBleedingEdge: false,
       // Floor modifier flags
       volatileFloor: false,
       enemyRegen: 0,

@@ -87,9 +87,14 @@ const screenMenu = document.getElementById("screen-menu");
       if (/ult|ultimate/.test(s))          return "Best for big burst damage turns";
       return "";
     }
+    function rewardDesc(entry, opts) {
+      if (typeof entry.desc === "function") return (entry.desc((opts && opts.nextFloor) || run.floor + 1) || "");
+      return entry.desc || "";
+    }
+
     function buildRewardCard(btn, entry, opts) {
       const name = entry.name || "";
-      const desc = entry.desc || "";
+      const desc = rewardDesc(entry, opts);
       const icon = entry.icon || "";
       const arch = detectArchetype(name, desc, icon);
       const callout = extractCallout(name, desc);
@@ -154,7 +159,7 @@ const screenMenu = document.getElementById("screen-menu");
         const btn = document.createElement("button");
         btn.type = "button";
         buildRewardCard(btn, e, opts);
-        btn.title = e.desc;
+        btn.title = rewardDesc(e, opts);
         btn.addEventListener("click", () => {
           const label = applyRewardEntry(e);
           ov.classList.remove("open");
@@ -255,7 +260,7 @@ const screenMenu = document.getElementById("screen-menu");
       // Chance-based payout — a gamble. Each bonus card independently rolls
       // rare (~40%) or uncommon, but we guarantee at least one rare so a
       // challenge always pays something real.
-      const rarePool = (FLOOR_REWARDS_RARE || []).slice();
+      const rarePool = (typeof buildRarePool === "function" ? buildRarePool() : []).slice();
       const unPool = (FLOOR_REWARDS_UNCOMMON || []).slice();
       const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
       shuffle(rarePool); shuffle(unPool);
@@ -631,200 +636,6 @@ const screenMenu = document.getElementById("screen-menu");
       if (isFinal) showRecap(true); // after recordRun so final-battle stats are included
     }
 
-    // --- Branch system (Whispering Staircase) ---
-    const branchOverlay = () => document.getElementById("branchOverlay");
-    const branchCards = () => document.getElementById("branchCards");
-    const branchResult = () => document.getElementById("branchResult");
-    const branchSubtitle = () => document.getElementById("branchSubtitle");
-
-    function isBranchFloor(f) { return BRANCH_FLOORS.includes(f); }
-
-    function showBranchOverlay() {
-      const ov = branchOverlay();
-      const sub = branchSubtitle();
-      const cards = branchCards();
-      const res = branchResult();
-      if (!ov || !cards) return;
-      if (sub) sub.textContent = `Floor ${run.floor} cleared — choose your path`;
-      if (res) { res.textContent = ""; res.style.opacity = 0; }
-      cards.innerHTML = "";
-      const node = pickBranchNode();
-      // Left door: always safe (normal fight)
-      const left = makeBranchCard("⚔️", "A Guarded Hall", "Normal foe, no tricks", "safe", () => {
-        hideBranchOverlay();
-        startBattle({ fromVictory: true });
-        saveRun();
-      });
-      // Right door: gamble
-      const right = makeBranchCard(node.icon, node.name, node.desc, "gamble", () => {
-        right.classList.add("disabled");
-        left.classList.add("disabled");
-        applyBranchOutcome(node, () => {
-          hideBranchOverlay();
-          startBattle({ fromVictory: true });
-          saveRun();
-        });
-      });
-      cards.appendChild(left);
-      cards.appendChild(right);
-      ov.classList.add("open");
-    }
-
-    function hideBranchOverlay() {
-      const ov = branchOverlay();
-      if (ov) ov.classList.remove("open");
-    }
-
-    function makeBranchCard(icon, name, desc, className, onClick) {
-      const el = document.createElement("div");
-      el.className = `upgrade-card branch-card ${className}`;
-      el.innerHTML = `<div class="branch-card-icon">${icon}</div><div class="branch-card-name">${name}</div><div class="branch-card-desc">${desc}</div>`;
-      el.addEventListener("click", onClick);
-      return el;
-    }
-
-    function pickBranchNode() {
-      const roll = Math.random();
-      if (roll < 0.45) return pickMysteryNode();
-      if (roll < 0.75) return pickShrineNode();
-      return pickAltarNode();
-    }
-
-    function pickMysteryNode() {
-      return { type: "mystery", icon: "🎲", name: "The Whispering Door", desc: "Flip for a mystery effect — buff or debuff" };
-    }
-    function pickShrineNode() {
-      return { type: "shrine", icon: "🔮", name: "Shrine of Fortune", desc: "Pick 1 of 3 — two blessings, one curse" };
-    }
-    function pickAltarNode() {
-      return { type: "altar", icon: "🩸", name: "Altar of the Tower", desc: "Sacrifice 15% max HP for a permanent upgrade" };
-    }
-
-    function applyBranchOutcome(node, cb) {
-      if (node.type === "mystery") applyMysteryFlip(cb);
-      else if (node.type === "shrine") applyShrinePick(cb);
-      else if (node.type === "altar") applyBloodAltar(cb);
-      else cb();
-    }
-
-    // --- Mystery Card: 70% buff / 30% debuff ---
-    function applyMysteryFlip(cb) {
-      const res = branchResult();
-      const isBuff = Math.random() < 0.7;
-      if (isBuff) {
-        const pool = BRANCH_BUFFS.filter(b => !(run.branchSeenBuffs || []).includes(b.id));
-        const pick = pool.length ? pool[Math.floor(Math.random() * pool.length)] : BRANCH_BUFFS[Math.floor(Math.random() * BRANCH_BUFFS.length)];
-        pick.apply();
-        if (!run.branchSeenBuffs) run.branchSeenBuffs = [];
-        run.branchSeenBuffs.push(pick.id);
-        if (res) { res.innerHTML = `<span class="buff">${pick.icon} ${pick.name}</span> — ${pick.desc}`; res.style.opacity = 1; }
-      } else {
-        const pool = BRANCH_DEBUFFS.filter(d => !(run.branchSeenDebuffs || []).includes(d.id));
-        const pick = pool.length ? pool[Math.floor(Math.random() * pool.length)] : BRANCH_DEBUFFS[Math.floor(Math.random() * BRANCH_DEBUFFS.length)];
-        run.pendingBranchDebuff = pick.id;
-        if (!run.branchSeenDebuffs) run.branchSeenDebuffs = [];
-        run.branchSeenDebuffs.push(pick.id);
-        if (res) { res.innerHTML = `<span class="debuff">${pick.icon} ${pick.name}</span> — ${pick.desc}`; res.style.opacity = 1; }
-      }
-      setTimeout(cb, 1200);
-    }
-
-    // --- Three Shrines: pick 1 of 3 (2 blessings, 1 curse) ---
-    function applyShrinePick(cb) {
-      const cards = branchCards();
-      const res = branchResult();
-      if (!cards) { cb(); return; }
-      cards.innerHTML = "";
-      // Pick 2 buffs + 1 debuff
-      const buffPool = BRANCH_BUFFS.filter(b => !(run.branchSeenBuffs || []).includes(b.id));
-      const debuffPool = BRANCH_DEBUFFS.filter(d => !(run.branchSeenDebuffs || []).includes(d.id));
-      const b1 = buffPool.length ? buffPool[Math.floor(Math.random() * buffPool.length)] : BRANCH_BUFFS[Math.floor(Math.random() * BRANCH_BUFFS.length)];
-      let b2Pool = buffPool.filter(b => b.id !== b1.id);
-      const b2 = b2Pool.length ? b2Pool[Math.floor(Math.random() * b2Pool.length)] : BRANCH_BUFFS.find(b => b.id !== b1.id) || BRANCH_BUFFS[0];
-      const d1 = debuffPool.length ? debuffPool[Math.floor(Math.random() * debuffPool.length)] : BRANCH_DEBUFFS[Math.floor(Math.random() * BRANCH_DEBUFFS.length)];
-      const choices = [b1, b2, d1];
-      // Shuffle
-      for (let i = choices.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [choices[i], choices[j]] = [choices[j], choices[i]]; }
-      const shrineWrap = document.createElement("div");
-      shrineWrap.className = "branch-shrines";
-      choices.forEach(node => {
-        const isDebuff = node === d1;
-        const card = document.createElement("div");
-        card.className = `upgrade-card branch-card shrine`;
-        card.innerHTML = `<div class="branch-card-icon">${node.icon}</div><div class="branch-card-name">${node.name}</div><div class="branch-card-desc">${node.desc}</div>`;
-        card.addEventListener("click", () => {
-          shrineWrap.querySelectorAll(".branch-card").forEach(c => c.style.pointerEvents = "none");
-          if (isDebuff) {
-            run.pendingBranchDebuff = node.id;
-            if (!run.branchSeenDebuffs) run.branchSeenDebuffs = [];
-            run.branchSeenDebuffs.push(node.id);
-            if (res) { res.innerHTML = `<span class="debuff">${node.icon} ${node.name}</span> — ${node.desc}`; res.style.opacity = 1; }
-          } else {
-            node.apply();
-            if (!run.branchSeenBuffs) run.branchSeenBuffs = [];
-            run.branchSeenBuffs.push(node.id);
-            if (res) { res.innerHTML = `<span class="buff">${node.icon} ${node.name}</span> — ${node.desc}`; res.style.opacity = 1; }
-          }
-          setTimeout(cb, 1200);
-        });
-        shrineWrap.appendChild(card);
-      });
-      cards.appendChild(shrineWrap);
-    }
-
-    // --- Blood Altar: pay 15% max HP → permanent upgrade ---
-    function applyBloodAltar(cb) {
-      const res = branchResult();
-      const hpCost = Math.max(1, Math.floor(combat.playerMaxHp * 0.15));
-      if (combat.playerHp <= Math.floor(combat.playerMaxHp * 0.3)) {
-        // Too low HP — altar refuses
-        if (res) { res.innerHTML = `<span class="debuff">💔 Not enough blood...</span> — The altar rejects you.`; res.style.opacity = 1; }
-        run.pendingBranchBuff = "bHealFull"; // consolation: heal to full
-        setTimeout(cb, 1200);
-        return;
-      }
-      const cards = branchCards();
-      if (!cards) { cb(); return; }
-      cards.innerHTML = "";
-      // Pick 3 upgrade options from RUN_UPGRADES (class-filtered, not yet picked)
-      const hero = (combat.playerClass || "ninja").toUpperCase();
-      const avail = RUN_UPGRADES.filter(u => {
-        if ((run.pickedUpgrades || []).includes(u.id)) return false;
-        if (u.classRequirement === "ANY") return true;
-        return u.classRequirement === hero;
-      });
-      const shuffled = avail.slice();
-      for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; }
-      const picks = shuffled.slice(0, Math.min(3, shuffled.length));
-      if (picks.length === 0) {
-        // No upgrades available — heal as consolation
-        if (res) { res.innerHTML = `<span class="buff">💚 Tower's Mercy</span> — No upgrades remain. Healed to full.`; res.style.opacity = 1; }
-        combat.playerHp = combat.playerMaxHp;
-        setTimeout(cb, 1200);
-        return;
-      }
-      // Show pay prompt first
-      if (res) { res.innerHTML = `🩸 Sacrifice <b>${hpCost} HP</b> for a permanent upgrade?`; res.style.opacity = 1; }
-      const altWrap = document.createElement("div");
-      altWrap.className = "branch-shrines";
-      picks.forEach(upg => {
-        const card = document.createElement("div");
-        card.className = "upgrade-card branch-card altar";
-        card.innerHTML = `<div class="branch-card-name">${upg.name}</div><div class="branch-card-desc">${upg.desc}</div>`;
-        card.addEventListener("click", () => {
-          altWrap.querySelectorAll(".branch-card").forEach(c => c.style.pointerEvents = "none");
-          combat.playerHp = Math.max(1, combat.playerHp - hpCost);
-          upg.apply();
-          if (!run.pickedUpgrades) run.pickedUpgrades = [];
-          run.pickedUpgrades.push(upg.id);
-          if (typeof codexReveal === "function") codexReveal("upgrades", upg.id);
-          if (res) { res.innerHTML = `<span class="buff">🩸 ${upg.name}</span> — −${hpCost} HP. Permanent!`; res.style.opacity = 1; }
-          setTimeout(cb, 1200);
-        });
-        altWrap.appendChild(card);
-      });
-      cards.appendChild(altWrap);
-    }
 
     // Boss win → choose 1 of 3 upgrades (4 with a pending extra-pick reward), then show the victory overlay
 
@@ -1063,8 +874,8 @@ const screenMenu = document.getElementById("screen-menu");
       { icon: "❤️", label: "+6 MAX HP", apply() { run.bonusMaxHp += 6; } },
       { icon: "🛡️", label: "+2 SHIELD CAP", apply() { run.bonusShieldMax += 2; } },
       { icon: "⚡", label: "+1 CHARGE AHEAD", apply() { run.floorChargeBonus = (run.floorChargeBonus || 0) + 1; } },
-      { icon: "⚔️", label: "+1 SWORD, ALWAYS", apply() { run.bonusSwordDmg += 1; } },
-      { icon: "⭐", label: "+1 STAR, ALWAYS", apply() { run.bonusStarDmg += 1; } },
+      { icon: "⚡", label: "+2 ULT CHARGE", apply() { run.ultChargeBonus = (run.ultChargeBonus || 0) + 2; } },
+      { icon: "⏳", label: "+1 SLOWER ENEMY ULT", apply() { run.enemyUltSlow = (run.enemyUltSlow || 0) + 1; } },
       { icon: "✨", label: "FULL HEAL", apply() {
         const hero = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
         combat.playerHp = hero.hp + run.bonusMaxHp;
@@ -1147,7 +958,7 @@ const screenMenu = document.getElementById("screen-menu");
       resultEl.textContent = "";
       resultEl.style.opacity = 0;
       if (btnDone) btnDone.style.display = "none";
-      if (titleEl) titleEl.textContent = "❓ Mystery Node";
+      if (titleEl) titleEl.textContent = "🌱 Seed";
       if (subEl) subEl.textContent = "Pick a card — the tower decides";
 
       hand.forEach(effect => {
@@ -1433,6 +1244,8 @@ const screenMenu = document.getElementById("screen-menu");
               openRewardPicker(buildEliteTempChoices(), {
                 title: "Elite Reward",
                 sub: "Pick a rare, permanent boon",
+                permanent: true,
+                nextFloor: run.floor + 1,
                 onPick: label => openModifierPicker(mod => {
                   run.pendingModifier = mod;
                   if (mod && mod.tier === "hard") {
@@ -1472,6 +1285,8 @@ const screenMenu = document.getElementById("screen-menu");
           const rewardFlow = () => openRewardPicker(buildFloorRewardChoices(), {
             title: "Floor Reward",
             sub: "Pick a permanent boon — it stays all run",
+            permanent: true,
+            nextFloor: run.floor + 1,
             onPick: label => openModifierPicker(mod => {
               run.pendingModifier = mod;
               if (mod && mod.tier === "hard") {
@@ -1695,7 +1510,7 @@ const screenMenu = document.getElementById("screen-menu");
 
     function hasSave() {
       const d = loadRun();
-      return d && d.floor >= 1 && d.floor <= MAX_FLOOR;
+      return !!(d && d.floor >= 1 && d.floor <= MAX_FLOOR);
     }
 
     function refreshContinueBtn() {
@@ -1728,11 +1543,12 @@ const screenMenu = document.getElementById("screen-menu");
       run.bonusSwordDmg = 0;
       run.bonusStarDmg = 0;
       run.bonusHeal = 0;
+      run.lastFloorRewardOffered = [];
       run.floorShieldBonus = 0;
       run.feverEarly = 0;
       run.enemyUltSlow = 0;
       run.pickLog = [];
-      run.cascadeAp = false; run.crossAp = false; run.overflowBoost = false;
+      run.cascadeAp = false; run.overflowBoost = false;
       run.bloomCharge = false; run.sigDouble = false; run.boardWhisper = false;
       run.phasePower = false; run.fortifiedStart = false; run.venomous = false;
       run.deepFracture = false; run.arcaneMirror = false; run.lingeringShadow = false;
@@ -1751,7 +1567,7 @@ const screenMenu = document.getElementById("screen-menu");
       run.floorChargeBonus = 0;
       run.plagueDmg = 0;
       run.healBlockFloors = 0;
-      run.pending = { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 };
+      run.pending = { extraPick: 0, reroll: 0, bonusAp: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, critChance: 0 };
       run.pendingModifier = null;
       run.pendingModifierRare = false;
       run.pendingModifierEasy = null;
@@ -1772,7 +1588,7 @@ const screenMenu = document.getElementById("screen-menu");
     }
 
     function applyLoadedRun(d) {
-      run.floor = Math.max(1, Math.min(MAX_FLOOR, d.floor | 0));
+      run.floor = clamp(d.floor | 0, 1, MAX_FLOOR);
       run.bonusMaxHp = d.bonusMaxHp | 0;
       run.bonusShieldMax = d.bonusShieldMax | 0;
       run.bonusApMax = d.bonusApMax | 0;
@@ -1800,7 +1616,6 @@ const screenMenu = document.getElementById("screen-menu");
       run.ngLoop = d.ngLoop | 0;
       // Re-derive transformative upgrades from the picked list (not stored as flags)
       run.cascadeAp = (run.pickedUpgrades || []).includes("cascadeAp");
-      run.crossAp = (run.pickedUpgrades || []).includes("crossAp");
       run.overflowBoost = (run.pickedUpgrades || []).includes("overflowBoost");
       run.bloomCharge = (run.pickedUpgrades || []).includes("bloomCharge");
       run.sigDouble = (run.pickedUpgrades || []).includes("sigDouble");
@@ -1835,7 +1650,7 @@ const screenMenu = document.getElementById("screen-menu");
         }
       });
       run.pending = Object.assign(
-        { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 },
+        { extraPick: 0, reroll: 0, bonusAp: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, critChance: 0 },
         d.pending || {}
       );
       AP_MAX = 3 + run.bonusApMax;
@@ -1903,9 +1718,7 @@ const screenMenu = document.getElementById("screen-menu");
       combat.ap = AP_MAX + ((run.pending && run.pending.bonusAp) || 0);
       combat.enemyAp = Math.min(AP_MAX, 3); // rival caps at base AP
       combat.tempSwordDmg = (run.pending && run.pending.swordBoost) || 0;
-      combat.feverBoost = (run.pending && run.pending.feverBoost) || 0;
       combat.critChance = (run.pending && run.pending.critChance) || 0;
-      combat.shieldConvertPct = (run.pending && run.pending.shieldConvert) || 0;
       combat.cascadeApRefunded = false;
       // 🌀 career tracking unlocks global skills
       if (run.floor > (settings.bestFloor || 0)) {
@@ -1918,7 +1731,7 @@ const screenMenu = document.getElementById("screen-menu");
       combat.turn = 1;
       combat.playerTurn = true;
       combat.tutorial = !!opts.tutorial;
-      combat.empowerNext = !!((run.pending && run.pending.empower) || 0);
+      combat.empowerNext = false;
       combat.blindNext = false;
       combat.weakenNextSword = false;
       combat.poisonTurns = 0;
@@ -1946,6 +1759,9 @@ const screenMenu = document.getElementById("screen-menu");
       combat.enemyUltCharge = 0;
       combat.bossKit = BOSS_KITS[run.floor] || null;
       combat.eliteKit = ELITE_KITS[run.floor] || null;
+      // Boss / elite fights get their own BGM theme
+      const bgmMode = combat.bossKit ? "boss" : combat.eliteKit ? "elite" : "field";
+      bgmPlay(Math.min(3, Math.ceil(run.floor / 15)), bgmMode);
       combat.enemyClass = pickEnemyVisual(run.floor);
       combat.commonPassive = (!combat.bossKit && !combat.eliteKit) ? getCommonPassive(combat.enemyClass) : null;
       // Codex: reveal encountered creature
@@ -1961,7 +1777,7 @@ const screenMenu = document.getElementById("screen-menu");
       combat.enemySpecialCharge = 0;
       combat.enemySpecialNeed = 4 + Math.floor(Math.random() * 2) + ((run.pending && run.pending.enemySlow) || 0) + (run.heavyChains ? 1 : 0); // 4 or 5
       // Pending next-floor rewards are consumed when the floor begins
-      run.pending = { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 };
+      run.pending = { extraPick: 0, reroll: 0, bonusAp: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, critChance: 0 };
       // Apply floor modifier
       combat.floorModifier = run.pendingModifier || null;
       run.pendingModifier = null;
@@ -1979,6 +1795,7 @@ const screenMenu = document.getElementById("screen-menu");
       combat.pendingChargedFirst = false;
       combat.enemyAtkBonus = 0;
       combat.extraFreeShuffles = 0;
+      if (run.boardWhisper) combat.extraFreeShuffles += 1;
       combat.tileBloomPerTurn = false;
       combat.tempShieldCapBonus = 0;
       // Per-turn / conditional modifier flags
@@ -2142,8 +1959,6 @@ const screenMenu = document.getElementById("screen-menu");
           } else {
             showMap();
           }
-        } else if (isBranchFloor(run.floor)) {
-          showBranchOverlay();
         } else {
           startBattle({ fromVictory: true });
           saveRun();
@@ -2417,7 +2232,8 @@ const screenMenu = document.getElementById("screen-menu");
       this.classList.toggle("on", settings.musicEnabled);
       if (settings.musicEnabled) {
         const act = (run && run.currentAct) || 1;
-        bgmPlay(act);
+        const bgmMode = combat && combat.bossKit ? "boss" : combat && combat.eliteKit ? "elite" : "field";
+        bgmPlay(act, bgmMode);
       } else {
         bgmStop();
       }
@@ -2447,7 +2263,7 @@ const screenMenu = document.getElementById("screen-menu");
     const volSliderEl = document.getElementById("volSlider");
     if (volSliderEl) {
       volSliderEl.addEventListener("input", () => {
-        settings.volume = Math.max(0, Math.min(1, (+volSliderEl.value || 0) / 100));
+        settings.volume = clamp((+volSliderEl.value || 0) / 100, 0, 1);
         const lab = document.getElementById("volLabel");
         if (lab) lab.textContent = String(volSliderEl.value);
         persistSettings();
@@ -2456,7 +2272,7 @@ const screenMenu = document.getElementById("screen-menu");
     const musicVolSliderEl = document.getElementById("musicVolSlider");
     if (musicVolSliderEl) {
       musicVolSliderEl.addEventListener("input", () => {
-        settings.musicVolume = Math.max(0, Math.min(1, (+musicVolSliderEl.value || 0) / 100));
+        settings.musicVolume = clamp((+musicVolSliderEl.value || 0) / 100, 0, 1);
         const lab = document.getElementById("musicVolLabel");
         if (lab) lab.textContent = String(musicVolSliderEl.value);
         bgmUpdateVolume();
@@ -2477,7 +2293,7 @@ const screenMenu = document.getElementById("screen-menu");
     if (btnFloorJump) {
       btnFloorJump.addEventListener("click", () => {
         const input = document.getElementById("admFloor");
-        const n = Math.max(1, Math.min(MAX_FLOOR, Math.floor(+input.value || 0)));
+        const n = clamp(Math.floor(+input.value || 0), 1, MAX_FLOOR);
         if (!n) return;
         // No live run? Load the save into memory first (stays saved either way)
         let loadedHere = false;
@@ -2488,7 +2304,7 @@ const screenMenu = document.getElementById("screen-menu");
           loadedHere = true;
         }
         // Clear stale cross-floor perks so the jump starts clean
-        run.pending = { extraPick: 0, reroll: 0, bonusAp: 0, empower: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, feverBoost: 0, critChance: 0, shieldConvert: 0 };
+        run.pending = { extraPick: 0, reroll: 0, bonusAp: 0, enemySlow: 0, shield: 0, swordBoost: 0, enemyPoison: 0, critChance: 0 };
         run.pendingModifier = null;
         run.pendingModifierRare = false;
         run.pendingModifierEasy = null;

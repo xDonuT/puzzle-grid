@@ -3,6 +3,14 @@
     const TYPES = ["sword", "shield", "hp", "star", "question"];
     const MIN_MATCH = 3;
 
+    // ---- Shared game constants (loaded first → safe for every other file) ----
+    // AP_MAX is mutated by upgrades/blessings during a run. BASE_HP/MAX_FLOOR
+    // are fixed. Keep these here, NOT in enemies.js: many modules (board, combat,
+    // main) read them and settings.js is always the first script loaded.
+    let AP_MAX = 3;
+    const BASE_HP = 100;
+    const MAX_FLOOR = 45;
+
     // Global settings (difficulty, mute, admin numbers)
     const SETTINGS_KEY = "puzzleGridSettings_v1";
     const settings = {
@@ -119,7 +127,6 @@
       persistSettings();
     }
     autoDetectLite();
-    bgmInit();
 
     function isLite() {
       return settings.liteMode === true;

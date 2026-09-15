@@ -74,24 +74,24 @@
       return s.length ? s.join(", ") : "balanced";
     }
 
-    function collectMatchesFromMark(mark) {
+    function collectMatchesFromMark(mark, g = board) {
       const list = [];
       for (let r = 0; r < ROWS; r++)
         for (let c = 0; c < COLS; c++)
-          if (mark[r][c]) list.push({ r, c, type: board[r][c] });
+          if (mark[r][c]) list.push({ r, c, type: g[r][c] });
       return list;
     }
 
     // Expand a match mark by the special tiles it contains (bloom 3×3, cross
     // row+col, x diagonals) — mirrors resolveBoard so hard AI sees detonations.
-    function expandSpecialMark(mark) {
+    function expandSpecialMark(mark, g = board) {
       const m = [];
       for (let r = 0; r < ROWS; r++) {
         m.push([]);
         for (let c = 0; c < COLS; c++) m[r][c] = !!mark[r][c];
       }
       const add = (r, c) => {
-        if (r >= 0 && r < ROWS && c >= 0 && c < COLS && !m[r][c] && board[r][c]) m[r][c] = true;
+        if (r >= 0 && r < ROWS && c >= 0 && c < COLS && !m[r][c] && g[r][c]) m[r][c] = true;
       };
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
@@ -114,6 +114,10 @@
     function findBestSwap() {
       const w = enemyTileWeights();
       const lookahead = settings.difficulty === "hard";
+      // Copy-on-write: search a scratch clone so an exception can never leave
+      // the live board swapped. Weights read specials from the live grid, which
+      // reflects the board before any move — mirroring what the player sees.
+      const b = board.map(row => row.slice());
       let best = null;
       let bestScore = 0;
       for (let r = 0; r < ROWS; r++) {
@@ -121,13 +125,12 @@
           const neighbors = [[r, c + 1], [r + 1, c]];
           for (const [nr, nc] of neighbors) {
             if (nr >= ROWS || nc >= COLS) continue;
-            // swap
-            const t = board[r][c]; board[r][c] = board[nr][nc]; board[nr][nc] = t;
-            const { mark, any } = findMatches();
+            const t = b[r][c]; b[r][c] = b[nr][nc]; b[nr][nc] = t;
+            const { mark, any } = findMatches(b);
             if (any) {
-              const m = lookahead ? expandSpecialMark(mark) : mark;
-              const list = collectMatchesFromMark(m);
-              const shape = analyzeShapes(m);
+              const m = lookahead ? expandSpecialMark(mark, b) : mark;
+              const list = collectMatchesFromMark(m, b);
+              const shape = analyzeShapes(m, b);
               let sc = scoreMatchList(list, w);
               // risk tolerance: chase charged / star / cross shapes
               if (shape.charged || (shape.tags && (shape.tags.includes("star") || shape.tags.includes("cross")))) {
@@ -138,8 +141,7 @@
                 best = { r1: r, c1: c, r2: nr, c2: nc, score: sc };
               }
             }
-            // revert
-            board[nr][nc] = board[r][c]; board[r][c] = t;
+            b[nr][nc] = b[r][c]; b[r][c] = t;
           }
         }
       }

@@ -45,6 +45,12 @@ const docProxy = new Proxy({}, {
 globalThis.document = docProxy;
 globalThis.window = globalThis;
 globalThis.navigator = { vibrate: noop, userAgent: "headless" };
+const audioStore = new Map();
+globalThis.Audio = class Audio {
+  constructor(src) { this.src = src; this.loop = false; this.volume = 0; this.preload = "auto"; this.paused = true; this.currentTime = 0; }
+  play() { this.paused = false; return Promise.resolve(); }
+  pause() { this.paused = true; }
+};
 const store = new Map();
 globalThis.localStorage = {
   getItem: (k) => (store.has(k) ? store.get(k) : null),
@@ -56,7 +62,7 @@ function stubNode() {
   return {
     connect: noop, start: noop, stop: noop,
     frequency: { setValueAtTime: noop, exponentialRampToValueAtTime: noop, value: 0 },
-    gain: { setValueAtTime: noop, exponentialRampToValueAtTime: noop, linearRampToValueAtTime: noop, value: 0 },
+    gain: { setValueAtTime: noop, exponentialRampToValueAtTime: noop, linearRampToValueAtTime: noop, setTargetAtTime: noop, value: 0 },
     Q: { value: 0 }, type: ""
   };
 }
@@ -66,8 +72,10 @@ globalThis.AudioContext = class {
   createOscillator() { return stubNode(); }
   createGain() { return stubNode(); }
   createBiquadFilter() { return stubNode(); }
+  createDynamicsCompressor() { const n = stubNode(); n.threshold = { value: -100 }; n.knee = { value: 0 }; n.ratio = { value: 1 }; n.attack = { value: 0 }; n.release = { value: 0.25 }; return n; }
   createBufferSource() { return { buffer: null, start: noop, stop: noop, connect: noop }; }
   createBuffer() { return { getChannelData: () => new Float32Array(10) }; }
+  createConvolver() { return stubNode(); }
 };
 globalThis.webkitAudioContext = globalThis.AudioContext;
 globalThis.requestAnimationFrame = (fn) => setTimeout(() => fn(Date.now()), 1);

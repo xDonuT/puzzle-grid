@@ -9,7 +9,7 @@ const MAP_LAYERS_PER_ACT = [
 const NODE_ICONS = {
   normal:  "⚔️",
   elite:   "💀",
-  mystery: "❓",
+  mystery: "🌱", // Seed — internal type stays "mystery", player-facing name is Seed
   shop:    "🛒",
   boss:    "👑",
 };
@@ -17,7 +17,7 @@ const NODE_ICONS = {
 const NODE_LABELS = {
   normal:  "Battle",
   elite:   "Elite",
-  mystery: "Mystery",
+  mystery: "Seed",
   shop:    "Shop",
   boss:    "Boss",
 };

@@ -21,7 +21,7 @@ resetRun();
 combat.playerClass = "wizard";
 run.floor = 10;
 startBattle({});
-const expectedReflect = Math.min(0.65, 0.3 + 0.02 * 9);
+const expectedReflect = Math.min(0.7, 0.4 + 0.02 * 9);
 assertEq(Math.round(combat.reflectPct * 100), Math.round(expectedReflect * 100), "wizard reflectPct scaled at floor 10");
 assert(combat.reflectPct > 0.3, "wizard reflect no longer bugged to 0");
 
@@ -84,7 +84,7 @@ try {
 } catch (e) { heartThrew = true; console.error("knight heart match threw:", e); }
 assert(!heartThrew, "knight heart match applies fracture orb without errors");
 assertEq(combat.fractureStacks, 3, "knight heart match granted 3 fracture stacks (1 per tile)");
-assert(combat.logHistory.some(l => /Fracture 3/.test(l)), "heart match logged Fracture");
+assert(combat.logHistory.some(l => /Cracked 3|Fracture 3/.test(l)), "heart match logged Fracture");
 assertEq(combat.stats.healed, 5, "heart match healing tracked in combat.stats.healed");
 
 // ---------- Battle log: full history + turn prefixes ----------
@@ -123,6 +123,7 @@ assert(!speechThrew, "trash-talk speech bubble runs without errors");
 
 // ---------- Upgrade picker is class-filtered ----------
 run.pickedUpgrades = [];
+run.floor = 20; // act 2: every class has a class-locked upgrade unlocked here
 combat.playerClass = "wizard";
 const wizChoices = pickUpgradeChoices(20);
 assertEq(wizChoices.filter(u => u.classRequirement === "NINJA" || u.classRequirement === "KNIGHT").length, 0, "wizard sees no ninja/knight-only permanent upgrades");
@@ -200,6 +201,105 @@ for (let i = 0; i < MAX_FX + 5; i++) fxSpawn();
 assert(activeFx <= MAX_FX, "fxSpawn never exceeds the cap");
 flyEffect(fakeFrom, fakeTo, "sword");
 assert(activeFx <= MAX_FX, "flyEffect respects the FX budget under load");
+
+// ---------- Map generation: structure, connectivity, elite/mystery counts ----------
+const fullMap = generateFullMap();
+assertEq(fullMap.acts.length, 3, "map has 3 acts");
+assert(isMapCompatible(fullMap), "generated map is compatible (version + shape)");
+assertEq(fullMap.acts[0].layers.length, MAP_LAYERS_PER_ACT[0].length + 1, "each act has battle layers + boss layer");
+(function () {
+  for (const act of fullMap.acts) {
+    // Flatten ids → count elites/mysteries
+    let elites = 0, mysteries = 0;
+    const byId = {};
+    for (const layer of act.layers) for (const n of layer) byId[n.id] = n;
+    const incoming = {};
+    for (const c of act.connections) for (const to of c.to) incoming[to] = (incoming[to] || 0) + 1;
+    // Every layer past the first must be fully connected (no stranded nodes)
+    for (let li = 1; li < act.layers.length; li++) {
+      for (const n of act.layers[li]) {
+        assert(incoming[n.id] > 0, `map node ${n.id} has an incoming edge`);
+      }
+    }
+    for (const n of Object.values(byId)) {
+      if (n.type === "elite") elites++;
+      if (n.type === "mystery") mysteries++;
+    }
+    assertEq(elites, 2, "each act has exactly 2 elites (reachable + avoidable)");
+    assertEq(mysteries, 3, "each act has exactly 3 mystery/seed nodes");
+    assertEq(act.layers[0].every(n => n.type === "normal"), true, "act opens with a normal battle on every layer-0 node");
+  }
+})();
+assertEq(getConnectedNodes(fullMap.acts[0], "a1l0n0").length > 0, true, "layer-0 nodes expose connections");
+assert(isNodeReachable(fullMap.acts[0], "a1l0n0", new Set()), "first-layer node reachable with empty visited set");
+assertEq(isNodeReachable(fullMap.acts[0], "a1boss", new Set()), false, "boss not reachable from an empty visited set");
+
+// ---------- findMatches / analyzeShapes on a synthetic board (grid param) ----------
+board = [
+  ["sword","sword","sword","sword","hp","hp"],
+  ["hp","star","star","star","star","star"],
+  ["shield","shield","shield","hp","hp","sword"],
+  ["question","question","question","shield","shield","sword"],
+  ["sword","hp","star","question","sword","hp"],
+  ["shield","star","sword","sword","sword","shield"],
+  ["hp","hp","hp","question","question","question"],
+];
+specials = board.map(r => r.map(() => false));
+tileStatus = board.map(r => r.map(() => null));
+let fm = findMatches();
+assertEq(fm.any, true, "synthetic board has matches");
+assertEq(fm.mark[0].filter(Boolean).length, 4, "horizontal 4-run marked fully");
+assert(fm.specialSpawns.some(s => s.kind === "bloom"), "4-run spawns a bloom special");
+const shape = analyzeShapes(fm.mark);
+assertEq(shape.charged, true, "a 4-run is charged (×2)");
+assertEq(shape.maxRun, 5, "longest matched run is 5 (star row)");
+assert(shape.tags.includes("charged-star"), "5-run tagged charged-star");
+// grid-param form: a swapped copy must produce identical marks without touching `board`
+const clone = board.map(r => r.slice());
+const fmClone = findMatches(clone);
+assertEq(fmClone.any, fm.any, "findMatches(grid) matches live board results");
+assertEq(JSON.stringify(fmClone.mark), JSON.stringify(fm.mark), "findMatches(grid) marks equal live board");
+
+// ---------- collectMatchesFromMark + bloom expansion (AI lookahead) ----------
+const list = collectMatchesFromMark(fm.mark, board);
+assertEq(list.length, fm.mark.flat().filter(Boolean).length, "collectMatchesFromMark lists every marked cell with its type");
+const bloomMark = fm.mark.map(r => r.slice());
+bloomMark[0][0] = true; // seed a "matched" bloom at a corner
+specials[0][0] = "bloom";
+const expanded = expandSpecialMark(bloomMark, board);
+assertEq(expanded[0][1] && expanded[1][0] && expanded[1][1], true, "bloom expands 3×3 into the mark");
+const expandedByType = collectMatchesFromMark(expanded, board);
+assert(expandedByType.length > list.length || expandedByType.some(t => t.type === "hp"), "bloom expansion adds cells to the cleared set");
+specials = board.map(r => r.map(() => false)); // reset for any later board work
+
+// ---------- Save / load run round-trip with dynamic flags ----------
+resetRun();
+run.floor = 12;
+run.bonusMaxHp = 20;
+run.bonusApMax = 1;
+run.bonusStarDmg = 3;
+run.blessings = { bloom: "heal", cross: "shield" };
+run.shapeSkills = { star: "trail", cross: "burst", charged: null };
+combat.playerClass = "ninja";
+run.pickedUpgrades = ["venomous", "boardWhisper"];
+saveRun();
+const saved = loadRun();
+assert(saved && saved.floor === 12, "save/load persists floor");
+resetRun(); // wipe everything, re-derived flags must come back via applyLoadedRun
+assertEq(run.floor, 1, "resetRun resets floor to 1");
+applyLoadedRun(saved);
+assertEq(run.floor, 12, "applyLoadedRun restores floor");
+assertEq(run.bonusMaxHp, 20, "applyLoadedRun restores bonusMaxHp");
+assertEq(run.bonusApMax, 1, "applyLoadedRun restores bonusApMax");
+assertEq(AP_MAX, 4, "applyLoadedRun recomputes AP_MAX = 3 + bonusApMax");
+assertEq(run.venomous, true, "applyLoadedRun re-derives venomous from pickedUpgrades");
+assertEq(run.boardWhisper, true, "applyLoadedRun re-derives boardWhisper from pickedUpgrades");
+assertEq(run.blessings.bloom, "heal", "applyLoadedRun restores tile blessings");
+assertEq(run.shapeSkills.star, "trail", "applyLoadedRun restores shape skills");
+assertEq(combat.playerClass, "ninja", "applyLoadedRun restores playerClass");
+assertEq(run.pickedUpgrades.includes("venomous"), true, "applyLoadedRun keeps picked upgrade ids");
+clearSave();
+assertEq(hasSave(), false, "clearSave removes the run save");
 
 if (failures) { console.error(`\n${failures} FAILURE(S)`); Deno.exit(1); }
 console.log("\nALL CHECKS PASSED");

@@ -165,7 +165,7 @@
     }
 
     function classifyLog(text) {
-      if (/Ultimate|Moonbloom|Earthshatter|Starfall/i.test(text)) return "ult";
+      if (/Ultimate|Moonbloom|Earthshatter|Starfall|Meteor/i.test(text)) return "ult";
       if (/Fracture|Sunder|Earthquake|Bulwark/i.test(text)) return "fracture";
       if (/Poison|☠|Miasma|Venom|Acid|Corrosive|Toxic/i.test(text)) return "poison";
       if (/to you|on you|Void Reflection/i.test(text)) return "taken";
@@ -663,8 +663,8 @@
     }
 
     function refreshCombatUI() {
-      const pPct = Math.max(0, Math.min(100, (combat.playerHp / combat.playerMaxHp) * 100));
-      const ePct = Math.max(0, Math.min(100, (combat.enemyHp / combat.enemyMaxHp) * 100));
+      const pPct = clamp((combat.playerHp / combat.playerMaxHp) * 100, 0, 100);
+      const ePct = clamp((combat.enemyHp / combat.enemyMaxHp) * 100, 0, 100);
       const pHp = `${combat.playerHp}/${combat.playerMaxHp}`;
       const eHp = `${combat.enemyHp}/${combat.enemyMaxHp}`;
       if (playerHpText) playerHpText.textContent = pHp;
@@ -712,7 +712,7 @@
       // End button: AP ring shows the active side's AP for the current turn
       if (endWrap) {
         const activeAp = combat.playerTurn ? combat.ap : (combat.enemyAp ?? 0);
-        const frac = Math.max(0, Math.min(1, activeAp / AP_MAX));
+        const frac = clamp(activeAp / AP_MAX, 0, 1);
         endWrap.style.setProperty("--ap", frac);
         const dimmed = busy || !combat.playerTurn;
         endWrap.classList.toggle("dim", dimmed);
@@ -1451,7 +1451,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           }
         } else if (isCharged && sk.charged === "shadowStrike") {
           const swords = combat.swordsClearedThisTurn;
-          const execDmg = Math.max(8, Math.min(24, swords * 4));
+          const execDmg = clamp(swords * 4, 8, 24);
           dealDamageToEnemy(execDmg, { trueDmg: true, source: "sword" });
           bitsExtra.push(`Shadow Strike ${execDmg}!`);
         } else if (isCharged && sk.charged === "shatter" && combat.fractureStacks > 0) {
@@ -1733,6 +1733,130 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
     }
 
     // Score a hypothetical clear for AI (higher = better for rival)
+    // All per-turn effects that fire when the player's turn begins, separated from
+    // the rest of enemyTurn()'s AP/board flow so the decay logic is readable and
+    // testable on its own.
+    function applyStartOfPlayerTurnEffects() {
+      // Clear low-hp BGM ducking if HP recovered above 30%
+      if (combat.playerHp / Math.max(1, combat.playerMaxHp) > 0.3) bgmSetLowHp(false);
+      // Per-turn floor modifiers: Gentle Rain / Deep Roots / Pollen Puff
+      if (combat.playerHealPerTurn) applyHealing(combat.playerHealPerTurn);
+      if (combat.shieldPerTurn) applyShielding(combat.shieldPerTurn);
+      if (combat.empowerEachTurn) combat.empowerNext = true;
+      combat.cascadeApRefunded = false; // Cascade Refund: once per turn
+      combat._bulwarkUsed = false; // Bulwark: once per turn
+      combat.swordsClearedThisTurn = 0; // ninja Shadow Step
+      combat.shadowStepUsed = false;     // ninja Shadow Step
+      // 🌀 Shuffle Surge: shuffles from last turn now empower this one
+      combat.surgeActive = combat.pendingSurge || 0;
+      combat.pendingSurge = 0;
+      if (combat.surgeActive > 0) {
+        setLog("Shuffle Surge", `🌀 Surge active · +${25 * combat.surgeActive}% damage this turn`);
+        dmgPop("player", `🌀+${25 * combat.surgeActive}% DMG`, "empowered");
+      }
+      combat.sigTilesThisTurn = 0;       // sig tile charge accumulator (3 tiles = 1 charge)
+      combat._sigMatchesThisTurn = 0;    // sig match counter (for ultChargeBonus)
+      combat._lastSigChargeTotal = 0;
+      combat._blitzUsedThisTurn = false;  // Blitz passive: first match free
+      // Free shuffle every 3rd turn (use it or lose it)
+      combat.freeShuffles = combat.turn % 3 === 0 ? 1 : 0;
+
+      // Tile Bloom modifier: place a random special each turn
+      if (combat.tileBloomPerTurn && typeof window.placeRandomSpecial === "function") {
+        window.placeRandomSpecial();
+      }
+
+      // Decay timed statuses
+      // Shadow Echo / Shadow Army: afterglow deals damage per turn
+      if (combat.afterglowTurns > 0 && (run.shadowEcho || run.shadowArmy)) {
+        const afterglowDmg = run.shadowArmy ? 5 : 3;
+        dealDamageToEnemy(afterglowDmg, { trueDmg: true, source: "afterglow" });
+        dmgPop("enemy", `🌑${afterglowDmg}`, "true");
+      }
+      if (combat.afterglowTurns > 0) combat.afterglowTurns--;
+      if (combat.manaLockTurns > 0) combat.manaLockTurns--;
+      if (combat.mortalWoundTurns > 0) combat.mortalWoundTurns--;
+      if (combat.fractureTurns > 0) {
+        combat.fractureTurns--;
+        if (combat.fractureTurns <= 0) combat.fractureStacks = 0;
+      }
+      if (combat.enemyAfterglowTurns > 0) combat.enemyAfterglowTurns--;
+      if (combat.playerMortalWoundTurns > 0) combat.playerMortalWoundTurns--;
+      if (combat.enemyWeakenTurns > 0) combat.enemyWeakenTurns--;
+      if (combat.disorientedTurns > 0) combat.disorientedTurns--;
+      if ((combat.enemyFrostTurns || 0) > 0) combat.enemyFrostTurns--;
+      // 🌺 Bloom decay: -1 stack per turn, heal at 5+
+      if (combat.squallBloom > 0) {
+        if (combat.bossKit && combat.bossKit.id === "cinder" && combat.squallBloom >= 5 && combat.enemyHp > 0) {
+          healEnemy(2);
+          setLog("Bloom", "🌺 Bloom " + combat.squallBloom + " · heals 2 HP");
+        }
+        combat.squallBloom = Math.max(0, combat.squallBloom - 1);
+      }
+
+      // Root Bind decay: 50% of remaining bindings break each turn
+      if (combat.boundTiles && combat.boundTiles.size > 0) {
+        const arr = Array.from(combat.boundTiles);
+        const toRemove = Math.ceil(arr.length * 0.5);
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        for (let i = 0; i < toRemove; i++) combat.boundTiles.delete(arr[i]);
+        if (typeof syncBoundVisuals === "function") syncBoundVisuals();
+      }
+
+      // Knight Regeneration at start of own turn
+      if (combat.playerClass === "knight" && combat.playerHp > 0) {
+        applyHealing(3);
+      }
+
+      // Player Fracture (The Last Rival): true dmg at start of own turn
+      if (combat.playerFractureStacks > 0 && combat.playerFractureTurns > 0) {
+        const fDmg = combat.playerFractureStacks * 2;
+        dealDamageToPlayer(fDmg, { noFracture: true });
+        setLog("Cracked", `Cracked · ${fDmg} true dmg`);
+        combat.playerFractureTurns--;
+        if (combat.playerFractureTurns <= 0) combat.playerFractureStacks = 0;
+      }
+
+      // Poison ticks (legacy duration-based)
+      if (combat.poisonTurns > 0) {
+        dealDamageToPlayer(3, { noFracture: true });
+        combat.poisonTurns--;
+      }
+      if (combat.enemyPoisonTurns > 0) {
+        // Toxic Blade's Lethal Poison raises the per-tick damage (enemyPoisonDmg)
+        dealDamageToEnemy(combat.enemyPoisonDmg || 3, { trueDmg: true, source: "poison" });
+        combat.enemyPoisonTurns--;
+      }
+
+      // --- New Poison/Acid stack system (ticks at start of player turn) ---
+      // Poison DoT: stacks × (3 + floorLevel × 0.5), then decay 1 stack
+      if (combat.poisonStacks > 0) {
+        const poisonBase = 1 + (run.lethalPoison ? 0.5 : 0);
+        const poisonDmg = Math.round(combat.poisonStacks * (poisonBase + run.floor * 0.15));
+        dealDamageToEnemy(poisonDmg, { trueDmg: true, source: "poison" });
+        dmgPop("enemy", `☠${poisonDmg}`, "poison");
+        combat.poisonStacks = Math.max(0, combat.poisonStacks - 1);
+      }
+
+      // Toxic Fortitude (Knight): start-of-turn shield = 2× (poison + acid) on rival
+      if (combat.playerClass === "knight" && run.toxicFortitude && combat.playerHp > 0) {
+        const totalStacks = combat.poisonStacks + combat.acidStacks;
+        if (totalStacks > 0) {
+          const toxicShield = totalStacks * 2;
+          const hero = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
+          const maxSh = combat.shieldCapOverride || (hero.maxShieldCap + run.bonusShieldMax + (combat.tempShieldCapBonus || 0));
+          const shielded = Math.min(toxicShield, maxSh - combat.shield);
+          if (shielded > 0) {
+            combat.shield += shielded;
+            dmgPop("player", `🏰+${shielded}`, "shield");
+          }
+        }
+      }
+    }
+
     async function enemyTurn() {
       if (busy) return;
       busy = true;
@@ -1924,6 +2048,9 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         const ts = specials[r1][c1];
         specials[r1][c1] = specials[r2][c2];
         specials[r2][c2] = ts;
+        const tsSt = tileStatus[r1][c1];
+        tileStatus[r1][c1] = tileStatus[r2][c2];
+        tileStatus[r2][c2] = tsSt;
         rebuildVisual();
 
         const { any } = findMatches();
@@ -1935,6 +2062,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           board[r1][c1] = tmp;
           specials[r2][c2] = specials[r1][c1];
           specials[r1][c1] = ts;
+          tileStatus[r2][c2] = tileStatus[r1][c1];
+          tileStatus[r1][c1] = tsSt;
           rebuildVisual();
           if (settings.difficulty !== "easy" && Math.random() < 0.35) {
             const poke = Math.max(1, Math.round(enemyAtkForFloor(run.floor) * diffStats().atkMul * 0.45 * atkScale));
@@ -1966,128 +2095,9 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       combat.playerTurn = true;
       document.body.classList.add("your-turn");
       document.body.classList.toggle("disoriented", combat.disorientedTurns > 0);
-      // Clear low-hp BGM ducking if HP recovered above 30%
-      if (combat.playerHp / Math.max(1, combat.playerMaxHp) > 0.3) bgmSetLowHp(false);
-      // Per-turn floor modifiers: Gentle Rain / Deep Roots / Pollen Puff
-      if (combat.playerHealPerTurn) applyHealing(combat.playerHealPerTurn);
-      if (combat.shieldPerTurn) applyShielding(combat.shieldPerTurn);
-      if (combat.empowerEachTurn) combat.empowerNext = true;
-      combat.cascadeApRefunded = false; // Cascade Refund: once per turn
-      combat._bulwarkUsed = false; // Bulwark: once per turn
-      combat.swordsClearedThisTurn = 0; // ninja Shadow Step
-      combat.shadowStepUsed = false;     // ninja Shadow Step
-      // 🌀 Shuffle Surge: shuffles from last turn now empower this one
-      combat.surgeActive = combat.pendingSurge || 0;
-      combat.pendingSurge = 0;
-      if (combat.surgeActive > 0) {
-        setLog("Shuffle Surge", `🌀 Surge active · +${25 * combat.surgeActive}% damage this turn`);
-        dmgPop("player", `🌀+${25 * combat.surgeActive}% DMG`, "empowered");
-      }
-      combat.sigTilesThisTurn = 0;       // sig tile charge accumulator (3 tiles = 1 charge)
-      combat._sigMatchesThisTurn = 0;    // sig match counter (for ultChargeBonus)
-      combat._lastSigChargeTotal = 0;
-      combat._blitzUsedThisTurn = false;  // Blitz passive: first match free
-      // Free shuffle every 3rd turn (use it or lose it)
-      if (combat.turn % 3 === 0) {
-        combat.freeShuffles = 1;
-      } else {
-        combat.freeShuffles = 0;
-      }
-
-      // Tile Bloom modifier: place a random special each turn
-      if (combat.tileBloomPerTurn && typeof window.placeRandomSpecial === "function") {
-        window.placeRandomSpecial();
-      }
-
-      // Decay timed statuses
-      // Shadow Echo / Shadow Army: afterglow deals damage per turn
-      if (combat.afterglowTurns > 0 && (run.shadowEcho || run.shadowArmy)) {
-        const afterglowDmg = run.shadowArmy ? 5 : 3;
-        dealDamageToEnemy(afterglowDmg, { trueDmg: true, source: "afterglow" });
-        dmgPop("enemy", `🌑${afterglowDmg}`, "true");
-      }
-      if (combat.afterglowTurns > 0) combat.afterglowTurns--;
-      if (combat.manaLockTurns > 0) combat.manaLockTurns--;
-      if (combat.mortalWoundTurns > 0) combat.mortalWoundTurns--;
-      if (combat.fractureTurns > 0) {
-        combat.fractureTurns--;
-        if (combat.fractureTurns <= 0) combat.fractureStacks = 0;
-      }
-      if (combat.enemyAfterglowTurns > 0) combat.enemyAfterglowTurns--;
-      if (combat.playerMortalWoundTurns > 0) combat.playerMortalWoundTurns--;
-      if (combat.enemyWeakenTurns > 0) combat.enemyWeakenTurns--;
-      if (combat.disorientedTurns > 0) combat.disorientedTurns--;
-      if ((combat.enemyFrostTurns || 0) > 0) combat.enemyFrostTurns--;
-      // 🌺 Bloom decay: -1 stack per turn, heal at 5+
-      if (combat.squallBloom > 0) {
-        if (combat.bossKit && combat.bossKit.id === "cinder" && combat.squallBloom >= 5 && combat.enemyHp > 0) {
-          healEnemy(2);
-          setLog("Bloom", "🌺 Bloom " + combat.squallBloom + " · heals 2 HP");
-        }
-        combat.squallBloom = Math.max(0, combat.squallBloom - 1);
-      }
-
-      // Root Bind decay: 50% of remaining bindings break each turn
-      if (combat.boundTiles && combat.boundTiles.size > 0) {
-        const arr = Array.from(combat.boundTiles);
-        const toRemove = Math.ceil(arr.length * 0.5);
-        for (let i = arr.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [arr[i], arr[j]] = [arr[j], arr[i]];
-        }
-        for (let i = 0; i < toRemove; i++) combat.boundTiles.delete(arr[i]);
-        if (typeof syncBoundVisuals === "function") syncBoundVisuals();
-      }
-
-      // Knight Regeneration at start of own turn
-      if (combat.playerClass === "knight" && combat.playerHp > 0) {
-        applyHealing(3);
-      }
-
-      // Player Fracture (The Last Rival): true dmg at start of own turn
-      if (combat.playerFractureStacks > 0 && combat.playerFractureTurns > 0) {
-        const fDmg = combat.playerFractureStacks * 2;
-        dealDamageToPlayer(fDmg, { noFracture: true });
-        setLog("Cracked", `Cracked · ${fDmg} true dmg`);
-        combat.playerFractureTurns--;
-        if (combat.playerFractureTurns <= 0) combat.playerFractureStacks = 0;
-      }
-
-      // Poison ticks (legacy duration-based)
-      if (combat.poisonTurns > 0) {
-        dealDamageToPlayer(3, { noFracture: true });
-        combat.poisonTurns--;
-      }
-      if (combat.enemyPoisonTurns > 0) {
-        // Toxic Blade's Lethal Poison raises the per-tick damage (enemyPoisonDmg)
-        dealDamageToEnemy(combat.enemyPoisonDmg || 3, { trueDmg: true, source: "poison" });
-        combat.enemyPoisonTurns--;
-      }
-
-      // --- New Poison/Acid stack system (ticks at start of player turn) ---
-      // Poison DoT: stacks × (3 + floorLevel × 0.5), then decay 1 stack
-      if (combat.poisonStacks > 0) {
-        const poisonBase = 1 + (run.lethalPoison ? 0.5 : 0);
-        const poisonDmg = Math.round(combat.poisonStacks * (poisonBase + run.floor * 0.15));
-        dealDamageToEnemy(poisonDmg, { trueDmg: true, source: "poison" });
-        dmgPop("enemy", `☠${poisonDmg}`, "poison");
-        combat.poisonStacks = Math.max(0, combat.poisonStacks - 1);
-      }
-
-      // Toxic Fortitude (Knight): start-of-turn shield = 2× (poison + acid) on rival
-      if (combat.playerClass === "knight" && run.toxicFortitude && combat.playerHp > 0) {
-        const totalStacks = combat.poisonStacks + combat.acidStacks;
-        if (totalStacks > 0) {
-          const toxicShield = totalStacks * 2;
-          const hero = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
-          const maxSh = combat.shieldCapOverride || (hero.maxShieldCap + run.bonusShieldMax + (combat.tempShieldCapBonus || 0));
-          const shielded = Math.min(toxicShield, maxSh - combat.shield);
-          if (shielded > 0) {
-            combat.shield += shielded;
-            dmgPop("player", `🏰+${shielded}`, "shield");
-          }
-        }
-      }
+      // Turn-flip → start-of-player-turn effects mostly live in the extracted
+      // applyStartOfPlayerTurnEffects() helper (below); keep this wrapper slim.
+      applyStartOfPlayerTurnEffects();
 
       refreshCombatUI();
       await sleep(450);

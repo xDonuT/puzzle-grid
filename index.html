@@ -28,6 +28,18 @@
       --question: #c4a6f0;
       --question-icon: #593c94;
 
+      /* Tile gradient stops – extracted from per-type rules for a single source of truth */
+      --sword-light: #dde8f4;
+      --sword-dark: #76a6d7;
+      --shield-light: #92d5ee;
+      --shield-dark: #19ade2;
+      --hp-light: #f9c0cb;
+      --hp-dark: #f63e62;
+      --star-light: #f6db98;
+      --star-dark: #f5b514;
+      --question-light: #e1d3f6;
+      --question-dark: #955de8;
+
       /* Class accents = each hero's SIGNATURE TILE color
          ninja→sword(steel)  wizard→shield(teal)  knight→hp(rose) */
       --ninja: #4f6f9e;
@@ -40,6 +52,16 @@
         inset 0 -4px 7px rgba(60, 45, 30, 0.22),
         inset 0 0 6px 1px rgba(60, 45, 30, 0.06),
         inset 0 0 0 1px rgba(60, 45, 30, 0.14);
+
+      /* Combo glow wash – single parameterized rule serves levels 1–4 */
+      --combo-glow-1-color: rgba(239, 176, 154, 0.06);
+      --combo-glow-1-shadow: inset 0 0 30px rgba(239, 176, 154, 0.08);
+      --combo-glow-2-color: rgba(212, 120, 92, 0.08);
+      --combo-glow-2-shadow: inset 0 0 40px rgba(212, 120, 92, 0.12);
+      --combo-glow-3-color: rgba(196, 90, 106, 0.1);
+      --combo-glow-3-shadow: inset 0 0 50px rgba(196, 90, 106, 0.15);
+      --combo-glow-4-color: rgba(184, 74, 122, 0.12);
+      --combo-glow-4-shadow: inset 0 0 60px rgba(184, 74, 122, 0.18);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -143,40 +165,51 @@
       position: relative;
       transition: box-shadow 0.4s ease, background 0.4s ease;
     }
-    .board-wrap.combo-glow-1 {
-      background: rgba(239, 176, 154, 0.06);
-      box-shadow: inset 0 0 30px rgba(239, 176, 154, 0.08);
+    .board-wrap.combo-glow {
+      background: var(--combo-glow-color, transparent);
+      box-shadow: var(--combo-glow-shadow, none);
       transition: background 0.3s ease, box-shadow 0.3s ease;
+    }
+    .board-wrap.combo-glow-1 {
+      --combo-glow-color: var(--combo-glow-1-color);
+      --combo-glow-shadow: var(--combo-glow-1-shadow);
     }
     .board-wrap.combo-glow-2 {
-      background: rgba(212, 120, 92, 0.08);
-      box-shadow: inset 0 0 40px rgba(212, 120, 92, 0.12);
-      transition: background 0.3s ease, box-shadow 0.3s ease;
+      --combo-glow-color: var(--combo-glow-2-color);
+      --combo-glow-shadow: var(--combo-glow-2-shadow);
     }
     .board-wrap.combo-glow-3 {
-      background: rgba(196, 90, 106, 0.1);
-      box-shadow: inset 0 0 50px rgba(196, 90, 106, 0.15);
-      transition: background 0.3s ease, box-shadow 0.3s ease;
+      --combo-glow-color: var(--combo-glow-3-color);
+      --combo-glow-shadow: var(--combo-glow-3-shadow);
     }
     .board-wrap.combo-glow-4 {
-      background: rgba(184, 74, 122, 0.12);
-      box-shadow: inset 0 0 60px rgba(184, 74, 122, 0.18);
-      transition: background 0.3s ease, box-shadow 0.3s ease;
+      --combo-glow-color: var(--combo-glow-4-color);
+      --combo-glow-shadow: var(--combo-glow-4-shadow);
     }
     .board-wrap.combo-flash {
       animation: comboFlash 0.2s ease-out;
     }
-    @keyframes comboFlash {
-      0%   { filter: brightness(1); }
-      40%  { filter: brightness(1.25); }
-      100% { filter: brightness(1); }
-    }
-    .board-wrap.shake {
-      animation: boardShake 0.45s ease;
-    }
-    .board-wrap.shake-strong {
-      animation: boardShakeStrong 0.5s cubic-bezier(0.3, 0, 0.3, 1);
-    }
+@keyframes comboFlash {
+       0%   { filter: brightness(1); }
+       40%  { filter: brightness(1.25); }
+       100% { filter: brightness(1); }
+     }
+     .board-wrap.shake {
+       animation: boardShake 0.45s ease;
+     }
+     .board-wrap.shake-strong {
+       animation: boardShakeStrong 0.5s cubic-bezier(0.3, 0, 0.3, 1);
+     }
+
+     @keyframes boardShakeStrong {
+       0% { transform: translate(0, 0); }
+       15% { transform: translate(-7px, 5px) rotate(-0.6deg); }
+       30% { transform: translate(7px, -5px) rotate(0.6deg); }
+       45% { transform: translate(-5px, 3px); }
+       60% { transform: translate(5px, -3px); }
+       80% { transform: translate(-2px, 1px); }
+       100% { transform: translate(0, 0); }
+     }
     @keyframes boardShake {
       0% { transform: translate(0, 0); }
       20% { transform: translate(-3px, 2px); }
@@ -547,51 +580,48 @@
       z-index: 5;
     }
 
-    @keyframes tileDrop {
-      0%   { transform: scale(1.16) translateY(-8px); }
-      50%  { transform: scale(0.94, 1.06) translateY(3px); }
-      75%  { transform: scale(1.04, 0.97) translateY(-1px); }
-      100% { transform: scale(1) translateY(0); }
-    }
+@keyframes boardShakeStrong {
+       0% { transform: translate(0, 0); }
+       15% { transform: translate(-7px, 5px) rotate(-0.6deg); }
+       30% { transform: translate(7px, -5px) rotate(0.6deg); }
+       45% { transform: translate(-5px, 3px); }
+       60% { transform: translate(5px, -3px); }
+       80% { transform: translate(-2px, 1px); }
+       100% { transform: translate(0, 0); }
+     }
 
-    /* Inflate then pop – more weight before release */
-    @keyframes popOut {
-      0%   { transform: scale(1.1); opacity: 1; }
-      30%  { transform: scale(1.28); opacity: 1; }
-      55%  { transform: scale(1.18); opacity: 1; }
-      100% { transform: scale(0.1); opacity: 0; }
-    }
-    @keyframes popOut2 {
-      0%   { transform: scale(1.15); opacity: 1; }
-      25%  { transform: scale(1.42); opacity: 1; }
-      50%  { transform: scale(1.28); opacity: 1; }
-      100% { transform: scale(0.08); opacity: 0; }
-    }
-    @keyframes popOut3 {
-      0%   { transform: scale(1.2); opacity: 1; filter: brightness(1.08); }
-      25%  { transform: scale(1.58); opacity: 1; filter: brightness(1.12); }
-      50%  { transform: scale(1.38); opacity: 1; }
-      100% { transform: scale(0.05); opacity: 0; filter: brightness(1.15); }
-    }
-    @keyframes popOut4 {
-      0%   { transform: scale(1.25); opacity: 1; filter: brightness(1.12); }
-      20%  { transform: scale(1.75); opacity: 1; filter: brightness(1.2); }
-      45%  { transform: scale(1.48); opacity: 1; }
-      100% { transform: scale(0.03); opacity: 0; filter: brightness(1.25); }
-    }
+     @keyframes comboFlash {
+       0%   { filter: brightness(1); }
+       40%  { filter: brightness(1.25); }
+       100% { filter: brightness(1); }
+     }
 
-    @keyframes landSquash {
-      0%   { transform: scale(1.06, 0.9); }
-      35%  { transform: scale(0.92, 1.1); }
-      65%  { transform: scale(1.04, 0.96); }
-      100% { transform: scale(1, 1); }
-    }
+     @keyframes tileDrop {
+       0%   { transform: scale(1.16) translateY(-8px); }
+       50%  { transform: scale(0.94, 1.06) translateY(3px); }
+       75%  { transform: scale(1.04, 0.97) translateY(-1px); }
+       100% { transform: scale(1) translateY(0); }
+     }
 
-    @keyframes spawnIn {
-      0%   { transform: scale(0.2); opacity: 0; }
-      60%  { transform: scale(1.08); opacity: 1; }
-      100% { transform: scale(1); opacity: 1; }
-    }
+     @keyframes popOut {
+       0%   { transform: scale(1.1); opacity: 1; }
+       30%  { transform: scale(1.28); opacity: 1; }
+       55%  { transform: scale(1.18); opacity: 1; }
+       100% { transform: scale(0.1); opacity: 0; }
+     }
+
+     @keyframes landSquash {
+       0%   { transform: scale(1.06, 0.9); }
+       35%  { transform: scale(0.92, 1.1); }
+       65%  { transform: scale(1.04, 0.96); }
+       100% { transform: scale(1, 1); }
+     }
+
+     @keyframes spawnIn {
+       0%   { transform: scale(0.2); opacity: 0; }
+       60%  { transform: scale(1.08); opacity: 1; }
+       100% { transform: scale(1); opacity: 1; }
+     }
 
     .tile svg {
       width: 70%;
@@ -602,11 +632,11 @@
       stroke-linejoin: round;
     }
 
-    .tile[data-type="sword"]    { --tile-base: var(--sword); --tile-light: #dde8f4; --tile-dark: #76a6d7; color: var(--sword-icon); }
-    .tile[data-type="shield"]   { --tile-base: var(--shield); --tile-light: #92d5ee; --tile-dark: #19ade2; color: var(--shield-icon); }
-    .tile[data-type="hp"]       { --tile-base: var(--hp);     --tile-light: #f9c0cb; --tile-dark: #f63e62; color: var(--hp-icon); }
-    .tile[data-type="star"]     { --tile-base: var(--star);   --tile-light: #f6db98; --tile-dark: #f5b514; color: var(--star-icon); }
-    .tile[data-type="question"] { --tile-base: var(--question); --tile-light: #e1d3f6; --tile-dark: #955de8; color: var(--question-icon); }
+    .tile[data-type="sword"]    { --tile-base: var(--sword); --tile-light: var(--sword-light); --tile-dark: var(--sword-dark); color: var(--sword-icon); }
+    .tile[data-type="shield"]   { --tile-base: var(--shield); --tile-light: var(--shield-light); --tile-dark: var(--shield-dark); color: var(--shield-icon); }
+    .tile[data-type="hp"]       { --tile-base: var(--hp);     --tile-light: var(--hp-light);     --tile-dark: var(--hp-dark);     color: var(--hp-icon); }
+    .tile[data-type="star"]     { --tile-base: var(--star);   --tile-light: var(--star-light);   --tile-dark: var(--star-dark);   color: var(--star-icon); }
+    .tile[data-type="question"] { --tile-base: var(--question); --tile-light: var(--question-light); --tile-dark: var(--question-dark); color: var(--question-icon); }
 
     .tile[data-type="sword"]    svg { fill: var(--sword-icon); }
     .tile[data-type="shield"] svg .shd-rim { fill: #cbd3dc; stroke: #4a2f16; stroke-width: 1.6; }
@@ -651,41 +681,128 @@
       filter: drop-shadow(0 1px 1px rgba(120, 60, 80, 0.18));
     }
 
-    /* ===== Run Recap Card ===== */
-    .recap-card {
-      background: linear-gradient(170deg, rgba(255,252,244,0.85), rgba(243,236,220,0.9));
-      border: 1.5px solid rgba(112, 76, 43, 0.25);
-      border-radius: 16px;
-      corner-shape: squircle;
-      padding: 12px 14px;
-      margin-bottom: 12px;
-      text-align: left;
-    }
-    .recap-title {
-      font-size: 0.72rem;
-      font-weight: 900;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: #a86a8a;
-      margin-bottom: 8px;
-      text-align: center;
-    }
-    .recap-row {
-      display: flex;
-      align-items: baseline;
-      gap: 8px;
-      font-size: 0.78rem;
-      font-weight: 650;
-      color: #5a4c3e;
-      padding: 2.5px 0;
-      border-bottom: 1px dashed rgba(112, 76, 43, 0.12);
-    }
-    .recap-row:last-child { border-bottom: none; }
-    .recap-ic {
-      width: 18px;
-      text-align: center;
-      flex-shrink: 0;
-    }
+    /* Design tokens for tile styling */
+:root {
+  /* Base tile colors by type */
+  --tile-sword-base: #a8bce6;
+  --tile-sword-light: #dde8f4;
+  --tile-sword-dark: #76a6d7;
+  --tile-sword-icon: #46535f;
+
+  --tile-shield-base: #63c6ea;
+  --tile-shield-light: #92d5ee;
+  --tile-shield-dark: #19ade2;
+  --tile-shield-icon: #2c6090;
+
+  --tile-hp-base: #f78fa3;
+  --tile-hp-light: #f9c0cb;
+  --tile-hp-dark: #f63e62;
+  --tile-hp-icon: #9f304d;
+
+  --tile-star-base: #f5cc66;
+  --tile-star-light: #f6db98;
+  --tile-star-dark: #f5b514;
+  --tile-star-icon: #9a7412;
+
+  --tile-question-base: #c4a6f0;
+  --tile-question-light: #e1d3f6;
+  --tile-question-dark: #955de8;
+  --tile-question-icon: #593c94;
+
+  /* Tile animation constants */
+  --tile-select-scale: 1.16;
+  --tile-select-translateY: -8px;
+  --tile-hover-scale: 1.16;
+  --tile-hover-translateY: -8px;
+  --tile-matching-scale: 0.1;
+  --tile-landing-scale-x: 1.06;
+  --tile-landing-scale-y: 0.9;
+  --tile-dropping-scale-x: 0.94;
+  --tile-dropping-scale-y: 1.06;
+  --tile-dropping-translateY: 3px;
+  --tile-peeking-scale-x: 1.04;
+  --tile-peeking-scale-y: 0.97;
+  --tile-peeking-translateY: -1px;
+}
+
+/* Tile base styling - extracted to reduce duplication */
+.tile {
+  --tile-base: var(--tile-sword-base);
+  --tile-light: var(--tile-sword-light);
+  --tile-dark: var(--tile-sword-dark);
+  color: var(--tile-sword-icon);
+  background: linear-gradient(
+    180deg,
+    var(--tile-light) 0%,
+    var(--tile-base) 48%,
+    var(--tile-dark) 100%
+  );
+  box-shadow:
+    var(--bevel),
+    0 3px 0 rgba(60, 50, 40, 0.12),
+    0 5px 12px rgba(60, 50, 40, 0.1);
+  border: 1.5px solid var(--tile-outline);
+  will-change: transform, opacity, box-shadow;
+  transform-origin: center center;
+  transition: box-shadow 0.18s ease, filter 0.15s ease, transform 0.18s cubic-bezier(0.25, 0.8, 0.25, 1);
+  touch-action: none;
+}
+
+/* Tile type-specific styling - uses CSS variables instead of duplicate classes */
+.tile[data-type="sword"]    { 
+  --tile-base: var(--tile-sword-base);
+  --tile-light: var(--tile-sword-light);
+  --tile-dark: var(--tile-sword-dark);
+  color: var(--tile-sword-icon);
+}
+.tile[data-type="shield"]   { 
+  --tile-base: var(--tile-shield-base);
+  --tile-light: var(--tile-shield-light);
+  --tile-dark: var(--tile-shield-dark);
+  color: var(--tile-shield-icon);
+}
+.tile[data-type="hp"]       { 
+  --tile-base: var(--tile-hp-base);
+  --tile-light: var(--tile-hp-light);
+  --tile-dark: var(--tile-hp-dark);
+  color: var(--tile-hp-icon);
+}
+.tile[data-type="star"]     { 
+  --tile-base: var(--tile-star-base);
+  --tile-light: var(--tile-star-light);
+  --tile-dark: var(--tile-star-dark);
+  color: var(--tile-star-icon);
+}
+.tile[data-type="question"] { 
+  --tile-base: var(--tile-question-base);
+  --tile-light: var(--tile-question-light);
+  --tile-dark: var(--tile-question-dark);
+  color: var(--tile-question-icon);
+}
+
+/* SVG fill rules - consolidated to use CSS variables */
+.tile svg { width: 70%; height: 70%; pointer-events: none; }
+.tile[data-type="sword"]    svg { fill: var(--tile-sword-icon); }
+.tile[data-type="shield"]   svg .shd-rim { fill: #cbd3dc; stroke: #4a2f16; stroke-width: 1.6; }
+.tile[data-type="shield"]   svg .shd-face { fill: #9c6b3f; }
+.tile[data-type="hp"]       svg .pot-glass { fill: #faf5ec; stroke: #2b2420; stroke-width: 1.6; }
+.tile[data-type="hp"]       svg .pot-cork { fill: #c98f5e; }
+.tile[data-type="hp"]       svg .pot-liquid { fill: #d64545; }
+.tile[data-type="hp"]       svg .pot-heart { fill: #faf5ec; }
+.tile[data-type="star"]     svg { fill: var(--tile-star-icon); }
+.tile[data-type="star"]     svg path { fill: url(#rainbow-star); stroke: #2b2420; stroke-width: 1.5; paint-order: stroke; }
+.tile[data-type="sword"]    svg .swd-blade { fill: #dbe3ea; stroke: #2b2420; stroke-width: 1.6; }
+.tile[data-type="sword"]    svg .swd-fuller { stroke: #ffffff; stroke-width: 0.8; fill: none; }
+.tile[data-type="sword"]    svg .swd-guard { stroke: #d4a94a; stroke-width: 1.9; fill: none; stroke-linecap: round; }
+.tile[data-type="sword"]    svg .swd-guard-ink { stroke: #2b2420; stroke-width: 3; fill: none; stroke-linecap: round; }
+.tile[data-type="sword"]    svg .swd-grip { stroke: #8a5a2b; stroke-width: 1.7; fill: none; stroke-linecap: round; }
+.tile[data-type="sword"]    svg .swd-pommel { fill: #d4a94a; stroke: #2b2420; stroke-width: 1.2; }
+.tile[data-type="sword"]    svg .swd-jewel { fill: #d64545; }
+.tile[data-type="sword"]    svg .swd-blood { fill: #d64545; }
+.tile[data-type="question"] svg { fill: var(--tile-question-icon); }
+.tile[data-type="question"] svg .die-face { fill: #faf5ec; stroke: var(--tile-question-icon); stroke-width: 1.6; }
+.tile[data-type="question"] svg .pip-b { fill: #2b2420; }
+.tile[data-type="question"] svg .pip-r { fill: #d64545; }
 
     /* ===== Global skills (settings) + Shuffle Surge badge ===== */
     .skill-row {
@@ -4348,7 +4465,7 @@ body.ult-hitstop .board-wrap {
 
       <div id="helpTabMap" class="help-tab-panel" style="display:none">
       <div class="help-sect">🗺️ Between Battles</div>
-      <div class="help-line">Each act is a small map — pick your path node by node. <strong>Mystery nodes</strong> flip risk-or-reward cards, shrines grant boons, and <strong>elites</strong> (floors 12, 27, 42) guard permanent boosts for those brave enough to fight them.</div>
+      <div class="help-line">Each act is a small map — pick your path node by node. <strong>Seeds</strong> flip risk-or-reward cards, shrines grant boons, and <strong>elites</strong> (floors 12, 27, 42) guard permanent boosts for those brave enough to fight them.</div>
 
       <div class="help-sect">🎁 Rewards &amp; Upgrades</div>
       <div class="help-line">Every floor clear grants a temporary perk for the next floor — plus a modifier you choose (benefit or challenge). Beating a boss (15, 30) lets you pick a <strong>permanent upgrade</strong> and a passive from your hero's tree — and the floor right before the final boss (44) does too, so your last permanent kit actually matters in the climactic fight.</div>
@@ -4391,8 +4508,8 @@ body.ult-hitstop .board-wrap {
   <!-- MYSTERY CARD FLIP -->
   <div class="overlay" id="mysteryOverlay">
     <div class="mystery-panel">
-      <div class="mystery-title" id="mysteryTitle">Mystery Node</div>
-      <div class="mystery-sub" id="mysterySub">Pick a card — risk or reward?</div>
+      <div class="mystery-title" id="mysteryTitle">🌱 Seed</div>
+      <div class="mystery-sub" id="mysterySub">Plant it and see what grows</div>
       <div class="mystery-cards" id="mysteryCards"></div>
       <div id="mysteryResult" style="color:#d8c8f0;font-size:0.85rem;font-weight:700;min-height:1.2em;margin-bottom:10px"></div>
       <button type="button" class="mystery-apply-btn" id="btnMysteryDone" style="display:none">Continue</button>
@@ -4543,8 +4660,10 @@ body.ult-hitstop .board-wrap {
     </div>
   </div>
 
+  <script src="js/utils.js"></script>
   <script src="js/settings.js"></script>
   <script src="js/audio.js"></script>
+  <script src="js/engine.js"></script>
   <script src="js/board.js"></script>
   <script src="js/enemies.js"></script>
   <script src="js/map.js"></script>

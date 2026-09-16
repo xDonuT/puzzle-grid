@@ -9,8 +9,8 @@ const MAP_LAYERS_PER_ACT = [
 const NODE_ICONS = {
   normal:  "⚔️",
   elite:   "💀",
-  mystery: "🌱", // Seed — internal type stays "mystery", player-facing name is Seed
-  shop:    "🛒",
+  mystery: "🌱",
+  voidMerchant: "👁️",
   boss:    "👑",
 };
 
@@ -18,7 +18,7 @@ const NODE_LABELS = {
   normal:  "Battle",
   elite:   "Elite",
   mystery: "Seed",
-  shop:    "Shop",
+  voidMerchant: "Void Merchant",
   boss:    "Boss",
 };
 
@@ -142,6 +142,15 @@ function assignNodeTypes(layers, connections, counts) {
     if (!cands.length) continue;
     cands[Math.floor(Math.random() * cands.length)].type = "mystery";
     placed++;
+  }
+
+  // --- Void Merchant: 10% chance to replace one mystery per act ---
+  if (Math.random() < 0.1) {
+    const mysteryNodes = layers.flat().filter(n => n.type === "mystery");
+    if (mysteryNodes.length) {
+      const target = mysteryNodes[Math.floor(Math.random() * mysteryNodes.length)];
+      target.type = "voidMerchant";
+    }
   }
 }
 

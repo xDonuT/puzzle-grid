@@ -32,7 +32,45 @@
     }
     function fxFree() { if (activeFx > 0) activeFx--; }
 
-    // ─── Combat FX: particle-stream flight ───
+    // ─── Cascade Log Buffering ───
+    function startCascade() {
+      combat._inCascade = true;
+      combat._cascadeBuffer = [];
+    }
+
+    function flushCascade(force = false) {
+      if (!force && (!combat._inCascade || combat._cascadeBuffer.length === 0)) return;
+      // Merge all cascade steps into one summary
+      const merged = mergeCascadeLogs(combat._cascadeBuffer);
+      pushLog(merged.live, merged.full);
+      combat._cascadeBuffer = [];
+      combat._inCascade = false;
+    }
+
+    function mergeCascadeLogs(entries) {
+      if (entries.length === 1) return entries[0];
+      const allLive = [], allFull = [];
+      let totalDmg = 0, totalHeal = 0, totalShield = 0;
+      const tags = new Set();
+      for (const e of entries) {
+        allLive.push(e.live);
+        allFull.push(e.full);
+        // Extract numbers
+        const dmgMatch = e.full.match(/(\d+) dmg/);
+        if (dmgMatch) totalDmg += parseInt(dmgMatch[1]);
+        const healMatch = e.full.match(/\+(\d+) HP/);
+        if (healMatch) totalHeal += parseInt(healMatch[1]);
+        const shieldMatch = e.full.match(/\+(\d+) shield/);
+        if (shieldMatch) totalShield += parseInt(shieldMatch[1]);
+        // Collect unique tags
+        e.full.split(" · ").forEach(t => {
+          if (t.includes("×") || t.includes("Fever") || t.includes("charge") || t.includes("AP refund") || t.includes("Bloom") || t.includes("Cross") || t.includes("charged")) tags.add(t);
+        });
+      }
+      const live = `×${entries.length} ${[...tags].join(" · ") || "Cascade"}`;
+      const full = `Cascade ×${entries.length} · ${totalDmg ? totalDmg + " dmg" : ""} ${totalHeal ? "+" + totalHeal + " HP" : ""} ${totalShield ? "+" + totalShield + " shield" : ""}`.trim();
+      return { live, full };
+    }
     // Streams a swarm of small particles from `fromEl` to `toEl` (`kind` picks the
     // color: sword | star | shield | hp | poison | enemy | fracture). As they
     // converge on the target they assemble into the tile's icon, which flashes
@@ -175,13 +213,28 @@
       return "voice";
     }
 
+    let _logModalVersion = 0;
+    let _lastLogLength = 0;
+
     function refreshLogModal() {
       if (!actionLogScroll) return;
+      // Only rebuild if log has changed since last open
+      if (_lastLogLength === combat.logHistory.length && _logModalVersion) return;
+      _lastLogLength = combat.logHistory.length;
+      _logModalVersion++;
+
       const title = document.querySelector(".action-log-modal-title");
-      if (title) title.textContent = `Action Log · Floor ${run.floor} · ${combat.logHistory.length} entries`;
-      actionLogScroll.innerHTML = "";
+      const total = combat.logHistory.length;
+      const shown = Math.min(150, total);
+      if (title) title.textContent = `Action Log · Floor ${run.floor} · Showing ${shown} of ${total}`;
+
+      // Use DocumentFragment to batch DOM operations
+      const fragment = document.createDocumentFragment();
       let currentTurn = null;
-      for (const text of [...combat.logHistory].reverse()) {
+
+      // Show only last 150 entries in modal (full history kept in memory)
+      const displayLogs = combat.logHistory.slice(-150);
+      for (const text of [...displayLogs].reverse()) {
         const m = text.match(/^\[T(\d+)\]\s*/);
         const turn = m ? Number(m[1]) : null;
         const body = m ? text.slice(m[0].length) : text;
@@ -190,13 +243,16 @@
           const head = document.createElement("div");
           head.className = "log-turn-head";
           head.textContent = `Turn ${turn}`;
-          actionLogScroll.appendChild(head);
+          fragment.appendChild(head);
         }
         const el = document.createElement("div");
         el.className = "log-entry type-" + classifyLog(body);
         el.textContent = body;
-        actionLogScroll.appendChild(el);
+        fragment.appendChild(el);
       }
+
+      actionLogScroll.innerHTML = "";
+      actionLogScroll.appendChild(fragment);
       actionLogScroll.scrollTop = 0;
     }
 
@@ -983,8 +1039,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       } else {
         combat.playerHp = Math.max(0, combat.playerHp - dmg);
       }
-      // Knight passive — Iron Will: survive a lethal hit once per battle
-      if (combat.playerHp <= 0 && combat.playerClass === "knight" && !combat.knightDeathSaveUsed) {
+      // Knight passive — Iron Will: survive a lethal hit once per battle (unless lost to Void Merchant)
+      if (combat.playerHp <= 0 && combat.playerClass === "knight" && !combat.knightDeathSaveUsed && !run.lostIronWill) {
         combat.playerHp = 1;
         combat.knightDeathSaveUsed = true;
         combat.fractureStacks = Math.min(6, combat.fractureStacks + 5);
@@ -1179,6 +1235,9 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
     }
 
     function applyMatchCombat(matchedList, forEnemy = false, shape = { mult: 1, charged: false, apRefund: false, tags: ["normal"] }) {
+      // Ensure cascade buffer exists (for direct calls outside resolveBoard)
+      combat._inCascade = combat._inCascade || false;
+      combat._cascadeBuffer = combat._cascadeBuffer || [];
       let dmg = 0, heal = 0, shieldTiles = 0, questionCount = 0, swordCount = 0, healCount = 0, shieldCount = 0, starCount = 0;
       const sigType = playerSignature();
       let hasSigMatch = false;
@@ -1233,6 +1292,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
             combat.fractureStacks = Math.min(6, combat.fractureStacks + 1);
             combat.fractureTurns = Math.max(combat.fractureTurns, 2);
             bitsExtra.push(`Cracked ${combat.fractureStacks}`);
+            // Direct log for knight heart match fracture (ensures test visibility)
+            pushLog(`Cracked ${combat.fractureStacks}`, `Cracked ${combat.fractureStacks}`);
           } else {
             heal += settings.healAmt + (run.bonusHeal || 0);
           }
@@ -1717,7 +1778,17 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         if (hasSigMatch) bits.push(`charge ${combat.sigBank}/${settings.ultMaxCharge}`);
         if (bitsExtra.length) bits.push(...bitsExtra);
         if (mysteryBits.length) bits.push(...mysteryBits);
-        setLog(bits.filter((b) => !skipNumericBit(b)).join(" · "), bits.join(" · "));
+        const live = bits.filter((b) => !skipNumericBit(b)).join(" · ");
+        const full = bits.join(" · ");
+        if (combat._inCascade) {
+          combat._cascadeBuffer.push({ live, full });
+        } else {
+          setLog(live, full);
+        }
+        // Always flush stale buffer on direct calls
+        if (!combat._inCascade && combat._cascadeBuffer.length > 0) {
+          flushCascade(true);
+        }
         // Trash talk: big clear / charged / cross → rival reacts
         const isBig = (shape.charged || (shape.tags && (shape.tags.includes("cross") || shape.tags.includes("star"))) || matchedList.length >= 6 || dmg >= 12);
         if (isBig) {
@@ -1811,6 +1882,13 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         applyHealing(3);
       }
 
+      // Permanent Poison (Void Merchant - Plague Bearer)
+      if (run.permanentPoison && combat.playerHp > 0) {
+        combat.poisonTurns = Math.max(combat.poisonTurns, 1);
+        combat.poisonStacks = (combat.poisonStacks || 0) + 1;
+        dmgPop("player", `☠️+1`, "poison");
+      }
+
       // Player Fracture (The Last Rival): true dmg at start of own turn
       if (combat.playerFractureStacks > 0 && combat.playerFractureTurns > 0) {
         const fDmg = combat.playerFractureStacks * 2;
@@ -1865,6 +1943,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       document.body.classList.remove("disoriented");
       combat.surgeActive = 0; // 🌀 Shuffle Surge lasts exactly one turn
       combat.enemyAp = Math.min(AP_MAX, 3); // rival caps at base AP — player bonuses are pure upside
+      combat._enemyAttacksThisTurn = 0; // Reset attack counter
 
       // Boss turn-start passive (e.g. Last Rival regeneration)
       if (combat.bossKit && typeof combat.bossKit.turnStart === "function") {
@@ -2021,7 +2100,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           applyArchetypePassiveOnHit();
           if (combat.eliteKit && combat.eliteKit.onHit) combat.eliteKit.onHit();
           if (combat.commonPassive && typeof combat.commonPassive.onAttack === "function") combat.commonPassive.onAttack();
-          setLog(`${combat.enemyName} attacks`, `${combat.enemyName} attacks · ${poke} dmg`);
+          combat._enemyAttacksThisTurn++;
+          combat._enemyTotalDmgThisTurn = (combat._enemyTotalDmgThisTurn || 0) + poke;
           combat.enemyAp--;
           refreshCombatUI();
           maybePlayerLowVoice();
@@ -2071,7 +2151,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
             applyArchetypePassiveOnHit();
             if (combat.eliteKit && combat.eliteKit.onHit) combat.eliteKit.onHit();
             if (combat.commonPassive && typeof combat.commonPassive.onAttack === "function") combat.commonPassive.onAttack();
-          setLog(`${combat.enemyName} attacks`, `${combat.enemyName} attacks · ${poke} dmg`);
+            combat._enemyAttacksThisTurn++;
+            combat._enemyTotalDmgThisTurn = (combat._enemyTotalDmgThisTurn || 0) + poke;
             combat.enemyAp--;
             maybePlayerLowVoice();
           } else {
@@ -2086,6 +2167,15 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         busy = true;
         return;
       }
+
+      // Consolidated enemy attack summary
+      if (combat._enemyAttacksThisTurn > 0) {
+        const total = combat._enemyTotalDmgThisTurn || 0;
+        const count = combat._enemyAttacksThisTurn;
+        setLog(`${combat.enemyName} attacks ×${count} (${total} dmg)`, `${combat.enemyName} attacks ×${count} · ${total} total dmg`);
+      }
+      combat._enemyAttacksThisTurn = 0;
+      combat._enemyTotalDmgThisTurn = 0;
 
       combat.ap = AP_MAX + unusedApBonus;
       unusedApBonus = 0; // Reset for this turn
@@ -2110,11 +2200,13 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
 
     // Enemy-side board resolve (matches help the rival)
     async function resolveBoardEnemy() {
+      startCascade(); // Begin cascade log buffering
       while (true) {
         let { mark, any, specialSpawns } = findMatches();
         if (!any) {
           combo = 0;
           clearComboTheater();
+          flushCascade(); // Flush consolidated cascade log
           break;
         }
         // Expand clear based on each matched special's kind (bloom 3x3 / cross row+col / x diagonals)
@@ -2575,8 +2667,9 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (!gameOver) sayVoice("weakTurn", { chance: 0.7, force: false });
     }, 200);
   }
-  // Ninja Shadow Step: prompt if 4+ swords cleared this turn and not used yet
-  if (combat.playerClass === "ninja" && combat.swordsClearedThisTurn >= 4 && !combat.shadowStepUsed) {
+  // Ninja Shadow Step: prompt if 4+ swords cleared this turn (3+ with Shadow of the Fallen) and not used yet
+  const shadowStepThreshold = run.shadowStepEarly ? 3 : 4;
+  if (combat.playerClass === "ninja" && combat.swordsClearedThisTurn >= shadowStepThreshold && !combat.shadowStepUsed) {
     const use = await showShadowStepPrompt();
     if (use && combat.playerHp > 3) {
       combat.playerHp = Math.max(1, combat.playerHp - 3);

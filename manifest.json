@@ -1,0 +1,9 @@
+{
+  "name": "Bloom Tower 🌸",
+  "short_name": "Bloom Tower",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f5efe4",
+  "theme_color": "#f5efe4",
+  "icons": []
+}

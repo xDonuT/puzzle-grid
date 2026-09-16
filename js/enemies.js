@@ -1206,6 +1206,11 @@
       tileBloomPerTurn: false,
       tempShieldCapBonus: 0,
       sigTilesThisTurn: 0,
+      // Cascade log buffer (consolidates chain into 1 entry)
+      _cascadeBuffer: [],
+      _inCascade: false,
+      // Enemy attack consolidation
+      _enemyAttacksThisTurn: 0,
       boundTiles: new Set()   // "r,c" strings — tiles locked by Rival's Root Bind ult
     };
 

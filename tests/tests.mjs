@@ -223,7 +223,7 @@ assertEq(fullMap.acts[0].layers.length, MAP_LAYERS_PER_ACT[0].length + 1, "each 
     }
     for (const n of Object.values(byId)) {
       if (n.type === "elite") elites++;
-      if (n.type === "mystery") mysteries++;
+      if (n.type === "mystery" || n.type === "voidMerchant") mysteries++;
     }
     assertEq(elites, 2, "each act has exactly 2 elites (reachable + avoidable)");
     assertEq(mysteries, 3, "each act has exactly 3 mystery/seed nodes");

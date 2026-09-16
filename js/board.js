@@ -453,14 +453,16 @@
     // ---------- core loop ----------
     async function resolveBoard() {
       clearGridRectCache(); // fresh layout each resolve (scroll/resize safe)
+      startCascade(); // Begin cascade log buffering
       while (true) {
         // Battle already decided (overlay open) — stop resolving cascades
-        if (typeof gameOver !== "undefined" && gameOver) break;
+        if (typeof gameOver !== "undefined" && gameOver) { flushCascade(); break; }
         let { mark, any, specialSpawns } = findMatches();
         if (!any) {
           combo = 0;
           comboEl.textContent = "0";
           clearComboTheater(); // lingers ~850ms, cancelled by a new shout
+          flushCascade(); // Flush consolidated cascade log
           break;
         }
 

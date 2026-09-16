@@ -239,9 +239,10 @@
 
     entries.forEach(entry => {
       const rev = isRevealed(activeTab, entry.id);
+      const tierClass = entry.tier ? `tier-${entry.tier.charAt(entry.tier.length - 1)}` : "";
       if (rev) {
         html += `
-          <div class="codex-card revealed ${entry.tier || ""}">
+          <div class="codex-card revealed ${tierClass}">
             <div class="codex-card-icon">${entry.icon}</div>
             <div class="codex-card-name">${entry.name}</div>
             <div class="codex-card-desc">${entry.desc}</div>

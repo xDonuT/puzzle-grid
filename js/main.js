@@ -726,8 +726,7 @@ const screenMenu = document.getElementById("screen-menu");
       const map = run.gameMap;
       if (!map) return;
       hideMap();
-      // Mark visited and set current
-      map.visitedNodes[node.id] = true;
+      // Set current node (visited only on victory)
       map.currentNode = node.id;
 
       // Route to the right encounter
@@ -751,6 +750,11 @@ const screenMenu = document.getElementById("screen-menu");
         const eliteFloors = [12, 27, 42];
         run.floor = eliteFloors[map.currentAct - 1] || calcMapFloor(map);
         startBattle({ fromVictory: false });
+      } else if (node.type === "voidMerchant") {
+        openVoidMerchant(() => {
+          showMap();
+          saveRun();
+        });
       } else {
         // Normal fight
         run.floor = calcMapFloor(map);
@@ -781,6 +785,8 @@ const screenMenu = document.getElementById("screen-menu");
         openMysteryNode(() => { showMap(); saveRun(); });
       } else if (node.type === "shop") {
         openShopNode(() => { showMap(); saveRun(); });
+      } else if (node.type === "voidMerchant") {
+        openVoidMerchant(() => { showMap(); saveRun(); });
       } else {
         run.floor = calcMapFloor(map);
         startBattle({ fromVictory: false });
@@ -788,12 +794,14 @@ const screenMenu = document.getElementById("screen-menu");
     }
 
     function calcMapFloor(map) {
-      // Count visited battle nodes in current act to determine floor index
+      // Count visited battle nodes in current act to determine floor index.
+      // The node currently being fought counts as in-progress (it is only
+      // marked "visited" on victory), so the running floor number stays aligned.
       const actData = map.acts[map.currentAct - 1];
       let count = 0;
       for (const layer of actData.layers) {
         for (const node of layer) {
-          if (map.visitedNodes[node.id] && node.type !== "boss") count++;
+          if ((map.visitedNodes[node.id] || map.currentNode === node.id) && node.type !== "boss") count++;
         }
       }
       return (map.currentAct - 1) * 15 + count;
@@ -1054,6 +1062,157 @@ const screenMenu = document.getElementById("screen-menu");
       ov.classList.add("open");
     }
 
+    // ===================== VOID MERCHANT =====================
+    // Rare replacement for a Seed node. Trades permanent Max HP/Shield for power.
+    function openVoidMerchant(onDone) {
+      const ov = document.getElementById("shopOverlay"); // reuse shop overlay
+      const itemsEl = document.getElementById("shopItems");
+      const hpDisplay = document.getElementById("shopHpDisplay");
+      const btnDone = document.getElementById("btnShopDone");
+      if (!ov || !itemsEl) { if (onDone) onDone(); return; }
+
+      // Build stock: 2 items per visit, class-filtered, act-scaled cost
+      const act = run.currentAct || 1;
+      const hero = (combat.playerClass || "ninja").toUpperCase();
+      const allStock = [
+        // Ninja
+        { cls: "NINJA", name: "Bloodletter's Edge", cost: { maxHp: 15 }, effect: () => { run.bloodletter = true; }, desc: "Sword matches apply Bleed (enemy heal ÷2) + you heal 2" },
+        { cls: "NINJA", name: "Hollow Vessel", cost: { maxShield: "all", maxShieldFlat: 10 }, effect: () => { run.manaShield = true; run.reflectiveAura = true; }, desc: "Lose all shield. Gain Mana Shield (60% absorb) + Reflect 2" },
+        { cls: "NINJA", name: "Shadow of the Fallen", cost: { maxAp: 1 }, effect: () => { run.blitz = true; run.shadowStepEarly = true; }, desc: "Lose 1 Max AP. Gain Blitz (first match free) + Shadow Step at 3 swords" },
+        { cls: "NINJA", name: "Plague Bearer", cost: { permanentPoison: 1 }, effect: () => { run.venomousBlade = true; run.miasmaReflex = true; run.lethalPoison = true; run.permanentPoison = true; }, desc: "Gain 1 Poison/turn forever. Gain Venomous Blade + Miasma Reflex + Lethal Poison" },
+        // Wizard
+        { cls: "WIZARD", name: "Cracked Mirror", cost: { maxHpPct: 20 }, effect: () => { run.arcaneMirror = true; run.contagionCatalyst = true; run.mysticInsight = true; }, desc: "Lose 20% Max HP. Gain Arcane Mirror + Contagion Catalyst + Mystic Insight" },
+        { cls: "WIZARD", name: "Void Battery", cost: { maxShield: 15 }, effect: () => { run.floorChargeBonus = (run.floorChargeBonus || 0) + 5; run.infiniteMana = true; }, desc: "Lose 15 Max Shield. Gain +5 Ult charge/floor + Infinite Mana (4+ match = 1 AP)" },
+        { cls: "WIZARD", name: "Starved Sage", cost: { maxHp: 10 }, effect: () => { run.celestial = true; run.runicShield = true; }, desc: "Lose 10 Max HP. Gain Sun-Kissed (star heal 3 + shield 1) + Runic Burst" },
+        // Knight
+        { cls: "KNIGHT", name: "Earth's Hunger", cost: { loseIronWill: true }, effect: () => { run.lostIronWill = true; run.shatterPlus = true; run.earthquake = true; run.toxicFortitude = true; }, desc: "Lose Iron Will cheat death. Gain Shatter+ + Earthquake + Toxic Fortitude" },
+        { cls: "KNIGHT", name: "Hollow Knight", cost: { maxHp: 15 }, effect: () => { run.devastation = true; run.counterStrike = true; }, desc: "Lose 15 Max HP. Gain Power Strike (ult spends shield) + Counter Strike" },
+        { cls: "KNIGHT", name: "Grave Warden", cost: { maxShield: 10 }, effect: () => { run.bulwark = true; run.corrosiveOverheal = true; }, desc: "Lose 10 Max Shield. Gain Bulwark (shield→fracture) + Corrosive Overheal" },
+        // Any
+        { cls: "ANY", name: "Gambler's Coin", cost: { currentHpPct: 50 }, effect: () => { run.nextSeedGuaranteed = true; }, desc: "Pay half current HP. Next Seed: 3 Blessings, 0 Curses, Guaranteed Jackpot" },
+        { cls: "ANY", name: "Key to the Back Door", cost: { skipRewards: true }, effect: () => { run.skipNextElite = true; run.bossDoubleDrop = true; }, desc: "Skip floor rewards this act. Skip next Elite, Boss drops 2 upgrades" },
+      ];
+      const stock = allStock
+        .filter(s => s.cls === "ANY" || s.cls === hero)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 2);
+
+      const dialogue = [
+        "You smell like potential. And iron deficiency.",
+        "I don't take gold. I take *tomorrows*.",
+        "That HP? You're just borrowing it from the floor below.",
+        "Go on. Bleed a little. Power likes the taste.",
+        "The tower eats the weak. I just... help it digest.",
+        "Your shield? A pretty lie. Sell it to me.",
+      ][Math.floor(Math.random() * 6)];
+
+      function renderMerchant() {
+        itemsEl.innerHTML = "";
+        if (hpDisplay) hpDisplay.innerHTML = `❤️ ${combat.playerHp}/${combat.playerMaxHp} HP &nbsp;·&nbsp; 🛡️ ${combat.shield} shield`;
+        // Title card
+        const titleCard = document.createElement("div");
+        titleCard.className = "shop-item void-title";
+        titleCard.innerHTML = `<span class="si-icon">👁️</span><div class="si-info"><div class="si-name">Void Merchant</div><div class="si-desc">${dialogue}</div></div>`;
+        itemsEl.appendChild(titleCard);
+
+        stock.forEach((item, i) => {
+          const el = document.createElement("div");
+          el.className = "shop-item void-item";
+          let costText = "";
+          if (item.cost.maxHp) costText = `❤️ −${item.cost.maxHp} Max HP`;
+          else if (item.cost.maxHpPct) costText = `❤️ −${item.cost.maxHpPct}% Max HP`;
+          else if (item.cost.currentHpPct) costText = `❤️ −${item.cost.currentHpPct}% Current HP`;
+          else if (item.cost.maxShield) costText = `🛡️ −${item.cost.maxShield} Max Shield`;
+          else if (item.cost.maxShieldFlat) costText = `🛡️ Lose All Shield + ${item.cost.maxShieldFlat} Max Shield`;
+          else if (item.cost.maxAp) costText = `⚡ −${item.cost.maxAp} Max AP`;
+          else if (item.cost.permanentPoison) costText = `☠️ Permanent: +${item.cost.permanentPoison} Poison/turn`;
+          else if (item.cost.loseIronWill) costText = `💔 Lose Iron Will (cheat death)`;
+          else if (item.cost.skipRewards) costText = `🎁 Skip This Act's Rewards`;
+
+          const canAfford = checkVoidCost(item.cost);
+
+          el.innerHTML = `
+            <span class="si-icon">${item.cls === "ANY" ? "🎲" : hero === "NINJA" ? "🗡️" : hero === "WIZARD" ? "🔮" : "🏰"}</span>
+            <div class="si-info">
+              <div class="si-name">${item.name}</div>
+              <div class="si-desc">${item.desc}</div>
+            </div>
+            <span class="si-cost${canAfford ? "" : " cant-afford"}">${costText}</span>
+          `;
+          if (canAfford) {
+            el.addEventListener("click", () => {
+              payVoidCost(item.cost);
+              item.effect();
+              if (!run.voidMerchantPurchases) run.voidMerchantPurchases = [];
+              run.voidMerchantPurchases.push(item.name);
+              ov.classList.remove("open");
+              if (onDone) onDone();
+              saveRun();
+            });
+          }
+          itemsEl.appendChild(el);
+        });
+      }
+
+      function checkVoidCost(cost) {
+        if (cost.maxHp) return combat.playerMaxHp > cost.maxHp;
+        if (cost.maxHpPct) return combat.playerMaxHp > Math.ceil(combat.playerMaxHp * cost.maxHpPct / 100);
+        if (cost.currentHpPct) return combat.playerHp > Math.ceil(combat.playerHp * cost.currentHpPct / 100);
+        if (cost.maxShield) return combat.shield >= cost.maxShield || (run.bonusShieldMax || 0) >= cost.maxShield;
+        if (cost.maxShieldFlat) return true; // always can pay "lose all shield"
+        if (cost.maxAp) return (run.bonusApMax || 0) > cost.maxAp || AP_MAX > 3 + cost.maxAp;
+        if (cost.permanentPoison) return true;
+        if (cost.loseIronWill) return run.lostIronWill !== true;
+        if (cost.skipRewards) return true;
+        return true;
+      }
+
+      function payVoidCost(cost) {
+        if (cost.maxHp) {
+          run.bonusMaxHp = Math.max(0, run.bonusMaxHp - cost.maxHp);
+          combat.playerMaxHp = HERO_STATS[combat.playerClass].hp + run.bonusMaxHp;
+          combat.playerHp = Math.min(combat.playerMaxHp, combat.playerHp);
+        }
+        if (cost.maxHpPct) {
+          const loss = Math.ceil(combat.playerMaxHp * cost.maxHpPct / 100);
+          run.bonusMaxHp = Math.max(0, run.bonusMaxHp - loss);
+          combat.playerMaxHp = HERO_STATS[combat.playerClass].hp + run.bonusMaxHp;
+          combat.playerHp = Math.min(combat.playerMaxHp, combat.playerHp);
+        }
+        if (cost.currentHpPct) {
+          const loss = Math.ceil(combat.playerHp * cost.currentHpPct / 100);
+          combat.playerHp = Math.max(1, combat.playerHp - loss);
+        }
+        if (cost.maxShield) {
+          run.bonusShieldMax = Math.max(0, run.bonusShieldMax - cost.maxShield);
+        }
+        if (cost.maxShieldFlat) {
+          combat.shield = 0;
+          run.bonusShieldMax = (run.bonusShieldMax || 0) + cost.maxShieldFlat;
+        }
+        if (cost.maxAp) {
+          run.bonusApMax = Math.max(0, run.bonusApMax - cost.maxAp);
+          AP_MAX = 3 + run.bonusApMax;
+        }
+        if (cost.permanentPoison) {
+          run.permanentPoison = true;
+        }
+        if (cost.loseIronWill) {
+          run.lostIronWill = true;
+        }
+        if (cost.skipRewards) {
+          run.skipActRewards = true;
+        }
+        // Visual feedback
+        dmgPop("player", "PAID", "dmg");
+        shakeBoard("heavy");
+      }
+
+      renderMerchant();
+      if (btnDone) btnDone.onclick = () => { ov.classList.remove("open"); if (onDone) onDone(); };
+      ov.classList.add("open");
+    }
+
     // Boss win → choose 1 of 3 upgrades (4 with a pending extra-pick reward), then show the victory overlay
     function openUpgradePicker(onPick) {
       const wrap = document.getElementById("upgradeCards");
@@ -1200,13 +1359,17 @@ const screenMenu = document.getElementById("screen-menu");
       ov.classList.add("open");
     }
 
-    function checkGameOver() {
+function checkGameOver() {
       if (gameOver) return;
       document.body.classList.remove("your-turn");
       if (combat.enemyHp <= 0) {
         gameOver = true;
         busy = true;
-        pauseRunTimer(); // picker deliberation shouldn't count toward run time
+        pauseRunTimer();
+        // Mark map node as visited on victory
+        if (run.gameMap && run.gameMap.currentNode) {
+          run.gameMap.visitedNodes[run.gameMap.currentNode] = true;
+        }
         // Plague passive: if enemy died while poisoned, next floor's enemy takes 10 damage
         if (run.plague && combat.poisonStacks > 0) {
           run.plagueDmg = (run.plagueDmg || 0) + 10;
@@ -1282,7 +1445,13 @@ const screenMenu = document.getElementById("screen-menu");
           // window — the next battle win surfaces it.
           const blessSpecial = (typeof getNextBlessing === "function") ? getNextBlessing() : null;
           const shapeSpecial = (typeof getNextShapeSkill === "function") ? getNextShapeSkill() : null;
-          const rewardFlow = () => openRewardPicker(buildFloorRewardChoices(), {
+
+          // Void Merchant: Skip act rewards
+          if (run.skipActRewards) {
+            run.skipActRewards = false;
+            showVictoryOverlay({ label: "Rewards skipped — Key to the Back Door", permanent: false });
+          } else {
+            const rewardFlow = () => openRewardPicker(buildFloorRewardChoices(), {
             title: "Floor Reward",
             sub: "Pick a permanent boon — it stays all run",
             permanent: true,
@@ -1308,6 +1477,7 @@ const screenMenu = document.getElementById("screen-menu");
           if (blessSpecial) openTileBlessingPicker(blessSpecial, afterBlessing);
           else if (shapeSpecial) openShapeSkillPicker(shapeSpecial, rewardFlow);
           else rewardFlow();
+          }
         }
       } else if (combat.playerHp <= 0) {
         gameOver = true;
@@ -1532,6 +1702,8 @@ const screenMenu = document.getElementById("screen-menu");
       nextRunNg = 0;
       run.classUpgradeOfferedActs = [];
       combat.tutorial = false;
+      combat._inCascade = false;
+      combat._cascadeBuffer = [];
       run.bonusMaxHp = 0;
       run.bonusShieldMax = 0;
       run.bonusApMax = 0;
@@ -1754,6 +1926,8 @@ const screenMenu = document.getElementById("screen-menu");
       combat.playerFractureTurns = 0;
       combat.playerMortalWoundTurns = 0;
       combat.logHistory = [];
+      combat._inCascade = false;
+      combat._cascadeBuffer = [];
       combat.stats = { sword: 0, star: 0, runic: 0, poison: 0, fracture: 0, ult: 0, reflect: 0, taken: 0, healed: 0, shield: 0, ultCasts: 0 };
       combat.ultAnnounced = false;
       combat.enemyUltCharge = 0;
@@ -1955,8 +2129,36 @@ const screenMenu = document.getElementById("screen-menu");
           const map = run.gameMap;
           const node = getNodeById(map.acts[map.currentAct - 1], map.currentNode);
           if (node && node.type === "boss") {
+            // Void Merchant: Boss double drop
+            if (run.bossDoubleDrop) {
+              run.bossDoubleDrop = false;
+              openUpgradePicker(label => {
+                openUpgradePicker(label2 => {
+                  openPassivePicker(passiveLabel => {
+                    showVictoryOverlay({ label, permanent: true, passiveLabel, upgradeLabel: label2 });
+                  });
+                });
+              });
+              return;
+            }
             advanceActOrVictory();
           } else {
+            // Void Merchant: Skip next elite
+            if (run.skipNextElite) {
+              run.skipNextElite = false;
+              const actMap = map.acts[map.currentAct - 1];
+              const eliteNode = actMap.layers.flat().find(n => n.type === "elite" && !map.visitedNodes[n.id]);
+              if (eliteNode) {
+                eliteNode.type = "normal";
+                // Visual feedback
+                const el = document.getElementById(eliteNode.id);
+                if (el) {
+                  el.textContent = "⚔️";
+                  el.title = "Elite skipped — Void Merchant's Key";
+                  el.style.opacity = "0.6";
+                }
+              }
+            }
             showMap();
           }
         } else {

@@ -662,12 +662,50 @@
     let bgmStarted = false;
     let bgmHidden = false;
 
+    // File-backed BGM: user-authored tracks play via <audio> (hardware-decoded
+    // on the phone's audio chip — near-zero CPU vs the procedural synth graph).
+    // Key = `${act}:${mode}`; when a battle/boss mode has no dedicated file it
+    // falls back to that act's `:field` track, then to the procedural synth.
+    const BGM_FILES = {
+      "1:field": "BGM/Whispering Woods.q3.ogg",
+      "2:field": "BGM/The Ascent Act 2.q3.ogg",
+      "3:field": "BGM/Victory Lap.q3.ogg"
+    };
+    let bgmFile = null;       // active <audio> element (file-backed track)
+    let bgmFileRamp = null;   // volume fade timer
+
     function bgmVol() {
       if (settings.muted || settings.musicEnabled === false) return 0;
       // Gentle bed: liner on purpose. Sits quietly under SFX - never louder than
       // the music slider itself. *1.15 compensates for the compressor's -32dBFS
       // threshold so the perceived level matches the slider midpoint.
       return Math.max(0, Math.min(1.0, (settings.musicVolume || 0.5) * 1.15));
+    }
+
+    // ---------- file-backed BGM helpers ----------
+    function bgmFileKey(act, mode) { return `${act}:${mode}`; }
+    function bgmFileFor(act, mode) {
+      return BGM_FILES[bgmFileKey(act, mode)] || BGM_FILES[bgmFileKey(act, "field")] || null;
+    }
+    // Volume fade on the active <audio> element (ease-out over `dur` ms).
+    function bgmFadeFile(target, dur) {
+      if (!bgmFile) return;
+      if (bgmFileRamp) { clearInterval(bgmFileRamp); bgmFileRamp = null; }
+      const c0 = bgmFile.volume, t0 = performance.now(), dt = Math.max(1, dur);
+      bgmFileRamp = setInterval(() => {
+        if (!bgmFile) { clearInterval(bgmFileRamp); bgmFileRamp = null; return; }
+        const p = Math.min(1, (performance.now() - t0) / dt);
+        bgmFile.volume = c0 + (target - c0) * (p < 1 ? 1 - Math.pow(1 - p, 3) : 1);
+        if (p >= 1) { clearInterval(bgmFileRamp); bgmFileRamp = null; }
+      }, 40);
+    }
+    function bgmStopFile() {
+      if (bgmFileRamp) { clearInterval(bgmFileRamp); bgmFileRamp = null; }
+      if (!bgmFile) return;
+      try { bgmFile.pause(); } catch (_) {}
+      bgmFile.src = "";
+      try { bgmFile.load(); } catch (_) {}
+      bgmFile = null;
     }
 
     // Resolve the active theme: per-mode scale, ghost steps, lead texture and
@@ -918,6 +956,30 @@
       mode = mode || "field";
       if (settings.musicEnabled === false) return;
       if (!ensureAudio()) return;
+      const track = bgmFileFor(act, mode);
+      if (track) {
+        // User-authored track: hard-stop any procedural synth, play via <audio>.
+        bgmStopSynth();
+        bgm = { mode, act, step: 0, loop: 0, nextT: 0, gain: null, running: true };
+        bgmStarted = true;
+        if (bgmFile && bgmFile._key === bgmFileKey(act, mode)) {
+          if (bgmFile.paused) bgmFile.play().catch(() => {});
+          bgmFadeFile(bgmVol(), 0.35);
+          return;
+        }
+        if (bgmFile) bgmStopFile();
+        const el = document.createElement("audio");
+        el._key = bgmFileKey(act, mode);
+        el.src = track;
+        el.loop = true;
+        el.preload = "auto";
+        bgmFile = el;
+        const start = () => { el.play().catch(() => {}); bgmFadeFile(bgmVol(), 0.8); };
+        if (el.readyState >= 2) start();
+        else el.addEventListener("loadeddata", start, { once: true });
+        return;
+      }
+      bgmStopFile();
       if (bgm && bgm.running && bgm.act === act && bgm.mode === mode) return;
       if (!bgm) bgm = { mode, act, step: 0, loop: 0, nextT: 0, gain: null, running: false };
       if (!bgm.gain) {
@@ -970,33 +1032,38 @@
       bgmScheduler();
     }
 
-    function bgmStop() {
+    function bgmStopSynth() {
       if (!bgm) return;
       bgm.running = false;
       bgm._flip = null;
       if (bgmTimer) { clearInterval(bgmTimer); bgmTimer = null; }
-      if (bgm.gain) bgm.gain.gain.setTargetAtTime(0.001, audioCtx.currentTime, 0.08);
-      // Lazy cleanup: let the fade finish, then disconnect the graph so nodes
-      // don't accumulate across multiple runs.
+      const gain = bgm.gain, comp = bgm.comp, make = bgm.make,
+            rev = bgm.rev, revSend = bgm.revSend, danger = bgmDangerNode;
+      if (gain && audioCtx) gain.gain.setTargetAtTime(0.001, audioCtx.currentTime, 0.08);
+      // Lazy cleanup: capture the old graph refs now — bgm may be reassigned
+      // (file track) or rebuilt (new theme) before the fade finishes, so only
+      // tear down the nodes that were alive when this stop was called.
       setTimeout(() => {
-        if (!bgm || bgm.running) return;
-        if (bgm.gain) {
-          try { bgm.gain.disconnect(); } catch (_) {}
-          try { if (bgm.comp) bgm.comp.disconnect(); } catch (_) {}
-          try { if (bgm.make) bgm.make.disconnect(); } catch (_) {}
-          try { if (bgm.rev) bgm.rev.disconnect(); } catch (_) {}
-          try { if (bgm.revSend) bgm.revSend.disconnect(); } catch (_) {}
-          bgm.gain = null; bgm.comp = null; bgm.make = null;
-          bgm.rev = null; bgm.revSend = null;
+        if (gain) {
+          try { gain.disconnect(); } catch (_) {}
+          try { if (comp) comp.disconnect(); } catch (_) {}
+          try { if (make) make.disconnect(); } catch (_) {}
+          try { if (rev) rev.disconnect(); } catch (_) {}
+          try { if (revSend) revSend.disconnect(); } catch (_) {}
         }
-        if (bgmDangerNode) {
-          try { bgmDangerNode.disconnect(); } catch (_) {}
-          bgmDangerNode = null;
-        }
+        if (danger) { try { danger.disconnect(); } catch (_) {} }
       }, 250);
+      if (bgm.gain === gain) { bgm.gain = null; bgm.comp = null; bgm.make = null; bgm.rev = null; bgm.revSend = null; }
+      if (bgmDangerNode === danger) bgmDangerNode = null;
+    }
+
+    function bgmStop() {
+      bgmStopFile();
+      bgmStopSynth();
     }
 
     function bgmUpdateVolume() {
+      if (bgmFile) bgmFadeFile(bgmVol(), 0.25);
       if (!bgm || !bgm.gain) return;
       bgm.gain.gain.setTargetAtTime(bgmVol(), audioCtx.currentTime, 0.15);
     }

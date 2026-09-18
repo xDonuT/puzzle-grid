@@ -327,17 +327,30 @@ const screenMenu = document.getElementById("screen-menu");
       sub.textContent = cfg.note || "Choose what this tile does";
       sub.style.color = "#7a6e64";
 
+      const current = run.blessings[special];
+      const slotEl = document.getElementById("blessingSlot");
+      const curBlessing = current ? (TILE_BLESSINGS[special] || []).find(b => b.id === current) : null;
+      if (slotEl) {
+        if (curBlessing) {
+          slotEl.className = "blessing-slot filled";
+          slotEl.textContent = `✓ Current: ${curBlessing.icon} ${curBlessing.name} — tap another to switch`;
+        } else {
+          slotEl.className = "blessing-slot empty";
+          slotEl.textContent = "◎ Slot empty — choose this tile's blessing";
+        }
+      }
+
       cards.innerHTML = "";
       panel.classList.remove("plant", "show");
 
       TILE_BLESSINGS[special].forEach(b => {
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "blessing-card";
+        btn.className = "blessing-card" + (b.id === current ? " on" : "");
         btn.style.setProperty("--bc", cfg.color);
         btn.innerHTML =
           `<span class="blessing-ico">${b.icon}</span>` +
-          `<span class="blessing-text"><div class="blessing-name">${b.name}</div>` +
+          `<span class="blessing-text"><div class="blessing-name">${b.name}${b.id === current ? " ✓" : ""}</div>` +
           `<div class="blessing-note">${b.desc}</div></span>`;
         btn.addEventListener("click", () => {
           if (btn.classList.contains("on")) return;
@@ -385,6 +398,27 @@ const screenMenu = document.getElementById("screen-menu");
       rows.innerHTML = "";
       const meta = shapeMeta(openShape);
       const cur = sk[openShape];
+
+      // Slot strip: glance at every shape's slot state and jump between shapes.
+      const strip = document.createElement("div");
+      strip.className = "shape-slots";
+      ["star", "cross", "charged"].forEach(shp => {
+        const m = shapeMeta(shp);
+        const curId = sk[shp];
+        const curSkill = curId ? (SHAPE_SKILLS[shp] || []).find(s => s.id === curId) : null;
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "shape-slot-chip" + (shp === openShape ? " active" : "") + (curId ? "" : " empty");
+        chip.setAttribute("data-shape", shp);
+        chip.innerHTML =
+          `<span class="shape-slot-ico">${m.icon}</span>` +
+          `<span class="shape-slot-body"><span class="shape-slot-label">${m.label}</span>` +
+          `<span class="shape-slot-state">${curSkill ? `${curSkill.icon} ${curSkill.name}` : "Empty slot"}</span></span>`;
+        chip.addEventListener("click", () => openShapeSkillPicker(shp, pickerOnDone));
+        strip.appendChild(chip);
+      });
+      rows.appendChild(strip);
+
       let cards = "";
       SHAPE_SKILLS[openShape].forEach(s => {
         const active = s.id === cur;
@@ -2185,6 +2219,65 @@ function checkGameOver() {
       }
     });
 
+    const CHAR_PROFILES = {
+      ninja: {
+        tag: "The Swift Shadow",
+        blurb: "Fast, sharp and elusive — dodges strikes, saps enemies with venom, and finishes the wounded. Fragile, so she ends fights quickly.",
+        sigIcon: "⚔️", sig: "Sword",
+        ult: "Assassinate",
+        ultDesc: "Spend 3 HP to strike true damage and leave an Afterglow aura (take 50% less). Doubles against enemies below 30% HP.",
+        base: "85 HP · 15 shield · auto-dodge first hit"
+      },
+      wizard: {
+        tag: "The Arcane Storm",
+        blurb: "Wraps herself in shields that double as weapons — reflecting damage, dealing Runic hits, and chaining mana into storms.",
+        sigIcon: "🛡️", sig: "Shield",
+        ult: "Moonstorm",
+        ultDesc: "Consume all shields into true damage, chain free hits from linked tiles, keep a barrier, and steal enemy shield.",
+        base: "100 HP · 20 shield · 40% damage reflect"
+      },
+      knight: {
+        tag: "The Unyielding Bastion",
+        blurb: "A wall that heals, cracks and counters — hearts sustain him, and every hit he takes only makes his return swing heavier.",
+        sigIcon: "❤️", sig: "Heart",
+        ult: "Earthshatter",
+        ultDesc: "Consume hearts into true damage, heal per heart, detonate all Cracked stacks, and wound the rival (−25% damage).",
+        base: "120 HP · 15 shield · Iron Will death-save"
+      }
+    };
+
+    function renderCharProfile(cls) {
+      const el = document.getElementById("charInfoBody");
+      if (!el || typeof HERO_STATS === "undefined" || typeof characterSvg !== "function") return;
+      cls = (cls && CHAR_PROFILES[cls]) ? cls : (combat.playerClass || "ninja");
+      const p = CHAR_PROFILES[cls] || CHAR_PROFILES.ninja;
+      const h = HERO_STATS[cls] || HERO_STATS.ninja;
+      const costKey = (settings.costume && COSTUMES[cls] && COSTUMES[cls][settings.costume[cls]]) ? settings.costume[cls] : "classic";
+      const wpnKeys = Object.keys(WEAPONS[cls] || {});
+      const wpnKey = (settings.weapon && settings.weapon[cls] && WEAPONS[cls][settings.weapon[cls]]) ? settings.weapon[cls] : (wpnKeys[0] || "classic");
+      el.style.setProperty("--cp", `var(--${cls})`);
+      el.innerHTML =
+        `<div class="cp-head"><div class="portrait ${cls}">${characterSvg(cls, costKey, wpnKey)}</div>` +
+        `<div><div class="cp-name">${h.name}</div><div class="cp-tag">${p.tag}</div></div></div>` +
+        `<div class="cp-blurb">${p.blurb}</div>` +
+        `<div class="cp-rows">` +
+        `<div class="cp-row"><span class="cp-chip">${p.sigIcon}</span> Signature — ${p.sig}</div>` +
+        `<div class="cp-row"><span class="cp-chip">🔥</span> Ultimate: ${p.ult}</div>` +
+        `<div class="cp-row" style="padding-left:30px">${p.ultDesc}</div>` +
+        `<div class="cp-row"><span class="cp-chip">❤️</span> ${p.base}</div>` +
+        `</div>`;
+    }
+
+    function openCharInfo(cls) {
+      renderCharProfile(cls);
+      const ov = document.getElementById("charInfoOverlay");
+      if (ov) ov.classList.add("open");
+    }
+    function closeCharInfo() {
+      const ov = document.getElementById("charInfoOverlay");
+      if (ov) ov.classList.remove("open");
+    }
+
     function buildCharPick() {
       charPick.innerHTML = "";
       ["ninja", "wizard", "knight"].forEach(key => {
@@ -2194,10 +2287,15 @@ function checkGameOver() {
         const wpnKey = (settings.weapon && WEAPONS[key][settings.weapon[key]]) ? settings.weapon[key] : wpnKeys[0];
         const card = document.createElement("div");
         card.className = "char-card" + (combat.playerClass === key ? " selected" : "");
-        card.innerHTML = `<div class="portrait ${c.role}">${characterSvg(key, costKey, wpnKey)}</div><div class="fighter-name">${c.name}</div>`;
+        card.innerHTML = `<button type="button" class="char-info-btn" aria-label="${c.name} info" title="View ${c.name} info">i</button><div class="portrait ${c.role}">${characterSvg(key, costKey, wpnKey)}</div><div class="fighter-name">${c.name}</div>`;
         card.addEventListener("click", () => {
           combat.playerClass = key;
           buildCharPick();
+        });
+        const infoBtn = card.querySelector(".char-info-btn");
+        if (infoBtn) infoBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          openCharInfo(key);
         });
         charPick.appendChild(card);
       });
@@ -2397,6 +2495,8 @@ function checkGameOver() {
     document.getElementById("btnGameSettings").addEventListener("click", openSettings);
     const btnShapeDone = document.getElementById("btnShapeSkillDone");
     if (btnShapeDone) btnShapeDone.addEventListener("click", closeShapeSkillPicker);
+    const btnCharInfoClose = document.getElementById("btnCharInfoClose");
+    if (btnCharInfoClose) btnCharInfoClose.addEventListener("click", closeCharInfo);
     document.getElementById("btnSettingsClose").addEventListener("click", closeSettings);
     document.getElementById("btnSettingsSave").addEventListener("click", saveSettings);
 
@@ -2762,18 +2862,21 @@ function checkGameOver() {
         let found = null;
         if (typeof SHAPE_SKILLS !== "undefined" && SHAPE_SKILLS[shape] && id) found = SHAPE_SKILLS[shape].find(o => o.id === id) || null;
         const icon = found ? found.icon : (meta[shape].icon);
-        const name = found ? found.name : "None";
-        const desc = found ? found.desc : "No skill — matches make extra shapes but nothing special";
+        const name = found ? found.name : "Empty slot";
+        const desc = found ? found.desc : "Not assigned — matches make extra shapes but nothing special";
         made.push(`
-          <div class="skill-tile psv" tabindex="0" role="button"
+          <div class="skill-tile psv ${found ? "filled" : "empty"}" tabindex="0" role="button"
                data-name="${esc(name)}" data-desc="${esc(desc)}"
                title="${esc(name)} — ${esc(desc)}">
             <span class="skill-num">${i + 1}</span>
             <span class="skill-ico">${icon}</span>
           </div>`);
       });
-      const any = ["star", "cross", "charged"].some(s => sk[s]);
-      return `<div class="skill-group"><div class="info-section">Shape Skills</div><div class="info-grid">${made.join("")}</div><div class="skill-cap" hidden>${any ? "Tap a slot to read it" : "Assign skills mid-fight via the ✦ button"}</div></div>`;
+      const allFilled = ["star", "cross", "charged"].every(s => sk[s]);
+      const hint = allFilled
+        ? "Tap a slot to read it"
+        : (["star", "cross", "charged"].some(s => sk[s]) ? "Amber dashed = empty slot · assign mid-fight via ✦" : "All slots empty — assign skills mid-fight via the ✦ button");
+      return `<div class="skill-group"><div class="info-section">Shape Skills</div><div class="info-grid">${made.join("")}</div><div class="skill-cap">${hint}</div></div>`;
     }
 
     // Tile Blessings passport section — the three chosen enhanced-tile styles
@@ -2788,18 +2891,21 @@ function checkGameOver() {
         const found = (typeof TILE_BLESSINGS !== "undefined" && TILE_BLESSINGS[special] && id)
           ? TILE_BLESSINGS[special].find(o => o.id === id) : null;
         const icon = found ? found.icon : (special === "bloom" ? "🌸" : special === "cross" ? "✚" : "✖");
-        const name = found ? found.name : "Not claimed";
-        const desc = found ? found.desc : "Clear this tile's floor to earn a pick";
+        const name = found ? found.name : "Empty slot";
+        const desc = found ? found.desc : "Not claimed — clear this tile's floor to earn the pick";
         made.push(`
-          <div class="skill-tile psv" tabindex="0" role="button"
+          <div class="skill-tile psv ${found ? "filled" : "empty"}" tabindex="0" role="button"
                data-name="${esc(name)}" data-desc="${esc(desc)}"
                title="${esc(name)} — ${esc(desc)}">
             <span class="skill-num">${i + 1}</span>
             <span class="skill-ico">${icon}</span>
           </div>`);
       });
-      const any = order.some(s => bs[s]);
-      return `<div class="skill-group"><div class="info-section">Tile Blessings</div><div class="info-grid">${made.join("")}</div><div class="skill-cap" hidden>${any ? "Tap a slot to read it" : "Earn picks on floors 3, 6, 9"}</div></div>`;
+      const allFilled = order.every(s => bs[s]);
+      const hint = allFilled
+        ? "Tap a slot to read it"
+        : (order.some(s => bs[s]) ? "Amber dashed = empty slot · earn picks on floors 3, 6, 9" : "All slots empty — earn picks on floors 3, 6, 9");
+      return `<div class="skill-group"><div class="info-section">Tile Blessings</div><div class="info-grid">${made.join("")}</div><div class="skill-cap">${hint}</div></div>`;
     }
 
     function statusSummaryPlayer() {

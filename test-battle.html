@@ -1682,6 +1682,7 @@
       flex-wrap: wrap;
     }
     .char-card {
+      position: relative;
       width: 96px;
       padding: 10px 8px;
       border-radius: 18px;
@@ -1692,6 +1693,27 @@
       transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
     }
     .char-card:active { transform: scale(0.96); }
+    .char-info-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 18px;
+      height: 18px;
+      padding: 0;
+      border-radius: 50%;
+      border: 1.5px solid rgba(60, 50, 40, 0.25);
+      background: rgba(255, 255, 255, 0.75);
+      color: #6a6055;
+      font-size: 0.7rem;
+      font-weight: 900;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 2;
+    }
+    .char-info-btn:active { transform: scale(0.9); }
     .char-card.selected {
       border-color: #efb09a;
       box-shadow: 0 0 0 3px rgba(239, 176, 154, 0.35);
@@ -1746,6 +1768,24 @@
       color: #6a6055;
     }
     .cosmetic-btn.active { background: #efb09a; color: #fff; border-color: #efb09a; }
+
+    .char-profile {
+      min-width: 290px;
+      max-width: 330px;
+      padding: 16px 18px;
+      text-align: left;
+    }
+    .char-profile .cp-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .char-profile .portrait { width: 60px; height: 60px; flex: 0 0 auto; }
+    .char-profile .cp-name { font-size: 1.15rem; font-weight: 900; color: #5a5048; line-height: 1.2; }
+    .char-profile .cp-tag { font-size: 0.74rem; font-weight: 700; color: #8b7d6d; }
+    .char-profile .cp-blurb { font-size: 0.8rem; line-height: 1.5; color: #6a6055; margin: 0 0 12px; }
+    .char-profile .cp-rows { display: flex; flex-direction: column; gap: 7px; }
+    .char-profile .cp-row { display: flex; align-items: center; gap: 8px; font-size: 0.76rem; color: #6a6055; }
+    .char-profile .cp-chip {
+      font-weight: 800; font-size: 0.68rem; color: #fff; flex: 0 0 auto;
+      padding: 2px 8px; border-radius: 999px; background: var(--cp, #7aa65e);
+    }
 
     .menu-actions {
       display: flex;
@@ -2362,6 +2402,24 @@ body.ult-hitstop .board-wrap {
     .blessing-text { padding: 8px 12px 8px 0; }
     .blessing-name { font-weight: 900; font-size: 1rem; }
     .blessing-note { color: #7a6e64; font-size: 0.82rem; font-weight: 600; margin-top: 2px; }
+    .blessing-slot {
+      align-self: center;
+      margin: -4px 0 12px;
+      padding: 5px 13px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+    .blessing-slot.empty {
+      background: rgba(224, 160, 60, 0.16);
+      color: #9a671d;
+      border: 1.5px dashed rgba(224, 160, 60, 0.6);
+    }
+    .blessing-slot.filled {
+      background: rgba(90, 140, 90, 0.15);
+      color: #2e6b3a;
+      border: 1.5px solid rgba(90, 140, 90, 0.45);
+    }
 
     /* ─── Shape Skills picker (in-combat, free assign) ─── */
     .shape-row { margin-bottom: 14px; }
@@ -2435,6 +2493,28 @@ body.ult-hitstop .board-wrap {
       padding: 1px 7px;
       border-radius: 999px;
     }
+    .shape-slots { display: flex; gap: 8px; margin-bottom: 12px; }
+    .shape-slot-chip {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 9px;
+      border-radius: 12px;
+      cursor: pointer;
+      text-align: left;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1.5px solid rgba(60, 45, 30, 0.1);
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .shape-slot-chip:active { transform: scale(0.97); }
+    .shape-slot-chip.active { border-color: #7aa65e; box-shadow: 0 0 0 2px rgba(122, 166, 94, 0.35); }
+    .shape-slot-chip.empty { border-style: dashed; border-color: rgba(224, 160, 60, 0.6); background: rgba(224, 160, 60, 0.08); }
+    .shape-slot-ico { flex: 0 0 auto; font-size: 1.05rem; line-height: 1; }
+    .shape-slot-body { display: flex; flex-direction: column; min-width: 0; }
+    .shape-slot-label { font-size: 0.62rem; font-weight: 800; color: #8b7d6d; text-transform: uppercase; letter-spacing: 0.3px; }
+    .shape-slot-state { font-size: 0.68rem; font-weight: 800; color: #5a5048; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .shape-slot-chip.empty .shape-slot-state { color: #9a671d; }
     .blessing-done {
       margin-top: 14px;
       width: 100%;
@@ -2879,6 +2959,12 @@ body.ult-hitstop .board-wrap {
       border-color: #7aa65e;
       box-shadow: 0 0 0 3px rgba(122,166,94,.35);
     }
+    .skill-tile.empty {
+      border-style: dashed;
+      border-color: rgba(224, 160, 60, 0.7);
+      background: rgba(224, 160, 60, 0.10);
+    }
+    .skill-tile.empty .skill-ico { opacity: 0.4; }
     .skill-num {
       position: absolute;
       top: -6px;
@@ -4743,6 +4829,7 @@ body.ult-hitstop .board-wrap {
       <div class="blessing-emblem" id="blessingEmblem"></div>
       <div class="blessing-title" id="blessingTitle">Tile Blessed</div>
       <div class="blessing-sub" id="blessingSub">Choose what this tile does</div>
+      <div class="blessing-slot" id="blessingSlot"></div>
       <div class="blessing-cards" id="blessingCards"></div>
     </div>
   </div>
@@ -4844,6 +4931,16 @@ body.ult-hitstop .board-wrap {
       <div id="infoBody"></div>
       <div class="panel-actions" style="margin-top:14px">
         <button type="button" class="action-btn primary" id="btnInfoClose" style="width:100%">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARACTER PROFILE (main menu info popup) -->
+  <div class="overlay" id="charInfoOverlay">
+    <div class="panel char-profile">
+      <div id="charInfoBody"></div>
+      <div class="panel-actions" style="margin-top:14px">
+        <button type="button" class="action-btn primary" id="btnCharInfoClose" style="width:100%">Close</button>
       </div>
     </div>
   </div>

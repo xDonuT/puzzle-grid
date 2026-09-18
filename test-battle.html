@@ -17,8 +17,8 @@
       --shadow: 0 6px 18px rgba(60, 50, 40, 0.09);
 
   /* Bright, airy candy colors */
-      --sword: #a8bce6;
-      --sword-icon: #46535f;
+      --sword: #f8cba6;
+      --sword-icon: #7a4a2b;
       --shield: #63c6ea;
       --shield-icon: #2c6090;
       --hp: #f78fa3;
@@ -29,8 +29,8 @@
       --question-icon: #593c94;
 
       /* Tile gradient stops – extracted from per-type rules for a single source of truth */
-      --sword-light: #dde8f4;
-      --sword-dark: #76a6d7;
+      --sword-light: #fdecd8;
+      --sword-dark: #eea06f;
       --shield-light: #92d5ee;
       --shield-dark: #19ade2;
       --hp-light: #f9c0cb;
@@ -699,10 +699,10 @@
     /* Design tokens for tile styling */
 :root {
   /* Base tile colors by type */
-  --tile-sword-base: #a8bce6;
-  --tile-sword-light: #dde8f4;
-  --tile-sword-dark: #76a6d7;
-  --tile-sword-icon: #46535f;
+  --tile-sword-base: #f8cba6;
+  --tile-sword-light: #fdecd8;
+  --tile-sword-dark: #eea06f;
+  --tile-sword-icon: #7a4a2b;
 
   --tile-shield-base: #63c6ea;
   --tile-shield-light: #92d5ee;
@@ -3251,8 +3251,8 @@ body.ult-hitstop .board-wrap {
 .fx-proj.fx-sword {
   width: 30px;
   height: 30px;
-  background: radial-gradient(circle, #ffffff 0%, #dde8f4 30%, #76a6d7 70%, rgba(118,166,215,0) 100%);
-  box-shadow: 0 0 12px 3px rgba(169,188,230,0.9), 0 0 28px 8px rgba(118,166,215,0.5);
+  background: radial-gradient(circle, #ffffff 0%, #fdecd8 30%, #eea06f 70%, rgba(238,160,111,0) 100%);
+  box-shadow: 0 0 12px 3px rgba(248,203,166,0.9), 0 0 28px 8px rgba(238,160,111,0.5);
 }
 .fx-proj.fx-star {
   width: 30px;
@@ -3318,7 +3318,7 @@ body.ult-hitstop .board-wrap {
   pointer-events: none;
   border: 1px solid rgba(255, 255, 255, 0.6);
 }
-.fx-burst-sword  { border-color: rgba(169, 188, 230, 0.6);  box-shadow: 0 0 10px 2px rgba(169, 188, 230, 0.25); }
+.fx-burst-sword  { border-color: rgba(248, 203, 166, 0.6);  box-shadow: 0 0 10px 2px rgba(248, 203, 166, 0.25); }
 .fx-burst-star   { border-color: rgba(245, 204, 102, 0.65); box-shadow: 0 0 10px 2px rgba(245, 204, 102, 0.25); }
 .fx-burst-shield { border-color: rgba(99, 198, 234, 0.55);  box-shadow: 0 0 10px 2px rgba(99, 198, 234, 0.2); }
 .fx-burst-hp     { border-color: rgba(247, 143, 163, 0.6);  box-shadow: 0 0 10px 2px rgba(247, 143, 163, 0.25); }
@@ -3334,7 +3334,7 @@ body.ult-hitstop .board-wrap {
   pointer-events: none;
   background: #fff;
 }
-.fx-particle-sword  { background: #a9bce6; }
+.fx-particle-sword  { background: #f8cba6; }
 .fx-particle-star   { background: #f5cc66; }
 .fx-particle-shield { background: #63c6ea; }
 .fx-particle-hp     { background: #f78fa3; }

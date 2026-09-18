@@ -23,15 +23,47 @@ function stubEl() {
     scrollTop: 0, scrollHeight: 0, focus: noop, blur: noop, click: noop
   };
 }
+function makeStubEl() { return stubEl(); }
+function makeDocumentFragment() {
+  // A fragment must track its appended children so the scroll element
+  // can absorb them (lets the tactical filter test count rendered rows).
+  const frag = stubEl();
+  frag.children = [];
+  frag.appendChild = (n) => { frag.children.push(n); };
+  frag.querySelectorAll = (s) => (s.includes("log-entry") ? frag.children.filter((n) => String(n.className || "").includes("log-entry")) : []);
+  return frag;
+}
+// `actionLogScroll` needs real child tracking so tests can verify renders.
+const scrollEl = stubEl();
+scrollEl.__id = "actionLogScroll";
+scrollEl.children = [];
+Object.defineProperty(scrollEl, "innerHTML", {
+  set(v) { scrollEl.children = []; },
+  get() { return ""; }
+});
+scrollEl.appendChild = (n) => {
+  const kids = (n && n.children && n.children.length) ? n.children : (n ? [n] : []);
+  scrollEl.children.push(...kids);
+};
+scrollEl.querySelectorAll = (s) => {
+  if (!s.includes("log-entry")) return [];
+  return scrollEl.children.slice().filter((n) => String(n.className || "").includes("log-entry"));
+};
+scrollEl.querySelector = () => stubEl();
+const docById = new Map();
 const docProxy = new Proxy({}, {
   get(_, p) {
-    if (p === "getElementById") return () => stubEl();
+    if (p === "getElementById") return (id) => {
+      if (id === "actionLogScroll") return scrollEl;
+      if (!docById.has(id)) docById.set(id, makeStubEl());
+      return docById.get(id);
+    };
     if (p === "querySelector") return () => stubEl();
     if (p === "querySelectorAll") return () => [];
     if (p === "createElement") return () => stubEl();
     if (p === "createElementNS") return () => stubEl();
     if (p === "createTextNode") return () => stubEl();
-    if (p === "createDocumentFragment") return () => stubEl();
+    if (p === "createDocumentFragment") return () => makeDocumentFragment();
     if (p === "getElementsByClassName") return () => [];
     if (p === "body") return stubEl();
     if (p === "documentElement") return stubEl();

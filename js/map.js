@@ -2,9 +2,7 @@
 // Generates a map of connected nodes per act.
 // Node types: "normal", "elite", "mystery" (card flip), "boss"
 
-const MAP_LAYERS_PER_ACT = [
-  [3, 4, 3, 5, 4, 3, 2], // wider, STS-style branching (24 battle nodes + boss)
-];
+const MAP_LAYERS_PER_ACT = [3, 4, 3, 5, 4, 3, 2]; // wider, STS-style branching (24 battle nodes + boss)
 
 const NODE_ICONS = {
   normal:  "⚔️",
@@ -23,7 +21,7 @@ const NODE_LABELS = {
 };
 
 function generateActMap(act) {
-  const counts = MAP_LAYERS_PER_ACT[0]; // all acts share same layout for now
+  const counts = MAP_LAYERS_PER_ACT; // all acts share same layout for now
   const layers = [];
 
   for (let li = 0; li < counts.length; li++) {
@@ -154,23 +152,6 @@ function assignNodeTypes(layers, connections, counts) {
   }
 }
 
-function pickNodeType(layerIdx, act) {
-  // Legacy RNG picker kept for compatibility; new maps use assignNodeTypes.
-  if (layerIdx === 0) {
-    const r = Math.random();
-    if (r < 0.4) return "normal";
-    if (r < 0.75) return "mystery";
-    return "normal";
-  }
-  if (layerIdx <= 5) {
-    const r = Math.random();
-    if (r < 0.45) return "normal";
-    if (r < 0.65) return "elite";
-    return "mystery";
-  }
-  return "normal";
-}
-
 function getNodeById(map, id) {
   for (const layer of map.layers) {
     for (const node of layer) {
@@ -215,7 +196,7 @@ function generateFullMap() {
 }
 
 function isMapCompatible(map) {
-  const expectedLayers = MAP_LAYERS_PER_ACT[0].length + 1; // + boss layer
+  const expectedLayers = MAP_LAYERS_PER_ACT.length + 1; // + boss layer
   return !!map && map.v === MAP_VERSION &&
     Array.isArray(map.acts) && map.acts.length === 3 &&
     map.acts.every(a => a && Array.isArray(a.layers) && a.layers.length === expectedLayers);

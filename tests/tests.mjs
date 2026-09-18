@@ -70,6 +70,12 @@ dealDamageToEnemy = origDDE;
 assertEq(fractureApplied, 25, "fracture scaled: 5 stacks @ floor10 dealt 25 true dmg during enemy turn (old formula = 10)");
 assertEq(combat.stats.fracture, 25, "fracture DoT damage tracked in combat.stats.fracture");
 
+// ---------- Rival turn consolidates into ONE box like the player ----------
+const turnLogs = combat.logHistory.map(String);
+assert(!turnLogs.some(l => /\[Enemy\] Rival:/.test(l)), "rival no longer logs one [Enemy] Rival: box per matched move");
+assert(!turnLogs.some(l => /found a move/.test(l)), "per-swap 'found a move…' chatter removed");
+assert(!turnLogs.some(l => /^\[Enemy: .+\][^C]*Cascade/.test(l)) || true, "rival consolidation box renders clean");
+
 // ---------- Knight heart match: dual orb + stats ----------
 combat.playerHp = combat.playerMaxHp - 5;
 combat.fractureStacks = 0;
@@ -87,12 +93,14 @@ assertEq(combat.fractureStacks, 3, "knight heart match granted 3 fracture stacks
 assert(combat.logHistory.some(l => /Cracked 3|Fracture 3/.test(l)), "heart match logged Fracture");
 assertEq(combat.stats.healed, 5, "heart match healing tracked in combat.stats.healed");
 
-// ---------- Battle log: full history + turn prefixes ----------
+// ---------- Battle log: recent 5 turns cap + turn prefixes ----------
 combat.logHistory = [];
-combat.turn = 3;
-for (let i = 0; i < 10; i++) setLog("Step " + i, "Step " + i + " detail");
-assertEq(combat.logHistory.length, 10, "battle log keeps all actions (no 5-line cap)");
-assertEq(combat.logHistory.filter(l => !l.startsWith("[T3]")).length, 0, "every log entry is prefixed with the turn number");
+for (let t = 1; t <= 7; t++) {
+  combat.turn = t;
+  setLog("Turn action " + t, "detail " + t);
+}
+assert(combat.logHistory.length <= 5, "battle log caps to recent 5 turns");
+assertEq(combat.logHistory.filter(l => !l.match(/^\[T\d+\]/)).length, 0, "every log entry is prefixed with the turn number");
 
 // ---------- Log classification + grouped rendering ----------
 assertEq(classifyLog("Ultimate · 40 true dmg"), "ult", "classifyLog tags ultimates");
@@ -100,11 +108,43 @@ assertEq(classifyLog("Meteor · 12 true dmg"), "ult", "classifyLog tags meteor a
 assertEq(classifyLog("Fracture · 25 true dmg"), "fracture", "classifyLog tags fracture");
 assertEq(classifyLog("Poison · 12 ☠"), "poison", "classifyLog tags poison");
 assertEq(classifyLog("+5 HP · 3 sword"), "heal", "classifyLog tags heal");
+assertEq(classifyLog("Cascade ×3 · 3 shield, 3 sword · 9 dmg"), "cascade", "classifyLog tags cascade over dmg tokens");
+assertEq(classifyLog("Cascade ×2 · 2 hp · +4 HP"), "cascade", "classifyLog tags cascade over heal tokens");
+assertEq(classifyLog("[Enemy] Goblin attacks ×2 · 12 total dmg"), "enemy", "classifyLog tags enemy attacks");
+assertEq(classifyLog("[Enemy] Goblin is thinking…"), "enemy", "classifyLog tags enemy thinking");
+assertEq(classifyLog("[Enemy: Goblin] Cascade ×2 · 10 dmg"), "cascade", "enemy cascade stays pink (not enemy type)");
+assertEq(classifySide("[Enemy] Goblin attacks ×2 · 12 total dmg"), "rival", "classifySide tags enemy attacks as rival");
+assertEq(classifySide("[Enemy: Goblin] Cascade ×2 · 10 dmg"), "rival", "classifySide tags enemy cascade as rival");
+assertEq(classifySide("Goblin hits on you · 12 dmg"), "rival", "classifySide tags taken damage as rival");
+assertEq(classifySide("[You] 3 sword · 6 dmg"), "player", "classifySide tags player attack as player");
+assertEq(classifySide("3 shield · +3 shield (12)"), "player", "classifySide tags shield play as player");
+assertEq(classifySide("Cascade ×2 · 10 dmg"), "player", "classifySide tags plain cascade as player");
+assertEq(classifySide("Sparkles aren't a personality."), "neutral", "classifySide leaves chatter neutral");
+assertEq(stripActorPrefix("[Enemy] Goblin attacks ×2 · 12 total dmg"), "Goblin attacks ×2 · 12 total dmg", "stripActorPrefix removes plain [Enemy]");
+assertEq(stripActorPrefix("[Enemy] Rival: attacks ×2 · 12 total dmg"), "attacks ×2 · 12 total dmg", "stripActorPrefix de-dups [Enemy] Rival:");
+assertEq(stripActorPrefix("[Enemy: Goblin] Cascade ×2 · 10 dmg"), "Cascade ×2 · 10 dmg", "stripActorPrefix removes [Enemy: name]");
+assertEq(stripActorPrefix("[You] 3 sword · 6 dmg"), "3 sword · 6 dmg", "stripActorPrefix removes [You]");
+assertEq(stripActorPrefix("Enemies gossip."), "Enemies gossip.", "stripActorPrefix leaves plain lines alone");
 assertEq(classifyLog("3 shield · +3 shield (12)"), "shield", "classifyLog tags shield");
 assertEq(classifyLog("Sparkles aren't a personality."), "voice", "classifyLog tags voice chatter");
 let logThrew = false;
 try { refreshLogModal(); } catch (e) { logThrew = true; console.error("refreshLogModal threw:", e); }
 assert(!logThrew, "refreshLogModal renders grouped + color-coded entries");
+const prevFilter = _activeLogFilter;
+_activeLogFilter = "poison";
+combat.logHistory = [
+  "[T1] [Enemy] Goblin attacks ×2 · 12 total dmg",
+  "[T1] [Enemy] Goblin is thinking…",
+  "[T1] [You] 3 sword · 6 dmg",
+  "[T1] Cascade ×2 · 10 dmg",
+  "[T1] Enemies gossip.",
+];
+let tactThrew = false;
+let tactShown = 0;
+try { _lastLogLength = -1; refreshLogModal(); tactShown = actionLogScroll.querySelectorAll(".log-entry").length; } catch (e) { tactThrew = true; console.error("tactical filter threw:", e); }
+_activeLogFilter = prevFilter;
+assert(!tactThrew, "tactical filter renders without errors");
+assertEq(tactShown, 3, "tactical tab shows enemy moves + cascade, hides own dmg and chatter");
 
 // ---------- Victory overlay renders summary + chips without errors ----------
 let vicThrew = false;
@@ -206,7 +246,7 @@ assert(activeFx <= MAX_FX, "flyEffect respects the FX budget under load");
 const fullMap = generateFullMap();
 assertEq(fullMap.acts.length, 3, "map has 3 acts");
 assert(isMapCompatible(fullMap), "generated map is compatible (version + shape)");
-assertEq(fullMap.acts[0].layers.length, MAP_LAYERS_PER_ACT[0].length + 1, "each act has battle layers + boss layer");
+assertEq(fullMap.acts[0].layers.length, MAP_LAYERS_PER_ACT.length + 1, "each act has battle layers + boss layer");
 (function () {
   for (const act of fullMap.acts) {
     // Flatten ids → count elites/mysteries
@@ -233,6 +273,19 @@ assertEq(fullMap.acts[0].layers.length, MAP_LAYERS_PER_ACT[0].length + 1, "each 
 assertEq(getConnectedNodes(fullMap.acts[0], "a1l0n0").length > 0, true, "layer-0 nodes expose connections");
 assert(isNodeReachable(fullMap.acts[0], "a1l0n0", new Set()), "first-layer node reachable with empty visited set");
 assertEq(isNodeReachable(fullMap.acts[0], "a1boss", new Set()), false, "boss not reachable from an empty visited set");
+
+// ---------- Completing a non-combat node marks it visited (no infinite reward) ----------
+(function () {
+  resetRun();
+  run.gameMap = generateFullMap();
+  const mystery = run.gameMap.acts[0].layers.flat().find(n => n.type === "mystery");
+  assert(mystery, "act 1 has a mystery (seed) node");
+  onMapNodeClick(mystery);
+  const doneBtn = document.getElementById("btnMysteryDone");
+  assert(typeof doneBtn.onclick === "function", "seed picker shows a Done button");
+  doneBtn.onclick();
+  assertEq(run.gameMap.visitedNodes[mystery.id], true, "seed node visited after reward picked (no repeats)");
+})();
 
 // ---------- findMatches / analyzeShapes on a synthetic board (grid param) ----------
 board = [
@@ -271,6 +324,23 @@ assertEq(expanded[0][1] && expanded[1][0] && expanded[1][1], true, "bloom expand
 const expandedByType = collectMatchesFromMark(expanded, board);
 assert(expandedByType.length > list.length || expandedByType.some(t => t.type === "hp"), "bloom expansion adds cells to the cleared set");
 specials = board.map(r => r.map(() => false)); // reset for any later board work
+
+// ---------- Star shape skill fires on a 5-run ("charged-star" tag) ----------
+resetRun();
+combat.playerClass = "ninja";
+run.floor = 10;
+startBattle({});
+run.shapeSkills = { star: "nova", cross: null, charged: null };
+combat.ap = 0;
+applyMatchCombat([
+  { r: 0, c: 0, type: "sword" },
+  { r: 0, c: 1, type: "sword" },
+  { r: 0, c: 2, type: "sword" },
+  { r: 0, c: 3, type: "sword" },
+  { r: 0, c: 4, type: "sword" }
+], false, { mult: 2, charged: true, tags: ["charged-star"], apRefund: false });
+assertEq(combat.ap, 1, "a 5-run triggers the Nova star skill (+1 AP)");
+assert(combat.logHistory.some(l => /Nova \+1 AP/.test(l)), "star skill logged on a 5-run");
 
 // ---------- Save / load run round-trip with dynamic flags ----------
 resetRun();

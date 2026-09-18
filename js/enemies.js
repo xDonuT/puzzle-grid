@@ -388,7 +388,7 @@
       golem:  { name: "Thick Skin",    desc: "Takes 1 less damage from all sources",
                 onDamaged: (dmg) => Math.max(1, dmg - 1) },
       skull:  { name: "Desiccated",    desc: "Attacks strip 2 shield first",
-                onAttack: () => { if (combat.playerShield > 0) { const s = Math.min(2, combat.playerShield); combat.playerShield -= s; } } },
+                onAttack: () => { if (combat.shield > 0) { const s = Math.min(2, combat.shield); combat.shield -= s; } } },
       thorn:  { name: "Thorns",        desc: "Reflects 1 damage when hit",
                 onHit: () => { dealDamageToPlayer(1, { noFracture: true }); } },
       wisp:   { name: "Drift",         desc: "At turn start, shifts one random tile",
@@ -1209,6 +1209,7 @@
       // Cascade log buffer (consolidates chain into 1 entry)
       _cascadeBuffer: [],
       _inCascade: false,
+      _enemyTurnLog: false,
       // Enemy attack consolidation
       _enemyAttacksThisTurn: 0,
       boundTiles: new Set()   // "r,c" strings — tiles locked by Rival's Root Bind ult

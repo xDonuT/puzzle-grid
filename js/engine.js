@@ -151,9 +151,6 @@
         mult = 2;
         charged = true;
         tags.push(maxRun >= 5 ? "charged-star" : "charged");
-      } else if (maxRun >= 5) {
-        mult = 1.5;
-        tags.push("star");
       }
       if (isCross && mult < 2) {
         mult = Math.max(mult, 1.5);

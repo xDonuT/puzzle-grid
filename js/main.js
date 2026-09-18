@@ -695,9 +695,13 @@ const screenMenu = document.getElementById("screen-menu");
           const isVisited = visitedSet.has(node.id);
           const isCurrent = currentId === node.id;
           const isReachable = reachable.has(node.id) && !isVisited;
-          nodeEl.className = `map-node ${node.type}` + (isVisited ? " visited" : "") + (isCurrent ? " current" : "") + (isReachable ? " reachable" : "") + (!isVisited && !isCurrent && !isReachable ? " locked" : "");
+          // An unfinished node you quit out of mid-battle is "current" but not
+          // visited — keep it clickable so you can resume instead of being
+          // forced past it (which used to skip the floor in the path).
+          const isResumable = isCurrent && !isVisited;
+          nodeEl.className = `map-node ${node.type}` + (isVisited ? " visited" : "") + (isCurrent ? " current" : "") + (isReachable ? " reachable" : "") + (isResumable ? " resumable" : "") + (!isVisited && !isCurrent && !isReachable ? " locked" : "");
           nodeEl.innerHTML = `<span class="node-icon">${NODE_ICONS[node.type] || "⚔️"}</span><span class="node-label">${NODE_LABELS[node.type] || ""}</span>`;
-          if (isReachable) {
+          if (isReachable || isResumable) {
             nodeEl.addEventListener("click", () => onMapNodeClick(node));
           }
           layerEl.appendChild(nodeEl);
@@ -737,11 +741,13 @@ const screenMenu = document.getElementById("screen-menu");
         startBattle({ fromVictory: false, isBoss: true });
       } else if (node.type === "mystery") {
         openMysteryNode(() => {
+          map.visitedNodes[node.id] = true;
           showMap();
           saveRun();
         });
       } else if (node.type === "shop") {
         openShopNode(() => {
+          map.visitedNodes[node.id] = true;
           showMap();
           saveRun();
         });
@@ -752,6 +758,7 @@ const screenMenu = document.getElementById("screen-menu");
         startBattle({ fromVictory: false });
       } else if (node.type === "voidMerchant") {
         openVoidMerchant(() => {
+          map.visitedNodes[node.id] = true;
           showMap();
           saveRun();
         });
@@ -1704,6 +1711,7 @@ function checkGameOver() {
       combat.tutorial = false;
       combat._inCascade = false;
       combat._cascadeBuffer = [];
+      combat._enemyTurnLog = false;
       run.bonusMaxHp = 0;
       run.bonusShieldMax = 0;
       run.bonusApMax = 0;
@@ -1928,6 +1936,7 @@ function checkGameOver() {
       combat.logHistory = [];
       combat._inCascade = false;
       combat._cascadeBuffer = [];
+      combat._enemyTurnLog = false;
       combat.stats = { sword: 0, star: 0, runic: 0, poison: 0, fracture: 0, ult: 0, reflect: 0, taken: 0, healed: 0, shield: 0, ultCasts: 0 };
       combat.ultAnnounced = false;
       combat.enemyUltCharge = 0;
@@ -2639,7 +2648,16 @@ function checkGameOver() {
       saveRun(); // persists regenerated map if migration occurred
       if (run.gameMap) {
         showScreen("game");
-        showMap();
+        const map = run.gameMap;
+        const cur = map.currentNode ? getNodeById(map.acts[map.currentAct - 1], map.currentNode) : null;
+        const unfinished = cur && !map.visitedNodes[cur.id];
+        if (unfinished) {
+          // Quit out mid-battle on this node → resume it instead of parking on
+          // the map, so the floor isn't skipped in the path.
+          resumeCurrentNode();
+        } else {
+          showMap();
+        }
       } else {
         startBattle({ retry: true }); // stay on saved floor
       }

@@ -66,6 +66,21 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    @font-face {
+      font-family: "Nunito";
+      src: url("fonts/nunito.woff2") format("woff2-variations");
+      font-weight: 100 900;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "Fredoka";
+      src: url("fonts/fredoka.woff2") format("woff2-variations");
+      font-weight: 100 900;
+      font-style: normal;
+      font-display: swap;
+    }
+
     body {
       min-height: 100dvh;
       display: flex;
@@ -75,7 +90,7 @@
       --bg-base: #f4ecdf;
       background: var(--bg-base);
       transition: background-color 1.2s ease;
-      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-family: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
       color: #5a5048;
       padding: 16px;
       user-select: none;
@@ -135,7 +150,7 @@
       transform: translate(-50%, -50%) scale(0.85);
       z-index: 60; /* shouts ride above board FX on both fighters' turns */
       pointer-events: none;
-      font-family: "Arial Black", Impact, system-ui, sans-serif;
+      font-family: "Fredoka", "Nunito", Impact, system-ui, sans-serif;
       font-size: 1.05rem;
       font-weight: 900;
       letter-spacing: 0.04em;
@@ -1514,6 +1529,7 @@
       gap: 6px;
     }
     .log-entry {
+      font-family: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
       font-size: 0.68rem;
       font-weight: 600;
       color: #5a5048;
@@ -1521,8 +1537,61 @@
       border-radius: 8px;
       background: rgba(255, 255, 255, 0.6);
       border: 1px solid rgba(60, 45, 30, 0.06);
+      border-left-width: 4px;
+      border-left-style: solid;
+      cursor: pointer;
     }
+    .log-entry .log-entry-meta {
+      display: none;
+      margin-top: 4px;
+      padding-top: 4px;
+      border-top: 1px dashed rgba(60, 45, 30, 0.15);
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .log-entry.expanded .log-entry-meta { display: block; }
+    .log-entry.type-cascade {
+      background: rgba(244, 114, 182, 0.14);
+      border-color: rgba(244, 114, 182, 0.42);
+      border-left-color: #ec4899;
+      color: #9d174d;
+    }
+    .log-entry.type-cascade:hover {
+      background: rgba(244, 114, 182, 0.26);
+      border-color: rgba(244, 114, 182, 0.6);
+    }
+    .log-entry.type-cascade .log-entry-meta {
+      color: #be185d;
+    }
+    .log-filter-btn.active {
+      background: #5a4030;
+      color: #fff;
+      border-color: #5a4030;
+    }
+    .action-log-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      padding: 10px 16px 6px;
+    }
+    .log-filter-btn {
+      appearance: none;
+      font-family: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 0.6rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: #6b5a4a;
+      background: rgba(110, 105, 95, 0.10);
+      border: 1px solid rgba(90, 75, 58, 0.20);
+      border-radius: 999px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .log-filter-btn:hover:not(.active) { background: rgba(110, 105, 95, 0.20); }
     .log-turn-head {
+      font-family: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
       font-size: 0.64rem;
       font-weight: 800;
       letter-spacing: 0.06em;
@@ -1549,14 +1618,32 @@
       text-align: center;
       pointer-events: none;
     }
-    .log-entry.type-dmg    { background: rgba(220, 80, 60, 0.10); border-color: rgba(220, 80, 60, 0.25); color: #7a2a1a; }
-    .log-entry.type-taken  { background: rgba(180, 50, 40, 0.14); border-color: rgba(180, 50, 40, 0.32); color: #5a1f16; }
-    .log-entry.type-heal   { background: rgba(80, 170, 90, 0.12); border-color: rgba(80, 170, 90, 0.30); color: #1f6a33; }
-    .log-entry.type-shield { background: rgba(90, 160, 220, 0.12); border-color: rgba(90, 160, 220, 0.30); color: #1f5a8a; }
-    .log-entry.type-fracture { background: rgba(222, 205, 160, 0.28); border-color: rgba(160, 140, 90, 0.42); color: #6a5a2a; }
-    .log-entry.type-poison { background: rgba(120, 180, 70, 0.12); border-color: rgba(120, 180, 70, 0.30); color: #2a6a1a; }
-    .log-entry.type-ult    { background: rgba(245, 181, 20, 0.15); border-color: rgba(200, 150, 20, 0.42); color: #7a5a08; }
-    .log-entry.type-voice  { background: rgba(150, 130, 200, 0.08); border-color: rgba(120, 100, 180, 0.18); color: #6a5a8a; font-style: italic; }
+    .log-entry.type-dmg    { background: rgba(220, 60, 45, 0.12); border-color: rgba(220, 60, 45, 0.40); border-left-color: #dc3c2d; color: #a6281a; }
+    .log-entry.type-taken  { background: rgba(168, 42, 30, 0.15); border-color: rgba(168, 42, 30, 0.45); border-left-color: #a0281e; color: #6b1208; }
+    .log-entry.type-heal   { background: rgba(34, 197, 94, 0.13); border-color: rgba(34, 197, 94, 0.40); border-left-color: #22c55e; color: #15803d; }
+    .log-entry.type-shield { background: rgba(59, 130, 246, 0.12); border-color: rgba(59, 130, 246, 0.40); border-left-color: #3b82f6; color: #1d4ed8; }
+    .log-entry.type-fracture { background: rgba(180, 140, 60, 0.18); border-color: rgba(150, 110, 40, 0.45); border-left-color: #b48c3c; color: #7c5a10; }
+    .log-entry.type-poison { background: rgba(101, 163, 13, 0.14); border-color: rgba(101, 163, 13, 0.40); border-left-color: #65a30d; color: #4d7c0f; }
+    .log-entry.type-ult    { background: rgba(245, 158, 11, 0.16); border-color: rgba(245, 158, 11, 0.48); border-left-color: #f59e0b; color: #b45309; }
+    .log-entry.type-enemy  { background: rgba(90, 105, 125, 0.13); border-color: rgba(90, 105, 125, 0.38); border-left-color: #69788b; color: #3d4a5c; }
+    .log-entry.type-voice  { background: rgba(147, 51, 234, 0.08); border-color: rgba(147, 51, 234, 0.22); border-left-color: #9333ea; color: #6b21a8; font-style: italic; }
+    .log-entry-line { display: flex; align-items: baseline; gap: 6px; }
+    .log-entry-main { flex: 1; }
+    .log-tag {
+      flex-shrink: 0;
+      font-size: 0.52rem;
+      font-weight: 800;
+      letter-spacing: 0.09em;
+      padding: 1px 5px;
+      border-radius: 5px;
+      line-height: 1.4;
+    }
+    .log-entry.side-player { background: rgba(59, 130, 246, 0.10); border-color: rgba(59, 130, 246, 0.28); border-left-color: #3b82f6; }
+    .log-entry.side-player .log-tag { background: rgba(59, 130, 246, 0.18); color: #1d4ed8; }
+    .log-entry.side-player:hover { background: rgba(59, 130, 246, 0.18); }
+    .log-entry.side-rival { background: rgba(110, 125, 145, 0.14); border-color: rgba(110, 125, 145, 0.32); border-left-color: #6a7b8f; }
+    .log-entry.side-rival .log-tag { background: rgba(110, 125, 145, 0.24); color: #3d4a5c; }
+    .log-entry.side-rival:hover { background: rgba(110, 125, 145, 0.22); }
 
     .spacer { flex: 1; }
 
@@ -3845,6 +3932,11 @@ body.ult-hitstop .board-wrap {
     .map-node.visited { opacity: 0.85; border-color: #8fae72; background: #e7eedd; pointer-events: none; }
     .map-node.locked { opacity: 0.3; pointer-events: none; }
     .map-node.current { border-color: #d4783c; box-shadow: 0 0 12px rgba(212,120,60,0.5); }
+    .map-node.resumable { border-style: dashed; border-color: #d4783c; box-shadow: 0 0 14px rgba(212,120,60,0.55); position:relative; }
+    .map-node.resumable::after {
+      content:"Resume"; position:absolute; top:-15px; left:50%; transform:translateX(-50%);
+      font-size:0.45rem; font-weight:800; color:#d4783c; letter-spacing:0.04em; white-space:nowrap;
+    }
     .map-node.elite { border-color: #c04040; }
     .map-node.mystery { border-color: #8a50c0; }
     .map-node.shop { border-color: #40a060; }
@@ -4424,6 +4516,13 @@ body.ult-hitstop .board-wrap {
         <div class="action-log-modal-head">
           <span class="action-log-modal-title">Action Log</span>
           <button type="button" class="action-log-close" id="actionLogClose" aria-label="Close">×</button>
+        </div>
+        <div class="action-log-filters" id="actionLogFilters">
+          <button type="button" class="log-filter-btn active" data-filter="all">All</button>
+          <button type="button" class="log-filter-btn" data-filter="dmg">⚔️ Combat</button>
+          <button type="button" class="log-filter-btn" data-filter="defense">🛡️ Defense</button>
+          <button type="button" class="log-filter-btn" data-filter="poison">☠️ Tactical</button>
+          <button type="button" class="log-filter-btn" data-filter="voice">💬 System</button>
         </div>
         <div class="action-log-scroll" id="actionLogScroll"></div>
       </div>

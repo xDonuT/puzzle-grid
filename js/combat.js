@@ -16,7 +16,14 @@
       const full = String(detail != null ? detail : msg);
       const entry = `[T${combat.turn}] ${full}`;
       combat.logHistory.push(entry);
-      if (combat.logHistory.length > 400) combat.logHistory.shift();
+      // Cap action log history to the recent 5 turns only (no lag)
+      const minTurn = Math.max(1, combat.turn - 4);
+      combat.logHistory = combat.logHistory.filter(item => {
+        const m = String(item).match(/^\[T(\d+)\]/);
+        if (!m) return true;
+        return Number(m[1]) >= minTurn;
+      });
+      if (combat.logHistory.length > 250) combat.logHistory = combat.logHistory.slice(-250);
       if (logBarText) logBarText.textContent = msg || full;
     }
 
@@ -51,25 +58,26 @@
       if (entries.length === 1) return entries[0];
       const allLive = [], allFull = [];
       let totalDmg = 0, totalHeal = 0, totalShield = 0;
-      const tags = new Set();
+      const tileLabels = [];
       for (const e of entries) {
         allLive.push(e.live);
         allFull.push(e.full);
-        // Extract numbers
+        const cleanFull = e.full.replace(/^\[(You|Enemy:[^\]]+)\]\s*/, "");
+        const parts = cleanFull.split(" · ");
+        if (parts[0]) tileLabels.push(parts[0]);
+
         const dmgMatch = e.full.match(/(\d+) dmg/);
         if (dmgMatch) totalDmg += parseInt(dmgMatch[1]);
         const healMatch = e.full.match(/\+(\d+) HP/);
         if (healMatch) totalHeal += parseInt(healMatch[1]);
         const shieldMatch = e.full.match(/\+(\d+) shield/);
         if (shieldMatch) totalShield += parseInt(shieldMatch[1]);
-        // Collect unique tags
-        e.full.split(" · ").forEach(t => {
-          if (t.includes("×") || t.includes("Fever") || t.includes("charge") || t.includes("AP refund") || t.includes("Bloom") || t.includes("Cross") || t.includes("charged")) tags.add(t);
-        });
       }
-      const live = `×${entries.length} ${[...tags].join(" · ") || "Cascade"}`;
-      const full = `Cascade ×${entries.length} · ${totalDmg ? totalDmg + " dmg" : ""} ${totalHeal ? "+" + totalHeal + " HP" : ""} ${totalShield ? "+" + totalShield + " shield" : ""}`.trim();
-      return { live, full };
+      const actorTag = entries[0] && entries[0].full.startsWith("[Enemy") ? entries[0].full.split("]")[0] + "]" : "[You]";
+      const tileDesc = tileLabels.join(" ➔ ");
+      const live = `${actorTag} Cascade ×${entries.length} (${tileLabels.join(", ")})`;
+      const full = `${actorTag} Cascade ×${entries.length} · Tiles: ${tileDesc} · Steps: ${allFull.join(" ➔ ")} · Total: ${totalDmg ? totalDmg + " dmg" : ""} ${totalHeal ? "+" + totalHeal + " HP" : ""} ${totalShield ? "+" + totalShield + " shield" : ""}`.trim();
+      return { live, full, steps: allFull };
     }
     // Streams a swarm of small particles from `fromEl` to `toEl` (`kind` picks the
     // color: sword | star | shield | hp | poison | enemy | fracture). As they
@@ -203,6 +211,10 @@
     }
 
     function classifyLog(text) {
+      // Enemy-turn narrative (tagged with [Enemy]) is its own category
+      if (/\[Enemy\]/i.test(text)) return "enemy";
+      // Cascade first: cascade lines are full of dmg/heal/shield tokens and must stay pink
+      if (/Cascade/i.test(text)) return "cascade";
       if (/Ultimate|Moonbloom|Earthshatter|Starfall|Meteor/i.test(text)) return "ult";
       if (/Fracture|Sunder|Earthquake|Bulwark/i.test(text)) return "fracture";
       if (/Poison|☠|Miasma|Venom|Acid|Corrosive|Toxic/i.test(text)) return "poison";
@@ -213,31 +225,70 @@
       return "voice";
     }
 
+    function stripActorPrefix(text) {
+      return String(text).replace(/^\[(You|Enemy(?::[^\]]*)?)\]\s*/i, "").replace(/^Rival:\s*/i, "");
+    }
+
+    // Which combatant owns a log line → decides the panel treatment so the
+    // player (blue) and rival (gray) read as two equal, side-by-side voices.
+    function classifySide(text) {
+      if (/^\[Enemy(?::[^\]]*)?\]/i.test(text)) return "rival";
+      const type = classifyLog(String(text));
+      if (type === "taken") return "rival"; // damage on you came from the rival
+      if (type === "voice") return "neutral";
+      return "player";
+    }
+
     let _logModalVersion = 0;
     let _lastLogLength = 0;
+    let _activeLogFilter = "all";
+
+    const actionLogFilters = document.getElementById("actionLogFilters");
+    if (actionLogFilters) {
+      actionLogFilters.addEventListener("click", (e) => {
+        const btn = e.target.closest(".log-filter-btn");
+        if (!btn) return;
+        actionLogFilters.querySelectorAll(".log-filter-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        _activeLogFilter = btn.getAttribute("data-filter") || "all";
+        _lastLogLength = -1;
+        refreshLogModal();
+      });
+    }
 
     function refreshLogModal() {
       if (!actionLogScroll) return;
-      // Only rebuild if log has changed since last open
+      // Only rebuild if log has changed since last open or filter changed
       if (_lastLogLength === combat.logHistory.length && _logModalVersion) return;
       _lastLogLength = combat.logHistory.length;
       _logModalVersion++;
 
-      const title = document.querySelector(".action-log-modal-title");
       const total = combat.logHistory.length;
-      const shown = Math.min(150, total);
-      if (title) title.textContent = `Action Log · Floor ${run.floor} · Showing ${shown} of ${total}`;
+      const displayLogs = combat.logHistory.slice(-200);
+
+      const filtered = displayLogs.filter(text => {
+        if (_activeLogFilter === "all") return true;
+        const type = classifyLog(String(text));
+        if (_activeLogFilter === "dmg") return type === "dmg" || type === "taken";
+        if (_activeLogFilter === "defense") return type === "heal" || type === "shield";
+        if (_activeLogFilter === "poison") return type === "poison" || type === "fracture" || type === "ult" || type === "cascade" || type === "taken" || type === "enemy";
+        if (_activeLogFilter === "voice") return type === "voice";
+        return type === _activeLogFilter;
+      });
+
+      const title = document.querySelector(".action-log-modal-title");
+      if (title) title.textContent = `Action Log · Floor ${run.floor} · Showing ${filtered.length} of ${total}`;
 
       // Use DocumentFragment to batch DOM operations
       const fragment = document.createDocumentFragment();
       let currentTurn = null;
 
-      // Show only last 150 entries in modal (full history kept in memory)
-      const displayLogs = combat.logHistory.slice(-150);
-      for (const text of [...displayLogs].reverse()) {
-        const m = text.match(/^\[T(\d+)\]\s*/);
+      // Show filtered entries in modal
+      for (const text of [...filtered].reverse()) {
+        const str = String(text);
+        const m = str.match(/^\[T(\d+)\]\s*/);
         const turn = m ? Number(m[1]) : null;
-        const body = m ? text.slice(m[0].length) : text;
+        const body = m ? str.slice(m[0].length) : str;
         if (turn !== null && turn !== currentTurn) {
           currentTurn = turn;
           const head = document.createElement("div");
@@ -245,14 +296,48 @@
           head.textContent = `Turn ${turn}`;
           fragment.appendChild(head);
         }
+        const type = classifyLog(body);
+        const side = classifySide(body);
         const el = document.createElement("div");
-        el.className = "log-entry type-" + classifyLog(body);
-        el.textContent = body;
+        el.className = "log-entry type-" + type + " side-" + side;
+
+        const line = document.createElement("div");
+        line.className = "log-entry-line";
+        el.appendChild(line);
+
+        if (side !== "neutral") {
+          const tag = document.createElement("span");
+          tag.className = "log-tag side-" + side;
+          tag.textContent = side === "rival" ? "RIVAL" : "YOU";
+          line.appendChild(tag);
+        }
+
+        const main = document.createElement("div");
+        main.className = "log-entry-main";
+        main.textContent = side === "neutral" ? body : stripActorPrefix(body);
+        line.appendChild(main);
+
+        const meta = document.createElement("div");
+        meta.className = "log-entry-meta";
+        meta.textContent = (side === "neutral" ? "" : `Side: ${side === "rival" ? "RIVAL" : "YOU"} · `) + `Category: ${type.toUpperCase()} · Turn ${turn} · Click to collapse`;
+        el.appendChild(meta);
+
+        el.addEventListener("click", () => {
+          el.classList.toggle("expanded");
+        });
+
         fragment.appendChild(el);
       }
 
       actionLogScroll.innerHTML = "";
-      actionLogScroll.appendChild(fragment);
+      if (filtered.length === 0) {
+        const empty = document.createElement("div");
+        empty.style.cssText = "text-align:center;color:#8a7e72;font-size:0.7rem;padding:20px;font-style:italic;";
+        empty.textContent = "No log entries match this filter.";
+        actionLogScroll.appendChild(empty);
+      } else {
+        actionLogScroll.appendChild(fragment);
+      }
       actionLogScroll.scrollTop = 0;
     }
 
@@ -970,27 +1055,27 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (combat.playerClass === "ninja") {
         if (!combat.firstHitDodged) {
           combat.firstHitDodged = true;
-          setLog("Shadow Step · Dodge!");
+          setLog("[Enemy] Shadow Step · Dodge!");
           // Miasma Reflex: dodge triggers 100% of Poison stacks as immediate damage
           if (run.miasmaReflex && combat.poisonStacks > 0) {
             const miasmaDmg = combat.poisonStacks;
             combat.enemyHp = Math.max(0, combat.enemyHp - miasmaDmg);
             dmgPop("enemy", `☠${miasmaDmg}`, "true");
             if (combat.stats) combat.stats.poison += miasmaDmg;
-            setLog("Miasma Reflex", `Miasma Reflex · ${miasmaDmg} Poison dmg`);
+            setLog("[Enemy] Miasma Reflex", `[Enemy] Miasma Reflex · ${miasmaDmg} Poison dmg`);
             if (combat.enemyHp <= 0) checkGameOver();
           }
           return;
         }
         if (Math.random() < 0.20) {
-          setLog("Shadow Step · Dodge!");
+          setLog("[Enemy] Shadow Step · Dodge!");
           // Miasma Reflex
           if (run.miasmaReflex && combat.poisonStacks > 0) {
             const miasmaDmg = combat.poisonStacks;
             combat.enemyHp = Math.max(0, combat.enemyHp - miasmaDmg);
             dmgPop("enemy", `☠${miasmaDmg}`, "true");
             if (combat.stats) combat.stats.poison += miasmaDmg;
-            setLog("Miasma Reflex", `Miasma Reflex · ${miasmaDmg} Poison dmg`);
+            setLog("[Enemy] Miasma Reflex", `[Enemy] Miasma Reflex · ${miasmaDmg} Poison dmg`);
             if (combat.enemyHp <= 0) checkGameOver();
           }
           return;
@@ -1045,7 +1130,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         combat.knightDeathSaveUsed = true;
         combat.fractureStacks = Math.min(6, combat.fractureStacks + 5);
         combat.fractureTurns = Math.max(combat.fractureTurns, 3);
-        setLog("Iron Will", "Survived with 1 HP! +5 Cracked");
+        setLog("[Enemy] Iron Will", "[Enemy] Iron Will · Survived with 1 HP! +5 Cracked");
         dmgPop("player", "Iron Will!", "heal");
       }
       const lost = before - combat.playerHp;
@@ -1247,7 +1332,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       const fever = phase === "fever";
       const isCharged = !!shape.charged || (shape.tags && shape.tags.includes("charged"));
       const isCross = shape.tags && shape.tags.includes("cross");
-      const isStar = shape.tags && shape.tags.includes("star");
+      const isStar = shape.tags && (shape.tags.includes("star") || shape.tags.includes("charged-star"));
       const bitsExtra = [];
 
       for (const { type } of matchedList) {
@@ -1679,9 +1764,13 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         if (heal) bits.push(`+${heal} HP`);
         if (sh && combat.manaLockTurns <= 0) bits.push(`+${sh} shield`);
         else if (sh && combat.manaLockTurns > 0) bits.push("shield locked");
-        const full = `Rival: ${bits.join(" · ")}`;
-        const live = `Rival: ${bits.filter((b) => !skipNumericBit(b)).join(" · ")}`;
-        setLog(live, full);
+        const full = `[Enemy: ${combat.enemyName}] ${bits.join(" · ")}`;
+        const live = `[Enemy: ${combat.enemyName}] ${bits.filter((b) => !skipNumericBit(b)).join(" · ")}`;
+        if (combat._inCascade) {
+          combat._cascadeBuffer.push({ live, full });
+        } else {
+          setLog(live, full);
+        }
       } else {
         // Flutter dodge: Moth has 25% chance to negate your match damage
         let flutterDodged = false;
@@ -1689,7 +1778,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           flutterDodged = true;
           dmg = 0;
           dmgPop("enemy", "MISS!", "shielded");
-          setLog(`${combat.enemyName} fluttered away!`);
+          setLog(`[Enemy] ${combat.enemyName} fluttered away!`);
         }
         if (dmg > 0) dealDamageToEnemy(dmg, { source: swordCount >= starCount ? "sword" : "star" });
         // FX: damage → enemy portrait; heal/shield → player portrait
@@ -1749,11 +1838,9 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
             if (before < settings.ultNeed && combat.sigBank >= settings.ultNeed) {
               showUltReadyBanner();
             }
-          }
-          // Mana Surge (Wizard): full charge — signature matches refund 1 AP
-          if (run.manaSurge && combat.sigBank >= settings.ultMaxCharge) {
-            combat.ap = Math.min(AP_MAX, combat.ap + 1);
-            bitsExtra.push("Mana Surge +1 AP");
+            // Trace base signature charge with distinct color
+            const chargeText = `⚡ +${chargesToAdd} charge · ${before}/${settings.ultMaxCharge}→${combat.sigBank}/${settings.ultMaxCharge}`;
+            bitsExtra.push(chargeText);
           }
         }
         // Volatile Floor: every player match deals 1 self-damage
@@ -1778,8 +1865,11 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         if (hasSigMatch) bits.push(`charge ${combat.sigBank}/${settings.ultMaxCharge}`);
         if (bitsExtra.length) bits.push(...bitsExtra);
         if (mysteryBits.length) bits.push(...mysteryBits);
-        const live = bits.filter((b) => !skipNumericBit(b)).join(" · ");
-        const full = bits.join(" · ");
+        const actorPrefix = forEnemy ? `[Enemy: ${combat.enemyName}]` : `[You]`;
+        const rawLive = bits.filter((b) => !skipNumericBit(b)).join(" · ");
+        const rawFull = bits.join(" · ");
+        const live = `${actorPrefix} ${rawLive}`;
+        const full = `${actorPrefix} ${rawFull}`;
         if (combat._inCascade) {
           combat._cascadeBuffer.push({ live, full });
         } else {
@@ -1945,6 +2035,12 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       combat.enemyAp = Math.min(AP_MAX, 3); // rival caps at base AP — player bonuses are pure upside
       combat._enemyAttacksThisTurn = 0; // Reset attack counter
 
+      // Consolidate the rival's whole turn into ONE log entry (mirrors the
+      // player's Cascade ×N box) instead of one entry per matched move.
+      combat._enemyTurnLog = true;
+      combat._inCascade = true;
+      combat._cascadeBuffer = [];
+
       // Boss turn-start passive (e.g. Last Rival regeneration)
       if (combat.bossKit && typeof combat.bossKit.turnStart === "function") {
         combat.bossKit.turnStart();
@@ -1986,7 +2082,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       // Stun: skip enemy's entire turn
       if ((combat.enemyStunTurns || 0) > 0) {
         combat.enemyStunTurns--;
-        setLog("Dizzy", "Enemy is Dizzy — turn skipped!");
+        setLog("[Enemy] Dizzy", "[Enemy] Enemy is Dizzy — turn skipped!");
         dmgPop("enemy", "STUNNED", "shielded");
         refreshCombatUI();
         await sleep(600);
@@ -2017,7 +2113,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         if (combat.enemyUltCharge >= combat.enemyUltNeed) {
           sayVoice("enemySpecial", { force: true });
           await sleep(320);
-          setLog(`${combat.enemyName}: ${combat.bossKit.ultName}!`);
+          setLog(`[Enemy] ${combat.enemyName}: ${combat.bossKit.ultName}!`);
           // 🎬 Boss ultimate cinematics — screen flash, mega projectile, shake
           runUltFlash("enemy");
           flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "enemy", { mega: true });
@@ -2033,7 +2129,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           }
           maybePlayerLowVoice();
         } else if (combat.enemyUltCharge === combat.enemyUltNeed - 1) {
-          setLog(`${combat.enemyName} ultimate charging…`);
+          setLog(`[Enemy] ${combat.enemyName} ultimate charging…`);
           playEnemyCharge();
           await sleep(280);
         }
@@ -2052,7 +2148,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           // Use special: Heavy Strike (150% damage) — full cinematics
           sayVoice("enemySpecial", { force: true });
           await sleep(280);
-          setLog(`${combat.enemyName} uses Power Strike!`, `${combat.enemyName} uses Power Strike!`);
+          setLog(`[Enemy] ${combat.enemyName} uses Power Strike!`, `[Enemy] ${combat.enemyName} uses Power Strike!`);
           runUltFlash("enemy");
           flyEffect(document.getElementById("enemyPortrait"), document.getElementById("playerPortrait"), "enemy", { mega: true });
           shakeBoard("strong");
@@ -2067,16 +2163,16 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           // Small pause so the player sees the special
           await sleep(400);
         } else if (combat.enemySpecialCharge === combat.enemySpecialNeed - 1) {
-          setLog(`${combat.enemyName} is charging a special...`);
+          setLog(`[Enemy] ${combat.enemyName} is charging a special...`);
           await sleep(300);
         }
       }
 
       if (combat.tutorial) {
         hideEnemyThinking();
-        setLog("Training Dummy · watching…");
+        setLog("[Enemy] Training Dummy · watching…");
       } else {
-      setLog(`${combat.enemyName} is thinking…`);
+      setLog(`[Enemy] ${combat.enemyName} is thinking…`);
       const archAtk = (combat.enemyArchetype && combat.enemyArchetype.atkMul) || 1;
       const eliteAtk = (combat.eliteKit && combat.eliteKit.atkMul) || 1;
       const quickBonus = combat.quickening ? (combat.enemyAtkBonus || 0) : 0;
@@ -2085,7 +2181,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       // Frost: reduce enemy AP by 1 per frost stack
       if ((combat.enemyFrostTurns || 0) > 0) {
         combat.enemyAp = Math.max(0, combat.enemyAp - 1);
-        setLog("Chilled", "Chill · enemy loses 1 AP");
+        setLog("[Enemy] Chilled", "[Enemy] Chill · enemy loses 1 AP");
         dmgPop("enemy", "FROST", "shielded");
         refreshCombatUI();
         await sleep(300);
@@ -2115,7 +2211,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         const b = getCell(move.r2, move.c2);
         a.classList.add("highlight");
         b.classList.add("highlight");
-        setLog("Rival found a move…");
+        if (!combat._enemyTurnLog) setLog("[Enemy] Rival found a move…");
         await sleep(380);
         a.classList.remove("highlight");
         b.classList.remove("highlight");
@@ -2156,12 +2252,19 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
             combat.enemyAp--;
             maybePlayerLowVoice();
           } else {
-            setLog(`${combat.enemyName} missed a match`);
+            setLog(`[Enemy] ${combat.enemyName} missed a match`);
           }
         }
         refreshCombatUI();
       }
       } // end tutorial else
+
+      // Flush the rival's consolidated turn box before any game-over early return
+      if (combat._enemyTurnLog) {
+        if (combat._cascadeBuffer.length > 0) flushCascade(true);
+        else { combat._cascadeBuffer = []; combat._inCascade = false; }
+        combat._enemyTurnLog = false;
+      }
 
       if (gameOver) {
         busy = true;
@@ -2172,7 +2275,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (combat._enemyAttacksThisTurn > 0) {
         const total = combat._enemyTotalDmgThisTurn || 0;
         const count = combat._enemyAttacksThisTurn;
-        setLog(`${combat.enemyName} attacks ×${count} (${total} dmg)`, `${combat.enemyName} attacks ×${count} · ${total} total dmg`);
+        setLog(`[Enemy] ${combat.enemyName} attacks ×${count} (${total} dmg)`, `[Enemy] ${combat.enemyName} attacks ×${count} · ${total} total dmg`);
       }
       combat._enemyAttacksThisTurn = 0;
       combat._enemyTotalDmgThisTurn = 0;
@@ -2200,13 +2303,13 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
 
     // Enemy-side board resolve (matches help the rival)
     async function resolveBoardEnemy() {
-      startCascade(); // Begin cascade log buffering
+      if (!combat._enemyTurnLog) startCascade(); // Begin cascade log buffering
       while (true) {
         let { mark, any, specialSpawns } = findMatches();
         if (!any) {
           combo = 0;
           clearComboTheater();
-          flushCascade(); // Flush consolidated cascade log
+          if (!combat._enemyTurnLog) flushCascade(); // Flush consolidated cascade log
           break;
         }
         // Expand clear based on each matched special's kind (bloom 3x3 / cross row+col / x diagonals)

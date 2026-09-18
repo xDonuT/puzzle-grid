@@ -596,6 +596,7 @@
         for (const { r, c } of matchedList) {
           board[r][c] = null;
           specials[r][c] = false;
+          tileStatus[r][c] = null;
           const el = getCell(r, c);
           el.classList.remove("matching", "special", "seal-cross", "seal-x");
           el.style.opacity = "0";
@@ -660,6 +661,7 @@
         for (let r = 0; r < ROWS; r++) {
           board[r][c] = null;
           specials[r][c] = false;
+          tileStatus[r][c] = null;
         }
         for (const item of stack) {
           if (item.r !== write) {
@@ -706,6 +708,7 @@
           if (board[r][c] === null) {
             board[r][c] = rand();
             specials[r][c] = false;
+            tileStatus[r][c] = null;
             const el = getCell(r, c);
             setType(el, board[r][c]);
             setSpecialClass(el, false);

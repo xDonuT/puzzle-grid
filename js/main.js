@@ -1766,50 +1766,14 @@ function checkGameOver() {
           });
           // Chain: offer the earned Tile Blessing pick, then the earned Shape
           // Skill pick (one shape at a time), then the normal floor reward.
-const afterBlessing = () => {
-            // If a shape skill was earned this floor, open the shape skill picker.
-            // The picker will loop through shapes (star/cross/charged) until all three slots are filled.
-            if (shapeSpecial) {
-              const openNextShape = () => {
-                const sk = run.shapeSkills || {};
-                const empty = ["star", "cross", "charged"].filter(s => !sk[s]);
-                if (empty.length === 0) {
-                  // All shape skills filled — resume normal victory flow.
-                  rewardFlow();
-                  return;
-                }
-                // Otherwise, pick the first empty shape for the next picker.
-                const next = empty[0];
-                openShapeSkillPicker(next, () => {
-                  // After this pick, continue to the next empty slot or finish.
-                  openNextShape();
-                });
-              };
-              openNextShape();
-            } else {
-              rewardFlow();
-            }
+          const afterBlessing = () => {
+            if (shapeSpecial) openShapeSkillPicker(shapeSpecial, rewardFlow);
+            else rewardFlow();
           };
           if (blessSpecial) openTileBlessingPicker(blessSpecial, afterBlessing);
-          else if (shapeSpecial) {
-            // Loop through shapes until all three slots are filled.
-            const openNextShape = () => {
-              const sk = run.shapeSkills || {};
-              const empty = ["star", "cross", "charged"].filter(s => !sk[s]);
-              if (empty.length === 0) {
-                // All shape skills filled — resume normal victory flow.
-                rewardFlow();
-                return;
-              }
-              const next = empty[0];
-              openShapeSkillPicker(next, () => {
-                openNextShape();
-              });
-            };
-            openNextShape();
-          } else {
-            rewardFlow();
-          }
+          else if (shapeSpecial) openShapeSkillPicker(shapeSpecial, rewardFlow);
+          else rewardFlow();
+        }
         }
       } else if (combat.playerHp <= 0) {
         gameOver = true;

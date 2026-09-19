@@ -3904,6 +3904,7 @@ body.ult-hitstop .board-wrap {
       #actFlora .sway, .menu-sprout .ms-sway, .menu-sprout .ms-bloom,
       .strand.leafy, .strand.root, .board-vine,
       #stormBank, #pollen i, #goldenGlow, #cloudSea,
+      #modSky, #modFx, .mod-p,
       body.tower-1 #actSky::before, body.tower-2 #actSky::before,
       body.tower-4 #actSky::before, body.tower-4 #actSky::after,
       body.tower-1 .board-wrap, body.tower-2 .board-wrap,
@@ -3916,6 +3917,7 @@ body.ult-hitstop .board-wrap {
       body::before, body::after { display: none; }
       #actSky, #actSky::before, #actSky::after { display: none; }
       #actFlora { display: none; }
+      #modSky, #modFx, .mod-p { display: none; }
     }
 
     /* ─── Lite mode: pause all ambient decoration to reduce GPU heat on low-end devices ─── */
@@ -3924,6 +3926,9 @@ body.ult-hitstop .board-wrap {
     body.lite-mode #cloudSea,
     body.lite-mode #goldenGlow,
     body.lite-mode #actFlora,
+    body.lite-mode #modSky,
+    body.lite-mode #modFx,
+    body.lite-mode .mod-p,
     body.lite-mode .board-vine,
     body.lite-mode .strand.leafy,
     body.lite-mode .strand.root {
@@ -4485,6 +4490,60 @@ body.ult-hitstop .board-wrap {
     body.skin-midnight.tower-2 #actSky { background: linear-gradient(180deg, #452c3b 0%, #463827 48%, #221a12 100%); }
     body.skin-midnight.tower-4 #actSky { background: linear-gradient(180deg, #553818 0%, #443722 45%, #221a12 100%); }
 
+    /* ─── Floor modifier atmosphere ───
+       body.mod-active is set when the floor has a modifier; --mod-c carries its
+       color. The sky (#modSky) picks up the hue, the board gains an aura ring,
+       and themed mods get a subtle particle ambience (#modFx). */
+    #modSky {
+      position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      opacity: 0; transition: opacity 1.2s ease;
+      background:
+        radial-gradient(120% 70% at 50% 0%, var(--mod-c, transparent) 0%, color-mix(in srgb, var(--mod-c, transparent) 42%, transparent) 30%, transparent 72%),
+        radial-gradient(95% 40% at 50% 100%, color-mix(in srgb, var(--mod-c, transparent) 32%, transparent) 0%, transparent 68%);
+    }
+    body.mod-active #modSky { opacity: 0.5; }
+    #modFx {
+      position: fixed; inset: 0; overflow: hidden; z-index: 5; pointer-events: none;
+      opacity: 0; transition: opacity 0.8s ease;
+    }
+    #modFx.on { opacity: 1; }
+    .mod-p {
+      position: absolute; pointer-events: none;
+      will-change: transform, opacity; opacity: 1;
+    }
+    /* Board aura ring + glow, tinted by the modifier. :where() keeps this below
+       .combo-glow-* so big chains still flash their own color. */
+    body :where(.mod-active) .board-wrap {
+      box-shadow:
+        inset 0 0 0 1px rgba(104, 92, 80, 0.08),
+        0 0 0 2px color-mix(in srgb, var(--mod-c, #7aa65e) 42%, transparent),
+        0 0 26px 8px color-mix(in srgb, var(--mod-c, #7aa65e) 20%, transparent);
+    }
+    body.skin-midnight :where(.mod-active) .board-wrap {
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+        0 0 0 2px color-mix(in srgb, var(--mod-c, #7aa65e) 55%, transparent),
+        0 0 30px 10px color-mix(in srgb, var(--mod-c, #7aa65e) 24%, transparent);
+    }
+    /* Eclipse: the lights go out. Deep navy veil + dimmed sky, dramatic even on paper. */
+    body.mod-eclipse #actSky { opacity: 0.22; }
+    body.mod-eclipse #modSky {
+      opacity: 0.9;
+      background:
+        radial-gradient(120% 90% at 50% 0%, rgba(24, 28, 52, 0.9) 0%, rgba(24, 28, 52, 0.5) 45%, transparent 78%);
+    }
+    body.mod-active.mod-eclipse .board-wrap {
+      box-shadow:
+        inset 0 0 0 1px rgba(24, 28, 52, 0.5),
+        0 0 0 2px rgba(90, 110, 160, 0.5),
+        0 0 26px 8px rgba(90, 110, 160, 0.22);
+    }
+    body.mod-eclipse .tile { filter: brightness(0.92) saturate(0.9); }
+    body.skin-midnight.mod-eclipse #modSky {
+      background:
+        radial-gradient(120% 90% at 50% 0%, rgba(14, 18, 36, 0.95) 0%, rgba(14, 18, 36, 0.6) 48%, transparent 80%);
+    }
+
 </style>
   <link rel="manifest" href="manifest.json" />
   <script>
@@ -4497,6 +4556,8 @@ body.ult-hitstop .board-wrap {
 </head>
 <body>
   <div id="actSky" aria-hidden="true"><div id="stormBank"></div></div>
+  <div id="modSky" aria-hidden="true"></div>
+  <div id="modFx" aria-hidden="true"></div>
   <div id="pollen" aria-hidden="true">
     <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
   </div>

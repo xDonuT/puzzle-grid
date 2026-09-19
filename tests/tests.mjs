@@ -371,5 +371,29 @@ assertEq(run.pickedUpgrades.includes("venomous"), true, "applyLoadedRun keeps pi
 clearSave();
 assertEq(hasSave(), false, "clearSave removes the run save");
 
+// ---------- Floor modifier atmosphere ----------
+combat.floorModifier = { id: "gentleRain", color: "#5aa0b8", fx: "rain", name: "Gentle Rain" };
+applyFloorModifierLook();
+assert(document.body.classList.contains("mod-active"), "modifier look sets body.mod-active");
+assert(document.body.classList.contains("mod-gentleRain"), "modifier look sets body.mod-gentleRain");
+assert(document.body.classList.contains("mod-fx-rain"), "modifier look maps fx rain → mod-fx-rain");
+assert(document.body.style.getPropertyValue("--mod-c").indexOf("#5aa0b8") !== -1, "--mod-c carries the modifier color");
+
+combat.floorModifier = { id: "volatileFloor", color: "#d44a2a", fx: "ember" };
+applyFloorModifierLook();
+assert(!document.body.classList.contains("mod-gentleRain"), "re-apply drops the previous modifier class");
+assert(document.body.classList.contains("mod-fx-ember"), "modifier look maps fx ember → mod-fx-ember");
+
+combat.floorModifier = { id: "eclipse", color: "#50506a" };
+applyFloorModifierLook();
+assert(document.body.classList.contains("mod-eclipse"), "eclipse modifier gets its own body class");
+clearFloorModifierLook();
+assert(!document.body.classList.contains("mod-active"), "clearFloorModifierLook drops mod-active");
+assert(!document.body.classList.contains("mod-eclipse"), "clearFloorModifierLook drops mod-eclipse");
+assertEq(document.body.style.getPropertyValue("--mod-c"), "", "clearFloorModifierLook clears --mod-c");
+combat.floorModifier = null;
+applyFloorModifierLook();
+assert(!document.body.classList.contains("mod-active"), "no modifier → no mod-active");
+
 if (failures) { console.error(`\n${failures} FAILURE(S)`); Deno.exit(1); }
 console.log("\nALL CHECKS PASSED");

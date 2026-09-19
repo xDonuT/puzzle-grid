@@ -23,6 +23,31 @@ function stubEl() {
     scrollTop: 0, scrollHeight: 0, focus: noop, blur: noop, click: noop
   };
 }
+function stubStyle() {
+  const store = Object.create(null);
+  return new Proxy(store, {
+    get(t, p) {
+      if (p === "setProperty") return (k, v) => { t[k] = v; };
+      if (p === "removeProperty") return (k) => { delete t[k]; };
+      if (p === "getPropertyValue") return (k) => (k in t ? t[k] : "");
+      return t[p];
+    },
+    set(t, p, v) { t[p] = v; return true; }
+  });
+}
+function persistentBody() {
+  const el = stubEl();
+  const set = new Set();
+  el.classList = {
+    add(...cs) { cs.forEach(c => set.add(c)); },
+    remove(...cs) { cs.forEach(c => set.delete(c)); },
+    toggle(c, force) { const on = force === undefined ? !set.has(c) : !!force; if (on) set.add(c); else set.delete(c); return on; },
+    contains(c) { return set.has(c); }
+  };
+  el.style = stubStyle();
+  return el;
+}
+const sharedBody = persistentBody();
 function makeStubEl() { return stubEl(); }
 function makeDocumentFragment() {
   // A fragment must track its appended children so the scroll element
@@ -65,7 +90,7 @@ const docProxy = new Proxy({}, {
     if (p === "createTextNode") return () => stubEl();
     if (p === "createDocumentFragment") return () => makeDocumentFragment();
     if (p === "getElementsByClassName") return () => [];
-    if (p === "body") return stubEl();
+    if (p === "body") return sharedBody;
     if (p === "documentElement") return stubEl();
     if (p === "head") return stubEl();
     if (p === "title") return "test";

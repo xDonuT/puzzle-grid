@@ -630,6 +630,98 @@ const screenMenu = document.getElementById("screen-menu");
       pp.classList.toggle("stamp-gold", settings.stampTheme === "gold");
       pp.classList.toggle("stamp-ink", settings.stampTheme === "ink");
     }
+    // ---- Floor modifier atmosphere ----
+    // The battle background picks up the active floor modifier: body.mod-active +
+    // body.mod-<id> tint the sky and board via --mod-c, and themed modifiers add
+    // a lightweight particle ambience on #modFx (shared FX budget, lite/reduced-motion aware).
+    const MODIFIER_FX_CLASS = { rain: "mod-fx-rain", snow: "mod-fx-snow", ember: "mod-fx-ember", petal: "mod-fx-petal" };
+    let modAmbientTimer = null;
+
+    function clearFloorModifierLook() {
+      const b = document.body;
+      if (!b || !b.classList) return;
+      b.classList.remove("mod-active");
+      (FLOOR_MODIFIERS || []).forEach(m => b.classList.remove("mod-" + m.id));
+      Object.keys(MODIFIER_FX_CLASS).forEach(k => b.classList.remove(MODIFIER_FX_CLASS[k]));
+      b.classList.remove("mod-eclipse");
+      b.style.removeProperty("--mod-c");
+      stopModAmbience();
+    }
+    function applyFloorModifierLook() {
+      clearFloorModifierLook();
+      const m = combat.floorModifier;
+      if (!m) return;
+      const b = document.body;
+      b.classList.add("mod-active", "mod-" + m.id);
+      if (m.color) b.style.setProperty("--mod-c", m.color);
+      if (m.fx && MODIFIER_FX_CLASS[m.fx]) b.classList.add(MODIFIER_FX_CLASS[m.fx]);
+      startModAmbience();
+    }
+    function startModAmbience() {
+      stopModAmbience();
+      if (settings.liteMode === true) return;
+      if (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const b = document.body;
+      const group = b.classList.contains("mod-fx-rain") ? "rain"
+        : b.classList.contains("mod-fx-snow") ? "snow"
+        : b.classList.contains("mod-fx-ember") ? "ember"
+        : b.classList.contains("mod-fx-petal") ? "petal"
+        : null;
+      if (!group) return;
+      const layer = document.getElementById("modFx");
+      if (!layer) return;
+      layer.classList.add("on");
+      modAmbientTimer = setInterval(() => spawnModParticle(layer, group), 230);
+      if (modAmbientTimer.unref) modAmbientTimer.unref();
+    }
+    function stopModAmbience() {
+      if (modAmbientTimer) { clearInterval(modAmbientTimer); modAmbientTimer = null; }
+      const layer = document.getElementById("modFx");
+      if (layer) layer.classList.remove("on");
+    }
+    function spawnModParticle(layer, group) {
+      if (typeof fxNodeAllowed === "function" && !fxNodeAllowed()) return;
+      const p = document.createElement("div");
+      p.className = "mod-p";
+      const vw = window.innerWidth || 320;
+      const vh = window.innerHeight || 480;
+      const size = group === "rain" ? 2 + Math.random() : 3 + Math.random() * 4;
+      p.style.width = size + "px";
+      p.style.height = (group === "rain" ? size * 8 : size) + "px";
+      p.style.borderRadius = group === "rain" ? "2px" : "50%";
+      p.style.left = Math.random() * vw + "px";
+      p.style.top = (group === "ember" ? Math.random() * vh : -20 + Math.random() * vh * 0.35) + "px";
+      p.style.background = group === "ember"
+        ? "radial-gradient(circle at 40% 40%, color-mix(in srgb, var(--mod-c) 60%, #ff9b66) 0%, color-mix(in srgb, var(--mod-c) 70%, transparent) 60%)"
+        : group === "rain"
+          ? "linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--mod-c) 55%, #d6ecff) 100%)"
+          : "color-mix(in srgb, var(--mod-c) 55%, transparent)";
+      if (group === "petal") p.style.filter = "blur(0.4px)";
+      layer.appendChild(p);
+      const dur = group === "rain" ? 620 : group === "snow" ? 3200 : group === "ember" ? 2100 : 2400;
+      const drift = Math.random() * 60 - 30;
+      let anim;
+      if (group === "ember") {
+        anim = p.animate([
+          { transform: "translateY(0)", opacity: 0 },
+          { transform: `translateY(${-30 - Math.random() * 70}px) translateX(${drift}px)`, opacity: 1, offset: 0.35 },
+          { transform: `translateY(${-160 - Math.random() * 120}px) translateX(${drift * 2}px)`, opacity: 0 }
+        ], { duration: dur, easing: "ease-out", fill: "forwards" });
+      } else if (group === "rain") {
+        anim = p.animate([
+          { transform: "translateY(0)", opacity: 0.8 },
+          { transform: `translateY(${vh + 40}px)`, opacity: 0 }
+        ], { duration: dur, easing: "linear", fill: "forwards" });
+      } else {
+        anim = p.animate([
+          { transform: "translateY(0) translateX(0)", opacity: 0 },
+          { transform: `translateY(${vh * 0.5}px) translateX(${drift}px)`, opacity: 1, offset: 0.5 },
+          { transform: `translateY(${vh + 30}px) translateX(${-drift}px)`, opacity: 0 }
+        ], { duration: dur, easing: "ease-in-out", fill: "forwards" });
+      }
+      if (typeof fxTrack === "function") fxTrack(p, anim, dur);
+      else { const done = () => p.remove(); if (anim && anim.onfinish !== undefined) anim.onfinish = done; else setTimeout(done, dur); }
+    }
     applyAccent();
     applySkin();
     applyPips();
@@ -827,6 +919,7 @@ const screenMenu = document.getElementById("screen-menu");
       }
       sayVoice("victory", { force: true });
       playVictory();
+      clearFloorModifierLook();
       gameOverOverlay.classList.add("open");
       recordRun(true);
       if (isFinal) showRecap(true); // after recordRun so final-battle stats are included
@@ -1701,6 +1794,7 @@ function checkGameOver() {
         saveRun(); // resume same floor
         sayVoice("defeat", { force: true });
         playDefeat();
+        clearFloorModifierLook();
         gameOverOverlay.classList.add("open");
         recordRun(false);
       }
@@ -1947,6 +2041,7 @@ function checkGameOver() {
       run.pendingModifier = null;
       run.pendingModifierRare = false;
       run.pendingModifierEasy = null;
+      clearFloorModifierLook();
       run.blessings = {};
       run.shapeSkills = { star: null, cross: null, charged: null };
       run.elapsedMs = 0;
@@ -2196,6 +2291,8 @@ function checkGameOver() {
           combat.shield = Math.min(combat.shield, combat.shieldCapOverride);
         }
       }
+      // Make the battle background react to the floor modifier (sky tint, aura, ambience)
+      applyFloorModifierLook();
       // Apply easy bonus modifier (challenge bonus from last fight)
       if (run.pendingModifierEasy) {
         run.pendingModifierEasy.apply(combat);

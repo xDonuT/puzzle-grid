@@ -46,9 +46,10 @@
       --wizard: #2f8d7e;
       --knight: #c2506a;
 
-      /* Player accent color — tinted UI (names, HP, log, gear, glow).
+      /* Player accent colors — tinted UI (names, HP, log, gear, pills, glow).
          Set live from Settings by applyAccent() in main.js. */
       --accent: #4f7a33;
+      --accent-2: #efd48a;
 
       /* Shared 3D bevel: light lip on top, shadowed under-edge, thin darker rim */
       --bevel:
@@ -1145,8 +1146,8 @@
       transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
     }
 .ap-pip.filled {
-        background: #66b34f;
-        box-shadow: 0 0 8px rgba(102, 179, 79, 0.5);
+        background: var(--accent);
+        box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 55%, transparent);
         border-color: rgba(255, 255, 255, 0.9);
       }
 .ap-pip.empty {
@@ -1180,8 +1181,8 @@
       transition: background 0.25s ease, box-shadow 0.25s ease;
     }
     .ult-pip.filled {
-      background: #efd48a;
-      box-shadow: 0 0 6px rgba(200, 170, 60, 0.45);
+      background: var(--accent-2);
+      box-shadow: 0 0 6px color-mix(in srgb, var(--accent-2) 55%, transparent);
       border-color: rgba(255,255,255,0.8);
     }
     .enemy-charge-row {
@@ -2035,7 +2036,7 @@
 
     /* The PLAYER's glow follows the chosen accent instead of the class color */
     #playerPortrait.ult-ready { box-shadow: 0 0 0 3px var(--accent), 0 0 18px 6px color-mix(in srgb, var(--accent) 50%, transparent), 0 0 36px 10px color-mix(in srgb, var(--accent) 20%, transparent); }
-    #playerPortrait.ult-ready::after { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 70%, #fff), var(--accent)); }
+    #playerPortrait.ult-ready::after { background: linear-gradient(135deg, var(--accent-2), var(--accent)); }
 
     /* Passport / info overlay tints with the accent when showing the player */
     #passportOverlay.accent-player .passport-spread-panel,
@@ -3245,9 +3246,9 @@ body.ult-hitstop .board-wrap {
     .charge-num {
       font-size: 0.62rem;
       font-weight: 800;
-      color: #8a7a40;
+      color: color-mix(in srgb, var(--accent-2) 72%, #4a3a08);
       font-variant-numeric: tabular-nums;
-      background: rgba(239, 212, 138, 0.45);
+      background: color-mix(in srgb, var(--accent-2) 45%, transparent);
       padding: 1px 6px;
       border-radius: 8px;
       border: 1px solid rgba(255,255,255,0.55);
@@ -3255,9 +3256,9 @@ body.ult-hitstop .board-wrap {
       text-align: center;
     }
     .charge-num.ready {
-      background: rgba(239, 212, 138, 0.9);
+      background: color-mix(in srgb, var(--accent-2) 90%, transparent);
       color: #5a4a10;
-      box-shadow: 0 0 8px rgba(220, 180, 60, 0.45);
+      box-shadow: 0 0 8px color-mix(in srgb, var(--accent-2) 60%, transparent);
     }
 
     /* Gameplay-tip line — up to 2 lines in a fixed-height slot, so the
@@ -4699,6 +4700,7 @@ body.ult-hitstop .board-wrap {
       <h2>Settings</h2>
       <div class="seg settings-tabs" id="settingsTabs" style="margin-bottom:12px;width:100%;justify-content:center">
         <button type="button" data-tab="game" class="on">Game</button>
+        <button type="button" data-tab="custom">Custom</button>
         <button type="button" data-tab="admin">Admin</button>
       </div>
 
@@ -4733,19 +4735,29 @@ body.ult-hitstop .board-wrap {
         </div>
         <div style="font-size:0.65rem;color:#a89a8c;margin-top:2px">Show the rotating tip line under the fighters while in battle.</div>
 
-        <h3>Look</h3>
-        <div class="row">
-          <label>Accent Color</label>
-          <input type="color" id="accentColorPicker" value="#4f7a33" aria-label="Accent color" style="width:46px;height:46px;border:1.5px solid rgba(0,0,0,0.2);border-radius:10px;padding:2px;background:#fff;cursor:pointer" />
-        </div>
-        <div style="font-size:0.65rem;color:#a89a8c;margin-top:2px">Tints your names, HP, log bar, gear and in-battle glow — your color.</div>
-
         <h3>Performance</h3>
         <div class="row">
           <label>Lite mode</label>
           <button type="button" class="toggle" id="liteToggle" aria-label="Lite mode"></button>
         </div>
         <div style="font-size:0.65rem;color:#a89a8c;margin-top:2px">Pauses ambient effects to reduce heat on low-end devices.</div>
+      </div>
+
+      <div id="tabCustom" style="display:none">
+        <h3>Look</h3>
+        <div class="row">
+          <label>Accent</label>
+          <input type="color" id="accentColorPicker" value="#4f7a33" aria-label="Accent color" style="width:46px;height:46px;border:1.5px solid rgba(0,0,0,0.2);border-radius:10px;padding:2px;background:#fff;cursor:pointer" />
+        </div>
+        <div class="row">
+          <label>Accent 2</label>
+          <input type="color" id="accentColorPicker2" value="#efd48a" aria-label="Accent color 2" style="width:46px;height:46px;border:1.5px solid rgba(0,0,0,0.2);border-radius:10px;padding:2px;background:#fff;cursor:pointer" />
+        </div>
+        <div class="row">
+          <label>Reset colors</label>
+          <button type="button" class="action-btn" id="btnAccentReset" style="padding:8px 14px;font-size:0.75rem">Default</button>
+        </div>
+        <div style="font-size:0.65rem;color:#a89a8c;margin-top:2px">Two-color scheme: Accent tints names, HP, log, gear and AP pills; Accent 2 tints your ult charge pills and glow.</div>
       </div>
 
       <div id="tabAdmin" style="display:none">

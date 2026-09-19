@@ -608,9 +608,11 @@ const screenMenu = document.getElementById("screen-menu");
       el.title = tip;
     }
 
-    // Player accent color: applied live to --accent (names, HP, log, gear, glow)
+    // Player accent colors: applied live to --accent / --accent-2 (names, HP,
+    // log, gear, pills, glow). Two-color scheme for the player's look.
     function applyAccent() {
       document.documentElement.style.setProperty("--accent", settings.accentColor || "#4f7a33");
+      document.documentElement.style.setProperty("--accent-2", settings.accentColor2 || "#efd48a");
     }
     applyAccent();
 
@@ -2557,6 +2559,8 @@ function checkGameOver() {
       if (tipsToggleEl) tipsToggleEl.classList.toggle("on", settings.ultTips !== false);
       const accentPickerEl2 = document.getElementById("accentColorPicker");
       if (accentPickerEl2) accentPickerEl2.value = settings.accentColor || "#4f7a33";
+      const accentPicker2B = document.getElementById("accentColorPicker2");
+      if (accentPicker2B) accentPicker2B.value = settings.accentColor2 || "#efd48a";
       renderSkillList();
       const volSlider = document.getElementById("volSlider");
       const volLabel = document.getElementById("volLabel");
@@ -2565,6 +2569,7 @@ function checkGameOver() {
         if (volLabel) volLabel.textContent = String(volSlider.value);
       }
       document.getElementById("tabGame").style.display = "";
+      document.getElementById("tabCustom").style.display = "none";
       document.getElementById("tabAdmin").style.display = "none";
       document.querySelectorAll("#settingsTabs button").forEach(b => {
         b.classList.toggle("on", b.dataset.tab === "game");
@@ -2757,6 +2762,29 @@ function checkGameOver() {
         applyAccent();
       });
     }
+    const accentPicker2El = document.getElementById("accentColorPicker2");
+    if (accentPicker2El) {
+      accentPicker2El.addEventListener("input", () => {
+        const c = accentPicker2El.value;
+        if (!/^#[0-9a-fA-F]{6}$/.test(c)) return;
+        settings.accentColor2 = c;
+        persistSettings();
+        applyAccent();
+      });
+    }
+    const btnAccentReset = document.getElementById("btnAccentReset");
+    if (btnAccentReset) {
+      btnAccentReset.addEventListener("click", () => {
+        settings.accentColor = "#4f7a33";
+        settings.accentColor2 = "#efd48a";
+        persistSettings();
+        applyAccent();
+        const p1 = document.getElementById("accentColorPicker");
+        const p2 = document.getElementById("accentColorPicker2");
+        if (p1) p1.value = settings.accentColor;
+        if (p2) p2.value = settings.accentColor2;
+      });
+    }
     const volSliderEl = document.getElementById("volSlider");
     if (volSliderEl) {
       volSliderEl.addEventListener("input", () => {
@@ -2782,6 +2810,8 @@ function checkGameOver() {
         document.querySelectorAll("#settingsTabs button").forEach(x => x.classList.toggle("on", x === b));
         document.getElementById("tabGame").style.display = tab === "game" ? "" : "none";
         document.getElementById("tabAdmin").style.display = tab === "admin" ? "" : "none";
+        const tc = document.getElementById("tabCustom");
+        if (tc) tc.style.display = tab === "custom" ? "" : "none";
       });
     });
 

@@ -40,7 +40,8 @@
       musicEnabled: true,    // background music on/off
       musicVolume: 0.5,      // music volume 0-1 (separate from SFX)
       ultTips: true,         // in-battle rotating tip line (gameplay tutorial)
-      accentColor: "#4f7a33" // player accent (names, HP, log, gear, portrait glow)
+      accentColor: "#4f7a33", // player accent (names, HP, log, gear, AP pills, glow)
+      accentColor2: "#efd48a" // player accent 2 (ult charge pips / pill fill)
     };
 
     // ---- Global skills (account-wide, unlock via milestones) ----
@@ -87,7 +88,8 @@
           musicEnabled: settings.musicEnabled,
           musicVolume: settings.musicVolume,
           ultTips: settings.ultTips,
-          accentColor: settings.accentColor
+          accentColor: settings.accentColor,
+          accentColor2: settings.accentColor2
         }));
       } catch (_) {}
     }
@@ -121,6 +123,7 @@
         if (typeof o.musicVolume === "number") settings.musicVolume = Math.max(0, Math.min(1, o.musicVolume));
         if (typeof o.ultTips === "boolean") settings.ultTips = o.ultTips;
         if (typeof o.accentColor === "string" && /^#[0-9a-fA-F]{6}$/.test(o.accentColor)) settings.accentColor = o.accentColor;
+        if (typeof o.accentColor2 === "string" && /^#[0-9a-fA-F]{6}$/.test(o.accentColor2)) settings.accentColor2 = o.accentColor2;
       } catch (_) {}
     }
     loadSettings();

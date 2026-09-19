@@ -3502,13 +3502,22 @@ body.ult-hitstop .board-wrap {
     .passport-spread-panel { max-width: 560px; width: 100%; background: transparent; box-shadow: none; }
     .passport-spread { display: flex; gap: 10px; perspective: 1000px; }
     .pp-page {
-      flex: 1; min-width: 0; background: #f2e7d3; border-radius: 12px; padding: 12px;
+      flex: 1; min-width: 0; background: var(--pp-paper, #f2e7d3); border-radius: 12px; padding: 12px;
+      position: relative;
       box-shadow:
-        inset 0 0 0 1px rgba(104,92,80,0.35),
-        inset 0 0 0 4px #f2e7d3,
-        inset 0 0 0 5px rgba(104,92,80,0.2),
+        inset 0 0 0 1px var(--pp-ring1, rgba(104,92,80,0.35)),
+        inset 0 0 0 4px var(--pp-paper, #f2e7d3),
+        inset 0 0 0 5px var(--pp-ring2, rgba(104,92,80,0.2)),
         0 10px 26px rgba(60,50,40,0.25);
       max-height: 70vh; overflow-y: auto;
+    }
+    .pp-page::after {
+      content: var(--pp-seal, none);
+      position: absolute; top: 10px; right: 12px;
+      font-size: 1.4rem; line-height: 1;
+      transform: rotate(14deg);
+      opacity: 0.9; pointer-events: none;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25));
     }
     .pp-left { transform-origin: left center; animation: ppFlipL 0.34s ease-out; }
     .pp-right { transform-origin: right center; animation: ppFlipR 0.34s ease-out 0.05s backwards; }
@@ -3516,7 +3525,7 @@ body.ult-hitstop .board-wrap {
     @keyframes ppFlipR { from { transform: rotateY(75deg); opacity: 0.3; } to { transform: rotateY(0); opacity: 1; } }
     .pp-photo { display: flex; justify-content: center; margin-bottom: 8px; }
     .pp-photo .portrait { width: 84px; height: 84px; }
-    .pp-id-name { text-align: center; font-weight: 900; color: #4a4035; font-size: 1rem; margin-bottom: 8px; letter-spacing: 0.04em; }
+    .pp-id-name { text-align: center; font-weight: 900; color: var(--pp-name, #4a4035); font-size: 1rem; margin-bottom: 8px; letter-spacing: 0.04em; }
     @media (max-width: 540px) {
       .passport-spread { flex-direction: column; }
       .pp-page { max-height: 42vh; }
@@ -4314,6 +4323,146 @@ body.ult-hitstop .board-wrap {
     .codex-card.tier-1 { background: linear-gradient(90deg, #f0f7ff, #fff); }
     .codex-card.tier-2 { background: linear-gradient(90deg, #fef3e7, #fff); }
     .codex-card.tier-3 { background: linear-gradient(90deg, #fdf6f6, #fff); }
+
+    /* ═══ CUSTOMIZATION: pip shapes, passport stamps, skins ═══ */
+
+    /* Pip shape styles (Custom ▸ Pips). Circle is the default (no class). */
+    body.pips-square .ap-pip,
+    body.pips-square .ult-pip,
+    body.pips-square .enemy-charge-row .ult-pip {
+      border-radius: 26%;
+    }
+    body.pips-diamond .ap-pip,
+    body.pips-diamond .ult-pip,
+    body.pips-diamond .enemy-charge-row .ult-pip {
+      border-radius: 22%;
+      transform: rotate(45deg) scale(0.82);
+    }
+    body.pips-diamond .ap-pip.empty {
+      transform: rotate(45deg) scale(0.74);
+    }
+
+    /* Passport stamp themes (Custom ▸ Passport). Leaf is a green-paper default. */
+    #passportOverlay.stamp-leaf .pp-page {
+      --pp-seal: "🍃";
+      --pp-ring1: rgba(96, 128, 64, 0.4);
+      --pp-ring2: rgba(96, 128, 64, 0.18);
+    }
+    #passportOverlay.stamp-gold .pp-page {
+      --pp-paper: #f6ecd2;
+      --pp-name: #6b4d0c;
+      --pp-seal: "🏵️";
+      --pp-ring1: rgba(176, 132, 48, 0.5);
+      --pp-ring2: rgba(176, 132, 48, 0.24);
+    }
+    #passportOverlay.stamp-ink .pp-page {
+      --pp-paper: #e9edf1;
+      --pp-name: #2c3e50;
+      --pp-seal: "🖋️";
+      --pp-ring1: rgba(63, 88, 110, 0.5);
+      --pp-ring2: rgba(63, 88, 110, 0.24);
+    }
+
+    /* ─── Skins: paper (default) / midnight (dark) ───
+       body.skin-midnight overrides the parchment surfaces with a night palette. */
+    body.skin-midnight {
+      --bg-base: #211a12;
+      color: #eadfc9;
+    }
+    body.skin-midnight::before { opacity: 0.06; }
+    body.skin-midnight::after {
+      background: radial-gradient(ellipse at 50% 42%, transparent 54%, rgba(0, 0, 0, 0.45) 100%);
+    }
+    body.skin-midnight h1 { color: #eadfc9; }
+    body.skin-midnight .stats { color: #b5a88f; }
+    body.skin-midnight .stat span { color: #eadfc9; }
+    body.skin-midnight .menu-title { filter: brightness(1.3) saturate(1.1); }
+    body.skin-midnight .menu-sub { color: #b5a88f; }
+    body.skin-midnight .char-card { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.12); }
+    body.skin-midnight .char-card.selected { border-color: #efb09a; }
+    body.skin-midnight .char-card .fighter-name { color: var(--accent); }
+    body.skin-midnight .char-info-btn { background: rgba(255, 255, 255, 0.85); color: #4a4035; }
+    body.skin-midnight .action-btn { color: #eadfc9; }
+    body.skin-midnight .board-wrap {
+      background: rgba(46, 38, 28, 0.92);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    body.skin-midnight .turn-indicator {
+      background: linear-gradient(180deg, #506030 0%, #3c4c26 100%);
+      border-color: rgba(110, 155, 70, 0.5);
+      color: #eaf3dd;
+    }
+    body.skin-midnight .phase-pill { color: #eadfc9; }
+    body.skin-midnight .action-log-bar {
+      background: linear-gradient(180deg, rgba(58, 48, 32, 0.92) 0%, rgba(44, 35, 22, 0.88) 100%);
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 8px rgba(0, 0, 0, 0.25);
+    }
+    body.skin-midnight .action-log-bar:active { background: rgba(70, 58, 40, 0.92); }
+    body.skin-midnight .ult-tip { color: rgba(234, 223, 201, 0.82); }
+    body.skin-midnight .ap-pip,
+    body.skin-midnight .ult-pip { background: rgba(255, 255, 255, 0.14); }
+    body.skin-midnight .section-label { color: #b5a88f; }
+    body.skin-midnight .icon-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.14);
+      color: #eadfc9;
+    }
+    body.skin-midnight #btnGameSettings {
+      background: rgba(255, 255, 255, 0.09);
+      color: var(--accent);
+      border: 1.5px solid color-mix(in srgb, var(--accent) 70%, transparent);
+    }
+    body.skin-midnight .overlay { background: rgba(0, 0, 0, 0.55); }
+    body.skin-midnight .panel,
+    body.skin-midnight .overlay-panel {
+      background: #2e261b;
+      border-color: rgba(255, 255, 255, 0.14);
+      box-shadow:
+        inset 0 2px 0 rgba(255, 255, 255, 0.06),
+        inset 0 -4px 8px rgba(0, 0, 0, 0.4),
+        0 12px 24px rgba(0, 0, 0, 0.5);
+      color: #eadfc9;
+    }
+    body.skin-midnight .panel h2 { color: #eadfc9; }
+    body.skin-midnight .panel h3 { color: #a99c82; }
+    body.skin-midnight .row { color: #cfc2a8; }
+    body.skin-midnight .seg button { color: #a99c82; }
+    body.skin-midnight .seg button.on { background: rgba(255, 255, 255, 0.14); color: #f5ecd8; }
+    body.skin-midnight .toggle { border-color: rgba(234, 223, 201, 0.35); }
+    body.skin-midnight .panel input[type="number"], body.skin-midnight .panel select {
+      background: #1f1912; color: #f5ecd8; border-color: rgba(255, 255, 255, 0.16);
+    }
+    body.skin-midnight .skill-row { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); }
+    body.skin-midnight .skill-name { color: #f5ecd8; }
+    body.skin-midnight .skill-desc { color: #b5a88f; }
+    body.skin-midnight .skill-unlock { color: #e0b050; }
+    body.skin-midnight .info-row { color: #cfc2a8; border-bottom-color: rgba(255, 255, 255, 0.08); }
+    body.skin-midnight .info-row span:last-child { color: #eadfc9; }
+    body.skin-midnight .info-section { color: #a99c82; }
+    body.skin-midnight .info-body { color: #cfc2a8; }
+    body.skin-midnight #passportOverlay .pp-page {
+      --pp-paper: #262018;
+      --pp-ring1: rgba(255, 255, 255, 0.16);
+      --pp-ring2: rgba(255, 255, 255, 0.08);
+      --pp-name: #eadfc9;
+    }
+    body.skin-midnight #passportOverlay .pp-id-name { color: var(--pp-name); }
+    body.skin-midnight #passportOverlay.accent-player .pp-id-name,
+    body.skin-midnight #passportOverlay.accent-player .info-section { color: var(--accent); }
+    body.skin-midnight .upgrade-card { background: rgba(255, 255, 255, 0.06); color: #eae3d2; }
+    body.skin-midnight .codex-card { background: #2a231a; border-color: rgba(255, 255, 255, 0.1); }
+    body.skin-midnight .codex-card-name { color: #f5ecd8; }
+    body.skin-midnight .codex-card-desc { color: #b5a88f; }
+    body.skin-midnight .codex-tab:not(.active) { color: #b5a88f; }
+    body.skin-midnight .codex-tab:hover:not(.active) { background: rgba(255, 255, 255, 0.08); }
+    body.skin-midnight .help-note { color: #b5a88f; }
+
+    /* Midnight skies: re-tint the act atmosphere behind the board */
+    body.skin-midnight.tower-1 #actSky { background: linear-gradient(180deg, #243f56 0%, #33472e 46%, #221a12 100%); }
+    body.skin-midnight.tower-2 #actSky { background: linear-gradient(180deg, #452c3b 0%, #463827 48%, #221a12 100%); }
+    body.skin-midnight.tower-4 #actSky { background: linear-gradient(180deg, #553818 0%, #443722 45%, #221a12 100%); }
+
 </style>
   <link rel="manifest" href="manifest.json" />
   <script>
@@ -4694,7 +4843,7 @@ body.ult-hitstop .board-wrap {
   </div>
   </div><!-- /screen-game -->
 
-  <!-- SETTINGS OVERLAY (tabs: Game | Admin) -->
+  <!-- SETTINGS OVERLAY (tabs: Game | Custom | Admin) -->
   <div class="overlay" id="settingsOverlay">
     <div class="panel">
       <h2>Settings</h2>
@@ -4758,6 +4907,53 @@ body.ult-hitstop .board-wrap {
           <button type="button" class="action-btn" id="btnAccentReset" style="padding:8px 14px;font-size:0.75rem">Default</button>
         </div>
         <div style="font-size:0.65rem;color:#a89a8c;margin-top:2px">Two-color scheme: Accent tints names, HP, log, gear and AP pills; Accent 2 tints your ult charge pills and glow.</div>
+
+        <h3>Effects</h3>
+        <div class="row">
+          <label>Damage popups</label>
+          <button type="button" class="toggle on" id="fxDamageToggle" aria-label="Damage popups"></button>
+        </div>
+        <div class="row">
+          <label>Combo glow</label>
+          <button type="button" class="toggle on" id="fxComboToggle" aria-label="Combo glow"></button>
+        </div>
+        <div class="row">
+          <label>Screen shake</label>
+          <button type="button" class="toggle on" id="fxShakeToggle" aria-label="Screen shake"></button>
+        </div>
+        <div style="font-size:0.65rem;color:#a89a8c;margin-top:2px">Combat flourishes while pure damage keeps hitting: turn off what bothers you.</div>
+
+        <h3>Skin</h3>
+        <div class="row">
+          <label>Theme</label>
+          <div class="seg" id="skinSeg">
+            <button type="button" class="on" data-val="paper">Paper</button>
+            <button type="button" data-val="midnight">Midnight</button>
+          </div>
+        </div>
+        <div style="font-size:0.65rem;color:#a89a8c;margin-top:2px">Midnight flips the whole UI to a dark night palette.</div>
+
+        <h3>Pips</h3>
+        <div class="row">
+          <label>Shape</label>
+          <div class="seg" id="pipSeg">
+            <button type="button" class="on" data-val="circle">Round</button>
+            <button type="button" data-val="square">Square</button>
+            <button type="button" data-val="diamond">Diamond</button>
+          </div>
+        </div>
+        <div style="font-size:0.65rem;color:#a89a8c;margin-top:2px">AP and ult charge pills (player + enemy).</div>
+
+        <h3>Passport</h3>
+        <div class="row">
+          <label>Stamps</label>
+          <div class="seg" id="stampSeg">
+            <button type="button" class="on" data-val="leaf">Leaf</button>
+            <button type="button" data-val="gold">Gold</button>
+            <button type="button" data-val="ink">Ink</button>
+          </div>
+        </div>
+        <div style="font-size:0.65rem;color:#a89a8c;margin-top:2px">Stamp style on the identity pages of the passport.</div>
       </div>
 
       <div id="tabAdmin" style="display:none">

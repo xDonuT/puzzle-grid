@@ -614,7 +614,26 @@ const screenMenu = document.getElementById("screen-menu");
       document.documentElement.style.setProperty("--accent", settings.accentColor || "#4f7a33");
       document.documentElement.style.setProperty("--accent-2", settings.accentColor2 || "#efd48a");
     }
+    // Skins (paper / midnight), pip shapes and passport stamp themes ride on
+    // body classes so CSS handles the visual switching.
+    function applySkin() {
+      document.body.classList.toggle("skin-midnight", settings.skin === "midnight");
+    }
+    function applyPips() {
+      document.body.classList.toggle("pips-square", settings.pipStyle === "square");
+      document.body.classList.toggle("pips-diamond", settings.pipStyle === "diamond");
+    }
+    function applyStamp() {
+      const pp = document.getElementById("passportOverlay");
+      if (!pp) return;
+      pp.classList.toggle("stamp-leaf", settings.stampTheme === "leaf");
+      pp.classList.toggle("stamp-gold", settings.stampTheme === "gold");
+      pp.classList.toggle("stamp-ink", settings.stampTheme === "ink");
+    }
     applyAccent();
+    applySkin();
+    applyPips();
+    applyStamp();
 
     function showFloorBanner() {
       // Boss floors get a dramatic intro splash instead of the quick banner
@@ -2561,6 +2580,15 @@ function checkGameOver() {
       if (accentPickerEl2) accentPickerEl2.value = settings.accentColor || "#4f7a33";
       const accentPicker2B = document.getElementById("accentColorPicker2");
       if (accentPicker2B) accentPicker2B.value = settings.accentColor2 || "#efd48a";
+      [["fxDamageToggle", "fxDamage"], ["fxComboToggle", "fxCombo"], ["fxShakeToggle", "fxShake"]].forEach(([id, key]) => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle("on", settings[key] !== false);
+      });
+      [["skinSeg", "skin"], ["pipSeg", "pipStyle"], ["stampSeg", "stampTheme"]].forEach(pair => {
+        const wrap = document.getElementById(pair[0]);
+        if (!wrap) return;
+        wrap.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.val === settings[pair[1]]));
+      });
       renderSkillList();
       const volSlider = document.getElementById("volSlider");
       const volLabel = document.getElementById("volLabel");
@@ -2785,6 +2813,27 @@ function checkGameOver() {
         if (p2) p2.value = settings.accentColor2;
       });
     }
+    [["fxDamageToggle", "fxDamage"], ["fxComboToggle", "fxCombo"], ["fxShakeToggle", "fxShake"]].forEach((pair) => {
+      const el = document.getElementById(pair[0]);
+      if (!el) return;
+      el.addEventListener("click", () => {
+        settings[pair[1]] = !settings[pair[1]];
+        persistSettings();
+        el.classList.toggle("on", settings[pair[1]]);
+      });
+    });
+    [["skinSeg", "skin", applySkin], ["pipSeg", "pipStyle", applyPips], ["stampSeg", "stampTheme", applyStamp]].forEach(pair => {
+      const wrap = document.getElementById(pair[0]);
+      if (!wrap) return;
+      wrap.querySelectorAll("button").forEach(b => {
+        b.addEventListener("click", () => {
+          settings[pair[1]] = b.dataset.val;
+          persistSettings();
+          wrap.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+          pair[2]();
+        });
+      });
+    });
     const volSliderEl = document.getElementById("volSlider");
     if (volSliderEl) {
       volSliderEl.addEventListener("input", () => {

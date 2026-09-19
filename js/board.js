@@ -69,15 +69,17 @@
         else if (level >= 2) shakeBoard("light");
       }
       // Board wash / glow - single parameterized class
-      boardWrapEl.classList.remove("combo-glow-1", "combo-glow-2", "combo-glow-3", "combo-glow-4");
-      if (level >= 2) {
-        const glowLevel = Math.min(level - 1, 4);
-        boardWrapEl.classList.add(`combo-glow-${glowLevel}`);
-      }
-      // Screen flash on big combos
-      if (level >= 3) {
-        boardWrapEl.classList.add("combo-flash");
-        setTimeout(() => boardWrapEl.classList.remove("combo-flash"), 200);
+      if (settings.fxCombo !== false) {
+        boardWrapEl.classList.remove("combo-glow-1", "combo-glow-2", "combo-glow-3", "combo-glow-4");
+        if (level >= 2) {
+          const glowLevel = Math.min(level - 1, 4);
+          boardWrapEl.classList.add(`combo-glow-${glowLevel}`);
+        }
+        // Screen flash on big combos
+        if (level >= 3) {
+          boardWrapEl.classList.add("combo-flash");
+          setTimeout(() => boardWrapEl.classList.remove("combo-flash"), 200);
+        }
       }
     }
 
@@ -85,6 +87,7 @@
     function shakeBoard(strength = "light") {
       const wrap = document.querySelector(".board-wrap");
       if (!wrap) return;
+      if (settings.fxShake === false) return;
       wrap.classList.remove("shake", "shake-strong");
       void wrap.offsetWidth;
       wrap.classList.add(strength === "strong" ? "shake-strong" : "shake");

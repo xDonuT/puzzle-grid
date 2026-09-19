@@ -41,7 +41,13 @@
       musicVolume: 0.5,      // music volume 0-1 (separate from SFX)
       ultTips: true,         // in-battle rotating tip line (gameplay tutorial)
       accentColor: "#4f7a33", // player accent (names, HP, log, gear, AP pills, glow)
-      accentColor2: "#efd48a" // player accent 2 (ult charge pips / pill fill)
+      accentColor2: "#efd48a", // player accent 2 (ult charge pips / pill fill)
+      fxDamage: true,        // floating damage/heal popups over the board
+      fxCombo: true,         // combo glow wash + screen flash
+      fxShake: true,         // board/combat screen shake + hit shake
+      skin: "paper",         // paper | midnight (dark UI theme)
+      pipStyle: "circle",    // circle | square | diamond
+      stampTheme: "leaf"     // passport stamp look: leaf | gold | ink
     };
 
     // ---- Global skills (account-wide, unlock via milestones) ----
@@ -89,7 +95,13 @@
           musicVolume: settings.musicVolume,
           ultTips: settings.ultTips,
           accentColor: settings.accentColor,
-          accentColor2: settings.accentColor2
+          accentColor2: settings.accentColor2,
+          fxDamage: settings.fxDamage,
+          fxCombo: settings.fxCombo,
+          fxShake: settings.fxShake,
+          skin: settings.skin,
+          pipStyle: settings.pipStyle,
+          stampTheme: settings.stampTheme
         }));
       } catch (_) {}
     }
@@ -124,6 +136,12 @@
         if (typeof o.ultTips === "boolean") settings.ultTips = o.ultTips;
         if (typeof o.accentColor === "string" && /^#[0-9a-fA-F]{6}$/.test(o.accentColor)) settings.accentColor = o.accentColor;
         if (typeof o.accentColor2 === "string" && /^#[0-9a-fA-F]{6}$/.test(o.accentColor2)) settings.accentColor2 = o.accentColor2;
+        if (typeof o.fxDamage === "boolean") settings.fxDamage = o.fxDamage;
+        if (typeof o.fxCombo === "boolean") settings.fxCombo = o.fxCombo;
+        if (typeof o.fxShake === "boolean") settings.fxShake = o.fxShake;
+        if (["paper", "midnight"].includes(o.skin)) settings.skin = o.skin;
+        if (["circle", "square", "diamond"].includes(o.pipStyle)) settings.pipStyle = o.pipStyle;
+        if (["leaf", "gold", "ink"].includes(o.stampTheme)) settings.stampTheme = o.stampTheme;
       } catch (_) {}
     }
     loadSettings();

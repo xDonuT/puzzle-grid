@@ -204,6 +204,7 @@
 
     function triggerHit(el) {
       if (!el) return;
+      if (settings.fxShake === false) return;
       el.classList.remove("fx-shake", "fx-flash");
       void el.offsetWidth; // restart animation
       el.classList.add("fx-shake", "fx-flash");
@@ -2468,6 +2469,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
     let popCount = 0;
     let popCountReset = null;
     function dmgPop(side, text, kind = "dmg") {
+      if (settings.fxDamage === false) return;
       const board = document.querySelector(".board-wrap");
       if (!board) return;
       const br = board.getBoundingClientRect();

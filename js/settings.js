@@ -38,7 +38,8 @@
       skills: { shuffleSurge: true }, // global skill toggles
       liteMode: null,        // null = auto-detect, true = forced lite, false = forced full
       musicEnabled: true,    // background music on/off
-      musicVolume: 0.5       // music volume 0-1 (separate from SFX)
+      musicVolume: 0.5,      // music volume 0-1 (separate from SFX)
+      ultTips: true          // in-battle rotating tip line (gameplay tutorial)
     };
 
     // ---- Global skills (account-wide, unlock via milestones) ----
@@ -83,7 +84,8 @@
           skills: settings.skills || { shuffleSurge: true },
           liteMode: settings.liteMode,
           musicEnabled: settings.musicEnabled,
-          musicVolume: settings.musicVolume
+          musicVolume: settings.musicVolume,
+          ultTips: settings.ultTips
         }));
       } catch (_) {}
     }
@@ -115,6 +117,7 @@
         if (typeof o.liteMode === "boolean" || o.liteMode === null) settings.liteMode = o.liteMode;
         if (typeof o.musicEnabled === "boolean") settings.musicEnabled = o.musicEnabled;
         if (typeof o.musicVolume === "number") settings.musicVolume = Math.max(0, Math.min(1, o.musicVolume));
+        if (typeof o.ultTips === "boolean") settings.ultTips = o.ultTips;
       } catch (_) {}
     }
     loadSettings();

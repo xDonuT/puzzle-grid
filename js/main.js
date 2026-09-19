@@ -475,27 +475,135 @@ const screenMenu = document.getElementById("screen-menu");
 
     // Tiny clickable gameplay-tip pills under the ultimate pips
     const ULT_TIPS = [
+      "Match 3+ tiles to attack the rival",
+      "⚔️ Swords & ⭐ Stars deal damage",
+      "❤️ Hearts heal · 🛡️ Shields armor · 🎲 Mystery twists",
+      "🟣 Corrupted tiles deal 8 damage to YOU — clear around them",
+      "Status tiles: ☠️ Venom · 🔥 Burn · ⚡ Stun · ❄️ Chill — long-press to read",
       "4+ in a line = Charged double power",
-      "L / + shapes clear whole lines, refund 1 AP",
-      "Unused AP carries +1 into next turn",
+      "5+ in a line = Star, extra strong",
+      "T / + shapes clear a full row + column",
+      "L shapes clear both diagonals",
+      "✚/✕ seals are big clears — AP refund now comes from the Flow Blessing",
+      "Bloom tiles clear a 3×3 burst",
+      "You get 3 AP a turn — each swap costs 1",
+      "Unused AP carries +1 into your next turn",
       "Shuffle is free every 3rd turn",
-      "Every cascade step multiplies damage",
-      "Match your signature tile to charge ult",
-      "Tap portrait when pips are full = Ultimate",
-      "Hearts crack the rival — Shatter cashes them",
-      "Mysteries are always a blessing in Full Bloom",
-      "Bosses wait on floors 15, 30, 45",
-      "Elites guard permanent boons (12, 27, 42)",
-      "Tap status chips for exactly what they do"
+      "Pass Turn to hand the fight to the rival",
+      "Every cascade step multiplies your damage",
+      "Match your signature tile to charge your Ultimate",
+      "Tap your portrait when pips are full — Ultimate!",
+      "Sun Surge (turn 6+) doubles signature power",
+      "Full Bloom (turn 11): mysteries always bless",
+      "Charged tiles are your burst window — save them",
+      "Tap status chips on a portrait to read them",
+      "Tap the 'i' on a portrait to open its full passport",
+      "Knight: hearts Crack the rival — Shatter cashes them",
+      "Wizard: shields also reflect damage back",
+      "Ninja dodges hits — the first hit always misses",
+      "Tap the log bar to relive any turn",
+      "🎲 Mystery tiles roll once per match — buff or debuff on the spot",
+      "Map 🌱 mystery nodes gamble for keeps — curses can linger for floors",
+      "🛣️ Elites on the map are brutal but pay a permanent upgrade",
+      "🛡️ After each floor pick a modifier — easy boon or hard risk for rare loot",
+      "🎯 Mark stacks +15% dmg each (max 3); 🦴 Cracked bursts for true dmg",
+      "Bed down between fights to recover ~45% of lost HP",
+      "☠️ Poison deals true damage each turn, then fades",
+      "Bosses wait on floors 15, 30 and 45",
+      "Every floor clear offers a perk + modifier pick",
+      "Beating a boss unlocks a permanent upgrade",
+      "Ultimates cost 1 AP — unleash from your portrait",
+      "Ninja ult: burn ⚔️ for true dmg, ×2 on <30% rivals — costs 3 HP",
+      "Wizard ult: chain 🛡️ into free sword/star hits, then barrier",
+      "Knight ult: cash Cracked stacks for true dmg, heal, bleed",
+      "Boss wins (15/30/45): pick an upgrade + a passive",
+      "Permanent upgrades and passives last the whole run",
+      "Hero trees: 4 paths, 3 tiers — a free pick each act",
+      "Passives: Ninja Shadow/Venom/Blade · Wizard Runic/Mana/Aegis",
+      "Passives: Knight Fracture/Fortitude/Retaliate/Valor",
+      "Blessed tiles (floors 3/9/15): empower a shape with a boon",
+      "Boons vary: Radiance +ult · Ripple 3×3 · Venom · Ward shield",
+      "Shape Skills retune ★ ✚ ⚡ mid-fight — pick 1 each",
+      "🌸 Bloom Blessing: Ripple 3×3 · Quake burst · Radiance +ult · Field burn",
+      "✚ Cross Blessing: Flow +AP · Burst dmg · Pump +ult · Sustain heal",
+      "✕ X Blessing: Flow +AP · Ward shield · Venom poison · Momentum cascade dmg",
+      "⭐ Nova: +1 AP per Star matched — chain extra matches every turn",
+      "✚ Marked: +2 Marks (+15% dmg each) — stack Marks, then unload",
+      "⚡ Shatter cashes all Cracked ×3 — boosted by Deep Cracked and Shatter+",
+      "⭐ Earthquake feeds +2 Cracked — set up your charged Shatter",
+      "🔮 Runic passives turn Shield matches into damage — match 🛡️ and hit back",
+      "☠️ Ninja Venom passives snowball — top them off with Venom Cross",
+      "🗡️ Ninja sword build: Shadow Dance makes Swords → Shadow Strike fires ×4",
+      "💎 Fast ults: Radiance/Pump/Tidal/Brilliance charge + Valor/Afterglow",
+      "🛡️ Petal Ward/Starfall turn tiles into Shield — feed Wizard Mana Shield",
+      "🏰 X-Ward + Knight Fortitude raise shield — prep before the enemy swings",
+      "👀 Rivals have a signature tile — matching it feeds them; deny it",
+      "🛡️ Shield absorbs half of every hit (60% with Wizard Mana Shield)",
+      "🛡️ Ninja Afterglow (from ult): take 50% less damage for turns",
+      "💪 Empower next match +50% / ☁️ Blind next match −50% — watch the chips",
+      "🔄 Disoriented flips your drags — right is left, left is right",
+      "🔒 Mana Lock (Cross skill): rival gains no Shield for 2 turns",
+      "⏳ Mystery can slow the rival's Ultimate — buy yourself more turns"
     ];
+
+    // Hero-specific build hints — shown while that class is active. Every other
+    // rotating tip pulls from this pool so classes advertise their own synergy.
+    const HERO_TIPS = {
+      ninja: [
+        "Ninja: clear 4+ ⚔️ Swords in a turn → Shadow Step (−3 HP, +1 extra swap)",
+        "Ninja build: Blade tree raw ⚔️ + Assassinate deletes <30% rivals",
+        "Ninja Venom tree: Lethal Poison +1 dmg/stack · Plague splashes dead rivals",
+        "Ninja ult Assassinate ×2 on <30% rivals — save it as a finisher",
+        "Charged Shadow Strike: true dmg = Swords cleared ×4 this turn",
+        "Shadow tree: +1 AP (Swift) · cascade refunds (Cascade Master) · free first match (Blitz)",
+        "Ninja Afterglow after ult — take 50% less; extend it with Lingering Shadow",
+        "Cross 'Marked' stacks Marks (＋15% each) → Assassinate for the burst",
+        "Star 'Shadow Dance': +2 AP and turns tiles into Swords — only for sword builds"
+      ],
+      wizard: [
+        "Wizard build: Runic tree lets 🛡️ Shield matches deal damage (+4 · ×2 · splash)",
+        "Wizard ult Moonstorm: spend all Shield → chained free hits + barrier + shield steal",
+        "Arcane Reflection: 40%+ of damage taken returns true damage — soaking wins",
+        "Arcana tree: Star Power +3 · Mystic Insight (mystery always a buff) · Sun-Kissed",
+        "Aegis tree: Arcane Barrier +8 · Mana Shield absorbs 60% · Reflective Aura",
+        "Match Shields to armor AND attack — Runic turns defense into offense",
+        "Mana tree: +3 charge (Arcane Pool) · refunds at full (Mana Surge) · +1 AP on 4+",
+        "Petal Ward/Starfall turn tiles into Shield — stack past the cap for Moonstorm"
+      ],
+      knight: [
+        "Knight: hearts Crack the rival — Charged 'Shatter' cashes all Cracked ×3",
+        "Knight build: Deep Cracked +1 dmg/stack · Shatter+ ×1.5 · Earthquake feeds stacks",
+        "Ult Earthshatter: heal per ❤️ + burst all Cracked + Bleed — a soft-reset nuke",
+        "Fortitude: Iron Will +15 HP · Fortified +8 Shield · Unbreakable +10 Shield/floor",
+        "Retaliate: Counter Strike 3 true after hits · Retribution = your missing HP (max 15)",
+        "Valor: Battle Cry +2 ult · Earthshatter+ +15 true · Power Strike spends Shield",
+        "Iron Will saves you once at 1 HP (+5 Cracked) — play brave, then Shatter"
+      ]
+    };
     let ultTipIndex = -1;
+    let ultTipIsHero = false;
+    const heroTipIndex = { ninja: -1, wizard: -1, knight: -1 };
     function nextUltTip() {
+      const cls = (combat && combat.playerClass) || null;
+      const heroPool = (cls && HERO_TIPS[cls]) || null;
+      // Alternate: general tip, then a class tip (class tips only while in a run).
+      ultTipIsHero = heroPool ? !ultTipIsHero : false;
+      if (ultTipIsHero && heroPool) {
+        heroTipIndex[cls] = (heroTipIndex[cls] + 1) % heroPool.length;
+        return heroPool[heroTipIndex[cls]];
+      }
       ultTipIndex = (ultTipIndex + 1) % ULT_TIPS.length;
       return ULT_TIPS[ultTipIndex];
     }
     function refreshUltTips() {
       const el = document.getElementById("ultTip");
-      if (el) el.textContent = "🌱 " + nextUltTip();
+      if (!el) return;
+      if (settings.ultTips === false) {
+        el.style.display = "none";
+        return;
+      }
+      el.style.display = "";
+      el.textContent = "🌱 " + nextUltTip();
     }
 
     function showFloorBanner() {
@@ -2437,6 +2545,8 @@ function checkGameOver() {
       }
       const ltEl = document.getElementById("liteToggle");
       if (ltEl) ltEl.classList.toggle("on", settings.liteMode === true);
+      const tipsToggleEl = document.getElementById("tipsToggle");
+      if (tipsToggleEl) tipsToggleEl.classList.toggle("on", settings.ultTips !== false);
       renderSkillList();
       const volSlider = document.getElementById("volSlider");
       const volLabel = document.getElementById("volLabel");
@@ -2530,10 +2640,20 @@ function checkGameOver() {
         }
       });
     }
+    // Auto-advance the tip every 10s while a battle is showing
+    const ultTipTimer = setInterval(() => {
+      if (screenGame.classList.contains("active")) refreshUltTips();
+    }, 10000);
+    if (ultTipTimer && ultTipTimer.unref) ultTipTimer.unref();
     const btnShapeDone = document.getElementById("btnShapeSkillDone");
     if (btnShapeDone) btnShapeDone.addEventListener("click", closeShapeSkillPicker);
     const btnCharInfoClose = document.getElementById("btnCharInfoClose");
     if (btnCharInfoClose) btnCharInfoClose.addEventListener("click", closeCharInfo);
+    // In-battle portrait "i" badges open the same info as the menu / long-press
+    const playerPortraitInfoBtn = document.getElementById("playerPortraitInfoBtn");
+    if (playerPortraitInfoBtn) playerPortraitInfoBtn.addEventListener("click", () => openInfo("player"));
+    const enemyPortraitInfoBtn = document.getElementById("enemyPortraitInfoBtn");
+    if (enemyPortraitInfoBtn) enemyPortraitInfoBtn.addEventListener("click", () => openInfo("enemy"));
     document.getElementById("btnSettingsClose").addEventListener("click", closeSettings);
     document.getElementById("btnSettingsSave").addEventListener("click", saveSettings);
 
@@ -2606,6 +2726,15 @@ function checkGameOver() {
         persistSettings();
         syncLiteToggle();
         applyLiteMode();
+      });
+    }
+    const tipsToggleEl = document.getElementById("tipsToggle");
+    if (tipsToggleEl) {
+      tipsToggleEl.addEventListener("click", () => {
+        settings.ultTips = settings.ultTips === false ? true : false;
+        persistSettings();
+        tipsToggleEl.classList.toggle("on", settings.ultTips !== false);
+        refreshUltTips();
       });
     }
     const volSliderEl = document.getElementById("volSlider");

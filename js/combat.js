@@ -989,6 +989,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       // Enemy charge: bosses charge a big ult, normal enemies a Power Strike; elites have none
       const enemyChargeRowEl = document.getElementById("enemyChargeRow");
       const enemyChargePipsEl = document.getElementById("enemyChargePips");
+      const enemyChargeNumEl = document.getElementById("enemyChargeNum");
       if (enemyChargePipsEl) {
         const isBoss = !!combat.bossKit;
         const isElite = !!combat.eliteKit;
@@ -998,6 +999,11 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         const pips = enemyChargePipsEl.querySelectorAll(".ult-pip");
         const filled = need > 0 ? Math.round((cur / need) * pips.length) : 0;
         pips.forEach((pip, i) => pip.classList.toggle("filled", i < filled));
+        if (enemyChargeNumEl) {
+          enemyChargeNumEl.style.display = need > 0 ? "" : "none";
+          enemyChargeNumEl.textContent = `${cur}/${need}`;
+          enemyChargeNumEl.classList.toggle("ready", need > 0 && cur >= need);
+        }
         if (enemyChargeRowEl) {
           enemyChargeRowEl.title = isBoss
             ? `${combat.enemyName}: ultimate ${cur}/${need}`

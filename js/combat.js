@@ -535,7 +535,7 @@
 
     function diffStats() {
       // Everyone 100 HP; difficulty mainly affects AI + attack pressure
-      if (settings.difficulty === "easy") return { hp: BASE_HP, atkMul: 0.75 };
+      if (settings.difficulty === "easy") return { hp: 1, atkMul: 0.75 };
       if (settings.difficulty === "hard") return { hp: BASE_HP, atkMul: 1.25 };
       return { hp: BASE_HP, atkMul: 1 };
     }

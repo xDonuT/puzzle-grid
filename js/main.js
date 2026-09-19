@@ -473,6 +473,31 @@ const screenMenu = document.getElementById("screen-menu");
       if (typeof fn === "function") fn();
     }
 
+    // Tiny clickable gameplay-tip pills under the ultimate pips
+    const ULT_TIPS = [
+      "4+ in a line = Charged double power",
+      "L / + shapes clear whole lines, refund 1 AP",
+      "Unused AP carries +1 into next turn",
+      "Shuffle is free every 3rd turn",
+      "Every cascade step multiplies damage",
+      "Match your signature tile to charge ult",
+      "Tap portrait when pips are full = Ultimate",
+      "Hearts crack the rival — Shatter cashes them",
+      "Mysteries are always a blessing in Full Bloom",
+      "Bosses wait on floors 15, 30, 45",
+      "Elites guard permanent boons (12, 27, 42)",
+      "Tap status chips for exactly what they do"
+    ];
+    let ultTipIndex = -1;
+    function nextUltTip() {
+      ultTipIndex = (ultTipIndex + 1) % ULT_TIPS.length;
+      return ULT_TIPS[ultTipIndex];
+    }
+    function refreshUltTips() {
+      const el = document.getElementById("ultTip");
+      if (el) el.textContent = "🌱 " + nextUltTip();
+    }
+
     function showFloorBanner() {
       // Boss floors get a dramatic intro splash instead of the quick banner
       if (BOSS_KITS[run.floor]) { showBossIntro(BOSS_KITS[run.floor]); return; }
@@ -2122,6 +2147,7 @@ function checkGameOver() {
       }
       run.floorElapsedMs = 0;
       updateTowerBand();
+      refreshUltTips();
       showScreen("game");
       if (opts.tutorial) {
         const ov = document.getElementById("floorBannerOverlay");
@@ -2493,6 +2519,17 @@ function checkGameOver() {
 
     document.getElementById("btnMenuSettings").addEventListener("click", openSettings);
     document.getElementById("btnGameSettings").addEventListener("click", openSettings);
+    // Tiny tip line: click it to read the next tip
+    const ultTipEl = document.getElementById("ultTip");
+    if (ultTipEl) {
+      ultTipEl.addEventListener("click", () => refreshUltTips());
+      ultTipEl.addEventListener("keydown", e => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          refreshUltTips();
+        }
+      });
+    }
     const btnShapeDone = document.getElementById("btnShapeSkillDone");
     if (btnShapeDone) btnShapeDone.addEventListener("click", closeShapeSkillPicker);
     const btnCharInfoClose = document.getElementById("btnCharInfoClose");

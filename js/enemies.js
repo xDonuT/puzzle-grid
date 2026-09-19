@@ -81,6 +81,11 @@
           <path fill="#c96b52" d="M8 16.2c0 0 1.2 4.5 4 4.5s4-4.5 4-4.5H8z"/>
           <!-- scarf accent -->
           <path fill="#b85a3f" d="M9.5 15.6h5l-0.6 1.4h-3.8z"/>
+          <!-- arms: right reaches to the blade/hilt, left rests -->
+          <path stroke="#c96b52" stroke-width="2.1" stroke-linecap="round" d="M15.1 15.7L18.6 18.3"/>
+          <circle fill="#b85a3f" cx="19" cy="18.6" r="1.2"/>
+          <path stroke="#c96b52" stroke-width="2.1" stroke-linecap="round" d="M8.9 15.7L7.6 18.2"/>
+          <circle fill="#b85a3f" cx="7.4" cy="18.4" r="1.0"/>
         </svg>`
       },
       wizard: {
@@ -99,6 +104,11 @@
           <path fill="#9b7ec8" d="M8 16.2c0 0 1.2 4.5 4 4.5s4-4.5 4-4.5H8z"/>
           <!-- collar accent -->
           <path fill="#d4c8e8" d="M9.5 15.6h5l-0.6 1.4h-3.8z"/>
+          <!-- arms: right raises to grip the staff, left rests -->
+          <path stroke="#9b7ec8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" d="M15.2 15.6L18.4 15.9L20 13.1"/>
+          <circle fill="#d4c8e8" cx="20.3" cy="13.2" r="1.15"/>
+          <path stroke="#9b7ec8" stroke-width="2.1" stroke-linecap="round" d="M8.8 15.7L7.5 18.2"/>
+          <circle fill="#d4c8e8" cx="7.3" cy="18.4" r="1.0"/>
         </svg>`
       },
       knight: {
@@ -117,6 +127,11 @@
           <path fill="#9fb4cc" d="M8 16.2c0 0 1.2 4.5 4 4.5s4-4.5 4-4.5H8z"/>
           <!-- chest accent -->
           <path fill="#b8cce0" d="M9.5 15.6h5l-0.6 1.4h-3.8z"/>
+          <!-- arms: left braces against the shield, right rests -->
+          <path stroke="#9fb4cc" stroke-width="2.1" stroke-linecap="round" d="M8.7 15.6L6.3 13.4"/>
+          <circle fill="#b8cce0" cx="6.1" cy="13.2" r="1.15"/>
+          <path stroke="#9fb4cc" stroke-width="2.1" stroke-linecap="round" d="M15.3 15.6L16.4 18.3"/>
+          <circle fill="#b8cce0" cx="16.6" cy="18.5" r="1.05"/>
         </svg>`
       },
       enemy: {
@@ -233,6 +248,7 @@
         crystal: { name: "Crystal", svg: `<rect fill="#6a4a9e" x="20.4" y="6.6" width="1.1" height="13.2" rx="0.5"/><path fill="#b89420" d="M21 3.2l2 3.4H19z"/><path fill="#bbd2e6" d="M21 4.4l1.1 1.8h-2.2z"/>` }
       },
       knight: {
+        shield:     { name: "Shield", svg: `<path fill="#7e92ae" d="M5.2 7.6c2.1 0 3.8 1.6 3.8 3.8v4c0 2.2-1.7 3.8-3.8 3.8S1.4 17.6 1.4 15.4v-4c0-2.2 1.7-3.8 3.8-3.8z"/><path fill="#9fb4cc" d="M5.2 8.4c1.7 0 3 1.3 3 3v2.9c0 1.7-1.3 3-3 3s-3-1.3-3-3v-2.9c0-1.7 1.3-3 3-3z"/><path fill="#ccd4de" d="M4.2 11.9h2v2.7h-2z"/><circle fill="#b8cce0" cx="3.5" cy="10.3" r="0.55"/>` },
         sword:      { name: "Sword & Shield", svg: `<path fill="#ccd4de" d="M20.5 5.4c0.6 0 1 0.5 1 1.2v8.4c0 0.7-0.4 1.2-1 1.2s-1-0.5-1-1.2V6.6c0-0.7 0.4-1.2 1-1.2z"/><path fill="#d4785c" d="M18.9 16.2h3.2v0.9h-3.2z"/><path fill="#5a6a7a" d="M18.7 17.3h3.6l-0.4 2.9c-0.1 1.1-0.8 1.5-1.4 1.5s-1.3-0.4-1.4-1.5z"/><path fill="#9fb4cc" d="M4.4 13.6c1.3 0 2.5 1.1 2.5 2.6v2.2c0 1.5-1.2 2.6-2.5 2.6S1.9 19.9 1.9 18.4v-2.2c0-1.5 1.2-2.6 2.5-2.6z"/><path fill="#ccd4de" d="M3.6 16.2h1.6v3H3.6z"/>` },
         greatsword: { name: "Greatsword", svg: `<path fill="#ccd4de" d="M20.2 4.4c0.8 0 1.4 0.6 1.4 1.6v9.8c0 1-0.6 1.6-1.4 1.6s-1.4-0.6-1.4-1.6V6c0-1 0.6-1.6 1.4-1.6z"/><rect fill="#c0392b" x="18.5" y="16.3" width="5.2" height="1.2" rx="0.4"/><path fill="#4a423c" d="M18.2 17.7h5.8l-0.6 3.6c-0.2 1.5-1 2-1.9 2s-1.7-0.5-1.9-2z"/><path fill="#b8cce0" d="M21.6 9.4l1.5 1.1-1.5 1.1z"/>` }
       }

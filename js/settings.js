@@ -30,7 +30,7 @@
       impactTurn: 11,
       // cosmetics: per-class costume + weapon choices
       costume: { ninja: "classic", wizard: "classic", knight: "classic" },
-      weapon: { ninja: "katana", wizard: "staff", knight: "sword" },
+      weapon: { ninja: "katana", wizard: "staff", knight: "shield" },
       tutorialCompleted: false,
       clearedOnce: false,  // 🌟 Golden Cosmos unlocked after first final victory
       ngLoopsDone: 0,      // completed Golden Cosmos loops

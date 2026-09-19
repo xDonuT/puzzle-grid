@@ -608,6 +608,12 @@ const screenMenu = document.getElementById("screen-menu");
       el.title = tip;
     }
 
+    // Player accent color: applied live to --accent (names, HP, log, gear, glow)
+    function applyAccent() {
+      document.documentElement.style.setProperty("--accent", settings.accentColor || "#4f7a33");
+    }
+    applyAccent();
+
     function showFloorBanner() {
       // Boss floors get a dramatic intro splash instead of the quick banner
       if (BOSS_KITS[run.floor]) { showBossIntro(BOSS_KITS[run.floor]); return; }
@@ -2549,6 +2555,8 @@ function checkGameOver() {
       if (ltEl) ltEl.classList.toggle("on", settings.liteMode === true);
       const tipsToggleEl = document.getElementById("tipsToggle");
       if (tipsToggleEl) tipsToggleEl.classList.toggle("on", settings.ultTips !== false);
+      const accentPickerEl2 = document.getElementById("accentColorPicker");
+      if (accentPickerEl2) accentPickerEl2.value = settings.accentColor || "#4f7a33";
       renderSkillList();
       const volSlider = document.getElementById("volSlider");
       const volLabel = document.getElementById("volLabel");
@@ -2737,6 +2745,16 @@ function checkGameOver() {
         persistSettings();
         tipsToggleEl.classList.toggle("on", settings.ultTips !== false);
         refreshUltTips();
+      });
+    }
+    const accentPickerEl = document.getElementById("accentColorPicker");
+    if (accentPickerEl) {
+      accentPickerEl.addEventListener("input", () => {
+        const c = accentPickerEl.value;
+        if (!/^#[0-9a-fA-F]{6}$/.test(c)) return;
+        settings.accentColor = c;
+        persistSettings();
+        applyAccent();
       });
     }
     const volSliderEl = document.getElementById("volSlider");
@@ -3295,6 +3313,7 @@ function checkGameOver() {
       const left = document.getElementById("ppLeft");
       const right = document.getElementById("ppRight");
       if (passportOverlay && left && right) {
+        if (passportOverlay.classList) passportOverlay.classList.toggle("accent-player", who === "player");
         left.innerHTML = passportIdentityHtml(who);
         right.innerHTML = who === "player" ? heroInfoHtml(combat.playerClass) : enemyInfoHtml();
         const slot = document.getElementById("ppPhotoSlot");
@@ -3320,6 +3339,7 @@ function checkGameOver() {
         infoTitle.textContent = combat.enemyFullName || combat.enemyName || "Enemy";
         infoBody.innerHTML = enemyInfoHtml();
       }
+      infoOverlay.classList.toggle("accent-player", who === "player");
       infoOverlay.classList.add("open");
     }
 

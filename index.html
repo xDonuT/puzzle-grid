@@ -46,6 +46,10 @@
       --wizard: #2f8d7e;
       --knight: #c2506a;
 
+      /* Player accent color — tinted UI (names, HP, log, gear, glow).
+         Set live from Settings by applyAccent() in main.js. */
+      --accent: #4f7a33;
+
       /* Shared 3D bevel: light lip on top, shadowed under-edge, thin darker rim */
       --bevel:
         inset 0 2px 2px rgba(255, 255, 255, 0.6),
@@ -1100,7 +1104,7 @@
      .fighter-name {
       font-size: 0.72rem;
       font-weight: 750;
-      color: #5a5048;
+      color: var(--accent);
       max-width: 84px;
       white-space: nowrap;
       overflow: hidden;
@@ -1110,8 +1114,8 @@
 
 .hp-num {
        font-size: 0.55rem;
-       font-weight: 600;
-       color: #a09588;
+       font-weight: 700;
+       color: var(--accent);
        font-variant-numeric: tabular-nums;
        text-align: center;
        min-width: 28px;
@@ -1459,8 +1463,8 @@
     .action-log-bar:active { background: rgba(250,242,228,0.75); }
     .log-bar-text {
       font-size: 0.68rem;
-      font-weight: 600;
-      color: rgba(60, 45, 30, 0.75);
+      font-weight: 700;
+      color: var(--accent);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -1468,7 +1472,7 @@
     }
     .log-bar-chevron {
       font-size: 0.85rem;
-      color: rgba(90, 60, 35, 0.55);
+      color: var(--accent);
       margin-left: 8px;
       flex-shrink: 0;
       width: 18px;
@@ -1905,6 +1909,18 @@
       align-items: center;
       justify-content: center;
     }
+    #btnGameSettings {
+      height: auto;
+      align-self: stretch;
+      aspect-ratio: 1;
+      width: auto;
+      border-radius: 14px;
+      font-size: 1.6rem;
+      color: var(--accent);
+      background: #fff;
+      border: 1.5px solid color-mix(in srgb, var(--accent) 60%, transparent);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    }
 
      /* Free shuffle badge */
     .shuffle-badge {
@@ -2016,6 +2032,20 @@
     .portrait.ninja.ult-ready::after  { background: linear-gradient(135deg, #6f93c4, #4f6f9e); }
     .portrait.wizard.ult-ready::after { background: linear-gradient(135deg, #5bb6a8, #2f8d7e); }
     .portrait.knight.ult-ready::after { background: linear-gradient(135deg, #db7e92, #c2506a); }
+
+    /* The PLAYER's glow follows the chosen accent instead of the class color */
+    #playerPortrait.ult-ready { box-shadow: 0 0 0 3px var(--accent), 0 0 18px 6px color-mix(in srgb, var(--accent) 50%, transparent), 0 0 36px 10px color-mix(in srgb, var(--accent) 20%, transparent); }
+    #playerPortrait.ult-ready::after { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 70%, #fff), var(--accent)); }
+
+    /* Passport / info overlay tints with the accent when showing the player */
+    #passportOverlay.accent-player .passport-spread-panel,
+    #infoOverlay.accent-player .panel {
+      border: 2px solid var(--accent);
+    }
+    #passportOverlay.accent-player .pp-id-name,
+    #infoOverlay.accent-player .panel h2 {
+      color: var(--accent);
+    }
 
     /* Enemy charging a special/ult — red danger glow mirrors the player's ULT READY,
        so you can see the big hit is coming on the enemy's NEXT turn. */
@@ -3247,7 +3277,7 @@ body.ult-hitstop .board-wrap {
       letter-spacing: 0.01em;
     }
     .ult-tip:hover, .ult-tip:focus-visible {
-      color: #7aa65e;
+      color: var(--accent);
       outline: none;
     }
 
@@ -4684,7 +4714,7 @@ body.ult-hitstop .board-wrap {
         </div>
         <div class="row">
           <label>Music Vol</label>
-          <input type="range" id="musicVolSlider" min="0" max="100" value="50" style="flex:1;accent-color:#7aa65e" />
+          <input type="range" id="musicVolSlider" min="0" max="100" value="50" style="flex:1;accent-color:var(--accent)" />
           <span id="musicVolLabel" style="min-width:2.2em;text-align:right;font-variant-numeric:tabular-nums">50</span>
         </div>
         <div class="row">
@@ -4702,6 +4732,13 @@ body.ult-hitstop .board-wrap {
           <button type="button" class="toggle on" id="tipsToggle" aria-label="In-battle tips"></button>
         </div>
         <div style="font-size:0.65rem;color:#a89a8c;margin-top:2px">Show the rotating tip line under the fighters while in battle.</div>
+
+        <h3>Look</h3>
+        <div class="row">
+          <label>Accent Color</label>
+          <input type="color" id="accentColorPicker" value="#4f7a33" aria-label="Accent color" style="width:46px;height:46px;border:1.5px solid rgba(0,0,0,0.2);border-radius:10px;padding:2px;background:#fff;cursor:pointer" />
+        </div>
+        <div style="font-size:0.65rem;color:#a89a8c;margin-top:2px">Tints your names, HP, log bar, gear and in-battle glow — your color.</div>
 
         <h3>Performance</h3>
         <div class="row">

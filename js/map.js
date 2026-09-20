@@ -16,7 +16,7 @@ const NODE_LABELS = {
   normal:  "Battle",
   elite:   "Elite",
   mystery: "Seed",
-  voidMerchant: "Void Merchant",
+  voidMerchant: "Void",
   boss:    "Boss",
 };
 

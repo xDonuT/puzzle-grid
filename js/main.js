@@ -2305,6 +2305,7 @@ function checkGameOver() {
       const arch = combat.enemyArchetype;
       const elite = combat.eliteKit;
       let unitHp = enemyHpForFloor(run.floor);
+      if (settings.difficulty === "easy") unitHp = 1;
       if (elite) unitHp = Math.round(unitHp * (elite.hpMul || 1.5));
       else if (arch) unitHp = Math.round(unitHp * (arch.hpMul || 1));
 

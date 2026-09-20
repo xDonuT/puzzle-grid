@@ -5,11 +5,11 @@
 const MAP_LAYERS_PER_ACT = [3, 4, 3, 5, 4, 3, 2]; // wider, STS-style branching (24 battle nodes + boss)
 
 const NODE_ICONS = {
-  normal:  "⚔️",
-  elite:   "💀",
-  mystery: "🌱",
-  voidMerchant: "👁️",
-  boss:    "👑",
+  normal: `<svg viewBox="0 0 24 24" class="ni" aria-hidden="true"><use href="#mapIcoBattle"/></svg>`,
+  elite: `<svg viewBox="0 0 24 24" class="ni" aria-hidden="true"><use href="#mapIcoElite"/></svg>`,
+  mystery: `<svg viewBox="0 0 24 24" class="ni" aria-hidden="true"><use href="#mapIcoSeed"/></svg>`,
+  voidMerchant: `<svg viewBox="0 0 24 24" class="ni" aria-hidden="true"><use href="#mapIcoVoid"/></svg>`,
+  boss: `<svg viewBox="0 0 24 24" class="ni" aria-hidden="true"><use href="#mapIcoBoss"/></svg>`,
 };
 
 const NODE_LABELS = {

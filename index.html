@@ -4505,6 +4505,15 @@ body.ult-hitstop .board-wrap {
     body.skin-midnight .codex-tab:hover:not(.active) { background: rgba(255, 255, 255, 0.08); }
     body.skin-midnight .help-note { color: #b5a88f; }
     body.skin-midnight .victory-subtitle { color: #eadfc9; }
+    /* Reward popups: dark default text → readable on midnight panels */
+    body.skin-midnight #upgradeSub,
+    body.skin-midnight #diffPickerOverlay .panel p,
+    body.skin-midnight .blessing-sub { color: #b5a88f !important; }
+    body.skin-midnight #gameOverMsg { color: #eadfc9 !important; }
+    body.skin-midnight #rewardMsg { color: #e2c067 !important; }
+    body.skin-midnight .blessing-slot.empty { color: #e2c067; border-color: rgba(224, 160, 60, 0.6); }
+    body.skin-midnight .shape-slot-state { color: #cfc2a8; }
+    body.skin-midnight .shape-slot-chip.empty .shape-slot-state { color: #e2c067; }
 
     /* Midnight skies: re-tint the act atmosphere behind the board */
     body.skin-midnight.tower-1 #actSky { background: linear-gradient(180deg, #243f56 0%, #33472e 46%, #221a12 100%); }

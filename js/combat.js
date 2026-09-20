@@ -747,6 +747,14 @@
       renderPortrait(document.getElementById("enemyPortrait"), combat.enemyClass);
       document.getElementById("playerName").textContent = CHARACTERS[combat.playerClass].name;
       document.getElementById("enemyName").textContent = CHARACTERS[combat.enemyClass].name;
+      const plate = document.getElementById("enemyNamePlate");
+      if (plate) {
+        plate.classList.remove("enemy",
+          "eslime", "ebat", "emush", "egolem", "eskull", "ethorn", "ewisp", "eroot",
+          "c-bracken", "c-cinder", "c-ironjaw", "c-bloodroot", "c-stormglass",
+          "c-nightcoil", "c-ashcrown", "c-umbral", "c-nox", "c-lastrival");
+        plate.classList.add(CHARACTERS[combat.enemyClass].role || "enemy");
+      }
     }
 
     const enemyHpText = document.getElementById("enemyHpText");

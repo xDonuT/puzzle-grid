@@ -216,11 +216,138 @@
           <circle fill="#ffe89a" cx="17.5" cy="14.2" r="0.45"/>
           <path stroke="currentColor" stroke-width="1.9" stroke-linecap="round" d="M8.9 16.2 L7.4 17.7"/>
         </svg>` },
-      ironjaw:    { name: "Ironjaw",    role: "c-ironjaw",    svg: MONSTER_SVG.golem },
-      bloodroot:  { name: "Bloodroot",  role: "c-bloodroot",  svg: MONSTER_SVG.slime },
-      stormglass: { name: "Stormglass", role: "c-stormglass", svg: MONSTER_SVG.golem },
-      nightcoil:  { name: "Thorncoil",  role: "c-nightcoil",  svg: MONSTER_SVG.bat },
-      ashcrown:   { name: "Ashcrown",   role: "c-ashcrown",   svg: MONSTER_SVG.skull },
+      ironjaw:    { name: "Ironjaw",    role: "c-ironjaw",    svg: `<svg viewBox="0 0 24 24" aria-hidden="true">
+          <!-- jagged iron horns -->
+          <path fill="currentColor" d="M5.9 7.7 L5 3.6 L7.7 6.1 L8.3 7.7 Z"/>
+          <path fill="currentColor" d="M18.1 7.7 L19 3.6 L16.3 6.1 L15.7 7.7 Z"/>
+          <!-- helm -->
+          <rect fill="currentColor" x="6.9" y="6.4" width="10.2" height="10.6" rx="3"/>
+          <!-- riveted iron brow -->
+          <rect fill="#565c64" x="6.9" y="6.9" width="10.2" height="1.7" rx="0.85"/>
+          <circle fill="#394047" cx="8.4" cy="7.8" r="0.4"/>
+          <circle fill="#394047" cx="15.6" cy="7.8" r="0.4"/>
+          <!-- glowing visor slit -->
+          <rect fill="#394047" x="10.3" y="9.2" width="3.4" height="1.4" rx="0.7"/>
+          <rect fill="#f0b048" x="11.1" y="9.6" width="1.8" height="0.6" rx="0.3"/>
+          <!-- iron jaw plate -->
+          <path fill="#394047" d="M8.2 15.2 L15.8 15.2 L15.3 18.4 L8.7 18.4 Z"/>
+          <path fill="#7d838b" d="M9.3 16.6 L9.9 16.6 L9.6 18.2 L9 18.2 Z"/>
+          <path fill="#7d838b" d="M11.4 16.6 L12.6 16.6 L12.6 18.2 L11.4 18.2 Z"/>
+          <path fill="#7d838b" d="M14.1 16.6 L14.7 16.6 L15 18.2 L14.4 18.2 Z"/>
+          <!-- shoulders / torso -->
+          <path fill="currentColor" d="M6.3 16.6 C7.5 18.6 9.6 20.4 12 20.4 C14.4 20.4 16.5 18.6 17.7 16.6 L18.6 21.4 L5.4 21.4 Z"/>
+          <circle fill="#394047" cx="8.1" cy="17.9" r="0.55"/>
+          <circle fill="#394047" cx="15.9" cy="17.9" r="0.55"/>
+          <circle fill="#394047" cx="12" cy="19.6" r="1.5"/>
+          <circle fill="#f0b048" cx="12" cy="19.6" r="0.7"/>
+        </svg>` },
+      bloodroot:  { name: "Bloodroot",  role: "c-bloodroot",  svg: `<svg viewBox="0 0 24 24" aria-hidden="true">
+          <!-- petal thorns -->
+          <path fill="#7a3333" d="M8.3 5.6 L6.9 3.4 L9.2 4.9 Z"/>
+          <path fill="#7a3333" d="M15.7 5.6 L17.1 3.4 L14.8 4.9 Z"/>
+          <path fill="#7a3333" d="M11 3.2 L12 1.3 L13 3.2 Z"/>
+          <!-- bloom head -->
+          <circle fill="currentColor" cx="12" cy="9.2" r="5.4"/>
+          <!-- side thorns -->
+          <path fill="#7a3333" d="M6.7 12.6 L5 13.9 L7.1 13.4 Z"/>
+          <path fill="#7a3333" d="M17.3 12.6 L19 13.9 L16.9 13.4 Z"/>
+          <!-- eyes -->
+          <circle fill="#f6ecd9" cx="9.9" cy="7.6" r="1"/>
+          <circle fill="#4d1f1f" cx="9.9" cy="7.6" r="0.5"/>
+          <circle fill="#f6ecd9" cx="14.1" cy="7.6" r="1"/>
+          <circle fill="#4d1f1f" cx="14.1" cy="7.6" r="0.5"/>
+          <!-- hungry mouth -->
+          <ellipse fill="#4d1f1f" cx="12" cy="10.6" rx="2.5" ry="1.9"/>
+          <path fill="#f6ecd9" d="M10.3 9.4 L10.9 10.4 L11.5 9.35 Z"/>
+          <path fill="#f6ecd9" d="M11.7 9.3 L12.2 10.4 L12.7 9.3 Z"/>
+          <path fill="#f6ecd9" d="M12.9 9.4 L13.5 10.4 L14.1 9.35 Z"/>
+          <!-- stem -->
+          <path stroke="currentColor" stroke-width="1.7" stroke-linecap="round" d="M12 14.6 L12 17.6"/>
+          <!-- root tendrils -->
+          <path stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none" d="M12 17.6 C10 18 8.6 19.2 8.3 21"/>
+          <path stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none" d="M12 17.6 C14 18 15.4 19.2 15.7 21"/>
+          <!-- blood drips -->
+          <circle fill="#7a3333" cx="6.2" cy="18.4" r="0.6"/>
+          <circle fill="#7a3333" cx="17.8" cy="18.8" r="0.6"/>
+        </svg>` },
+      stormglass: { name: "Stormglass", role: "c-stormglass", svg: `<svg viewBox="0 0 24 24" aria-hidden="true">
+          <!-- crackle sparks -->
+          <path fill="#d8f4ff" d="M7.6 5.6 L8 6.4 L8.8 6.8 L8 7.2 L7.6 8 L7.2 7.2 L6.4 6.8 L7.2 6.4 Z"/>
+          <path fill="#d8f4ff" d="M16.4 5.6 L16 6.4 L15.2 6.8 L16 7.2 L16.4 8 L16.8 7.2 L17.6 6.8 L16.8 6.4 Z"/>
+          <!-- side shards (behind) -->
+          <path fill="#2c6f8c" d="M7.2 9.4 L5.4 16.2 L9.2 16.2 Z"/>
+          <path fill="#2c6f8c" d="M16.8 9.4 L18.6 16.2 L14.8 16.2 Z"/>
+          <!-- left shard -->
+          <path fill="currentColor" d="M9.4 7.6 L8 16.2 L11.2 16.2 Z"/>
+          <path fill="#2c6f8c" d="M9.4 7.6 L9.6 16.2 L8 16.2 Z"/>
+          <!-- right shard -->
+          <path fill="currentColor" d="M14.6 7.6 L16 16.2 L12.8 16.2 Z"/>
+          <path fill="#2c6f8c" d="M14.6 7.6 L14.4 16.2 L16 16.2 Z"/>
+          <!-- center shard -->
+          <path fill="currentColor" d="M12 3.8 L9.8 16.2 L14.2 16.2 Z"/>
+          <path fill="#7cd4ec" d="M12 3.8 L10.4 16.2 L9.8 16.2 Z"/>
+          <path fill="#2c6f8c" d="M12 3.8 L14 16.2 L14.2 16.2 Z"/>
+          <!-- bolt over core -->
+          <path fill="#ffd23f" d="M12.8 10.6 L11.4 13.3 L12.4 13.3 L11.1 15.9 L13.3 12.7 L12.3 12.7 Z"/>
+          <circle fill="#fff7c0" cx="10.3" cy="14.6" r="1.1"/>
+          <circle fill="#ffd23f" cx="10.3" cy="14.6" r="0.55"/>
+        </svg>` },
+      nightcoil:  { name: "Thorncoil",  role: "c-nightcoil",  svg: `<svg viewBox="0 0 24 24" aria-hidden="true">
+          <!-- thorn spikes -->
+          <path fill="#3e355a" d="M10.9 5.3 L12 3.4 L13.1 5.3 Z"/>
+          <path fill="#3e355a" d="M8.4 10.6 L6.3 9.7 L8.7 11.6 Z"/>
+          <path fill="#3e355a" d="M15.6 10.6 L17.7 9.7 L15.3 11.6 Z"/>
+          <!-- cobra hood -->
+          <path fill="currentColor" d="M8.4 6.4 C8.4 5 9.5 4.2 12 4.2 C14.5 5 15.6 6.4 L15.6 12.4 C15.6 14.3 14 15.5 12 15.5 C10 15.5 8.4 14.3 8.4 12.4 Z"/>
+          <!-- head -->
+          <ellipse fill="currentColor" cx="12" cy="8" rx="2.5" ry="1.8"/>
+          <!-- eyes -->
+          <circle fill="#b6a8e0" cx="10.8" cy="7.4" r="0.75"/>
+          <circle fill="#3e355a" cx="10.8" cy="7.4" r="0.32"/>
+          <circle fill="#b6a8e0" cx="13.2" cy="7.4" r="0.75"/>
+          <circle fill="#3e355a" cx="13.2" cy="7.4" r="0.32"/>
+          <!-- fangs -->
+          <path fill="#b6a8e0" d="M10.9 9.6 L11.2 8.7 L11.5 9.6 Z"/>
+          <path fill="#b6a8e0" d="M12.5 9.6 L12.8 8.7 L13.1 9.6 Z"/>
+          <!-- forked tongue -->
+          <path stroke="#c9a0de" stroke-width="1" stroke-linecap="round" fill="none" d="M12 9.3 L12 6.6 M12 6.6 L10.9 5.9 M12 6.6 L13.1 5.9"/>
+          <!-- coil masses -->
+          <path fill="currentColor" d="M7.6 14.8 C7.6 17.3 9.5 18.9 12 18.9 C14.5 18.9 16.4 17.3 16.4 14.8 Z"/>
+          <path fill="currentColor" d="M6.2 18.7 C6.2 20.7 8.7 21.8 12 21.8 C15.3 21.8 17.8 20.7 17.8 18.7 Z"/>
+          <!-- poison scales -->
+          <circle fill="#8fd697" cx="7.2" cy="16.6" r="0.55"/>
+          <circle fill="#8fd697" cx="16.8" cy="16.6" r="0.55"/>
+          <circle fill="#8fd697" cx="10" cy="20.6" r="0.5"/>
+          <circle fill="#8fd697" cx="14" cy="20.6" r="0.5"/>
+          <!-- poison drips -->
+          <path fill="#8fd697" d="M6.9 22 L6.6 21.2 L6.3 22 C6.1 22.5 6.4 22.9 6.9 22.9 C7.4 22.9 7.7 22.5 7.5 22 Z"/>
+          <path fill="#8fd697" d="M17.1 22 L16.8 21.2 L16.5 22 C16.3 22.5 16.6 22.9 17.1 22.9 C17.6 22.9 17.9 22.5 17.7 22 Z"/>
+        </svg>` },
+      ashcrown:   { name: "Ashcrown",   role: "c-ashcrown",   svg: `<svg viewBox="0 0 24 24" aria-hidden="true">
+          <!-- ashen crown -->
+          <path fill="#4d483f" d="M8.2 6.8 L8.2 3.8 L10.2 5.1 L10.8 3.2 L12 4.9 L13.2 3.2 L13.8 5.1 L15.8 3.8 L15.8 6.8 Z"/>
+          <path fill="#4d483f" d="M8.2 6.8 L15.8 6.8 L15.4 7.8 L8.6 7.8 Z"/>
+          <!-- skull dome -->
+          <rect fill="currentColor" x="8" y="7.6" width="8" height="6.4" rx="3"/>
+          <!-- ash cracks -->
+          <path stroke="#8a8070" stroke-width="0.9" stroke-linecap="round" fill="none" d="M9 10.6 L10 10.1 M9.2 11.4 L10.2 11"/>
+          <path stroke="#8a8070" stroke-width="0.9" stroke-linecap="round" fill="none" d="M15 10.6 L14 10.1 M14.8 11.4 L13.8 11"/>
+          <!-- ember eyes -->
+          <circle fill="#ffe9a6" cx="10.1" cy="9" r="1"/>
+          <circle fill="#ff9a3c" cx="10.1" cy="9" r="0.5"/>
+          <circle fill="#ffe9a6" cx="13.9" cy="9" r="1"/>
+          <circle fill="#ff9a3c" cx="13.9" cy="9" r="0.5"/>
+          <!-- nose -->
+          <path fill="#3c3a33" d="M11.5 10.4 h1 l-0.5 1.1 Z"/>
+          <!-- jaw + teeth -->
+          <rect fill="currentColor" x="8.2" y="13.6" width="7.6" height="3.2" rx="1.4"/>
+          <rect fill="#3c3a33" x="8.5" y="15.6" width="7" height="1.3" rx="0.65"/>
+          <!-- ash embers -->
+          <circle fill="#ff9a3c" cx="5.6" cy="13.6" r="0.6"/>
+          <circle fill="#ff9a3c" cx="18.4" cy="13.6" r="0.6"/>
+          <circle fill="#ff9a3c" cx="6.4" cy="17.6" r="0.45"/>
+          <circle fill="#ff9a3c" cx="17.6" cy="17.6" r="0.45"/>
+        </svg>` },
 
       // ---- The three dark heroes (full kits) ----
       umbral:    { name: "Umbral",    role: "c-umbral",    svg: `<svg viewBox="0 0 24 24" aria-hidden="true">

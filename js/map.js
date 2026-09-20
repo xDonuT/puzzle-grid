@@ -143,8 +143,9 @@ function assignNodeTypes(layers, connections, counts, act) {
     placed++;
   }
 
-  // --- Void Merchant: 10% chance to replace one mystery per act ---
-  if (act !== 1 && Math.random() < 0.1) {
+  // --- Void Merchant: guaranteed once per act so the shop is always reachable ---
+  // (replaces one seed; acts 2–3 always present at 1 void + 2 seeds per act)
+  if (act !== 1) {
     const mysteryNodes = layers.flat().filter(n => n.type === "mystery");
     if (mysteryNodes.length) {
       const target = mysteryNodes[Math.floor(Math.random() * mysteryNodes.length)];
@@ -184,7 +185,7 @@ function isNodeReachable(map, nodeId, visited) {
 }
 
 // Bump when MAP_LAYERS_PER_ACT / node structure changes so old saves regenerate.
-const MAP_VERSION = 4; // v4: act 1 is battles-only (seeds return acts 2-3), 6 unlock schedule
+const MAP_VERSION = 5; // v5: Void Merchant is GUARANTEED once per act (acts 2–3: 1 void + 2 seeds per act)
 
 function generateFullMap() {
   return {

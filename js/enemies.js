@@ -23,10 +23,12 @@
         <circle fill="#33261d" cx="14.6" cy="9.2" r="0.65"/>
       </svg>`,
       golem: `<svg viewBox="0 0 24 24" aria-hidden="true">
-        <path fill="currentColor" d="M6.5 8.2c0-1.8 1.4-3.2 3.2-3.2h4.6c1.8 0 3.2 1.4 3.2 3.2v1.8c0 1.8-1.4 3.2-3.2 3.2H9.7c-1.8 0-3.2-1.4-3.2-3.2V8.2z"/>
-        <path fill="currentColor" d="M9 15.4c-0.6 1.3-0.9 2.7-0.9 4.1h7.8c0-1.4-0.3-2.8-0.9-4.1l-1.3-1.9H10.3L9 15.4z"/>
-        <path fill="#2a3040" d="M10.3 8.9h3.4v1.7h-3.4z"/>
-        <path fill="#2a3040" d="M11.3 11.9h1.4v1.5h-1.4z"/>
+        <path fill="currentColor" d="M6.5 8.4c0-2 1.6-3.6 3.6-3.6h3.8c2 0 3.6 1.6 3.6 3.6V10c0 2-1.6 3.6-3.6 3.6h-3.8c-2 0-3.6-1.6-3.6-3.6V8.4z"/>
+        <rect fill="#222a36" x="10.3" y="9" width="3.4" height="1.6" rx="0.5"/>
+        <rect fill="#7db0e0" x="10.85" y="9.25" width="2.3" height="1.1" rx="0.5"/>
+        <path fill="currentColor" d="M5.4 19.8c0.2-3.2 2.9-5.4 6.6-5.4s6.4 2.2 6.6 5.4z"/>
+        <circle fill="#222a36" cx="12" cy="18" r="1.7"/>
+        <circle fill="#7db0e0" cx="12" cy="18" r="0.7"/>
       </svg>`,
       skull: `<svg viewBox="0 0 24 24" aria-hidden="true">
         <path fill="currentColor" d="M8 7.6c0-2.1 1.8-3.9 4-3.9s4 1.8 4 3.9c0 1.4-0.7 2.6-1.8 3.3v1.8H9.8v-1.8C8.7 10.2 8 9 8 7.6z"/>
@@ -168,8 +170,46 @@
       root:     { name: "Rootling",  role: "eroot",     svg: MONSTER_SVG.root },
 
       // ---- Elite recolors (same shapes, themed palette) ----
-      bracken:    { name: "Bracken",    role: "c-bracken",    svg: MONSTER_SVG.golem },
-      cinder:     { name: "Squall",     role: "c-cinder",     svg: MONSTER_SVG.slime },
+      bracken:    { name: "Bracken",    role: "c-bracken",    svg: `<svg viewBox="0 0 24 24" aria-hidden="true">
+          <!-- mossy boulder body -->
+          <path fill="currentColor" d="M6.2 15.6c0.3-3.2 2.4-5.4 5.8-5.4s5.5 2.2 5.8 5.4l0.3 4.8H6z"/>
+          <!-- hanging root tendrils -->
+          <path fill="#4a6a2e" d="M5.4 20.4c-0.6-1.8-0.7-3.6-0.3-5.3 0.7 1.5 1.7 2.7 2.8 3.6-0.4 0.7-1.3 1.2-2.5 1.7z"/>
+          <path fill="#57763c" d="M18.6 20.4c0.6-1.8 0.7-3.6 0.3-5.3-0.7 1.5-1.7 2.7-2.8 3.6 0.4 0.7 1.3 1.2 2.5 1.7z"/>
+          <path fill="#4a6a2e" d="M8 20.5c-0.5-1.5-0.6-3-0.2-4.4 0.5 1.1 1.3 2 2.3 2.7-0.4 0.6-1.2 1.1-2.1 1.7z"/>
+          <path fill="#57763c" d="M16 20.5c0.5-1.5 0.6-3 0.2-4.4-0.5 1.1-1.3 2-2.3 2.7 0.4 0.6 1.2 1.1 2.1 1.7z"/>
+          <!-- chest moss rune -->
+          <circle fill="#3f5a2a" cx="12" cy="18.4" r="1.7"/>
+          <circle fill="#c8e99a" cx="12" cy="18.4" r="0.6"/>
+          <!-- head: moss boulder -->
+          <path fill="currentColor" d="M7 10.4c0-2.1 1.6-3.7 3.7-3.7h2.6c2.1 0 3.7 1.6 3.7 3.7v0.6c0 2.1-1.6 3.7-3.7 3.7h-2.6c-2.1 0-3.7-1.6-3.7-3.7v-0.6z"/>
+          <!-- crest moss -->
+          <path fill="#4a6a2e" d="M8.7 6.7C8.4 5 9.2 3.6 10.8 2.5c-0.1 1.3 0.4 2.3 1.4 3z"/>
+          <path fill="#57763c" d="M15.3 6.7C15.6 5 14.8 3.6 13.2 2.5c0.1 1.3-0.4 2.3-1.4 3z"/>
+          <!-- eyes -->
+          <path fill="#2a4a20" d="M9.3 9.1h1.6v1.6H9.3z"/>
+          <path fill="#2a4a20" d="M13.1 9.1h1.6v1.6h-1.6z"/>
+          <circle fill="#d8f0a8" cx="10.1" cy="9.9" r="0.55"/>
+          <circle fill="#d8f0a8" cx="13.9" cy="9.9" r="0.55"/>
+        </svg>` },
+      cinder:     { name: "Squall",     role: "c-cinder",     svg: `<svg viewBox="0 0 24 24" aria-hidden="true">
+          <!-- golden crown -->
+          <path fill="#f2c14e" d="M8.7 6.4 L8.2 4.2 L10 5.7 L11 3.6 L12 5.7 L13 3.6 L14 5.7 L15.8 4.2 L15.3 6.4 Z"/>
+          <rect fill="#f2c14e" x="8.6" y="6.5" width="6.8" height="1.5" rx="0.6"/>
+          <circle fill="#d64545" cx="12" cy="7.2" r="0.55"/>
+          <!-- sleek face -->
+          <path fill="currentColor" d="M9.2 8.4c0-2.1 1.3-3.8 2.8-3.8s2.8 1.7 2.8 3.8c0 1.5-0.6 2.9-1.5 4L12.3 13.7c-0.7 0.9-1.9 0.9-2.6 0l-1-1.3c-0.9-1.1-1.4-2.5-1.5-4z"/>
+          <!-- eyes -->
+          <circle fill="#3a2a44" cx="10.4" cy="9.8" r="0.75"/>
+          <circle fill="#3a2a44" cx="13.6" cy="9.8" r="0.75"/>
+          <circle fill="#fff" cx="10.65" cy="9.6" r="0.24"/>
+          <circle fill="#fff" cx="13.85" cy="9.6" r="0.24"/>
+          <!-- storm bell robe -->
+          <path fill="currentColor" d="M8.4 15.2c0.4 2.4 1.9 4.7 4.6 5.9 2.7-1.2 4.2-3.5 4.6-5.9z"/>
+          <!-- frost wind swirls -->
+          <path fill="#9fc0e8" d="M6.4 17c-1.3 0.9-1.5 2.4-0.4 3.7-0.6-1.1-0.5-2.1 0.8-2.7-0.1-0.4-0.3-0.7-0.4-1z"/>
+          <path fill="#9fc0e8" d="M17.6 17c1.3 0.9 1.5 2.4 0.4 3.7 0.6-1.1 0.5-2.1-0.8-2.7 0.1-0.4 0.3-0.7 0.4-1z"/>
+        </svg>` },
       ironjaw:    { name: "Ironjaw",    role: "c-ironjaw",    svg: MONSTER_SVG.golem },
       bloodroot:  { name: "Bloodroot",  role: "c-bloodroot",  svg: MONSTER_SVG.slime },
       stormglass: { name: "Stormglass", role: "c-stormglass", svg: MONSTER_SVG.golem },

@@ -193,22 +193,28 @@
           <circle fill="#d8f0a8" cx="13.9" cy="9.9" r="0.55"/>
         </svg>` },
       cinder:     { name: "Squall",     role: "c-cinder",     svg: `<svg viewBox="0 0 24 24" aria-hidden="true">
+          <!-- icy sparkle -->
+          <path fill="#bcd6f0" d="M6.8 5.6 L7.1 6.5 L8 6.8 L7.1 7.1 L6.8 8 L6.5 7.1 L5.6 6.8 L6.5 6.5 Z"/>
           <!-- golden crown -->
-          <path fill="#f2c14e" d="M8.7 6.4 L8.2 4.2 L10 5.7 L11 3.6 L12 5.7 L13 3.6 L14 5.7 L15.8 4.2 L15.3 6.4 Z"/>
-          <rect fill="#f2c14e" x="8.6" y="6.5" width="6.8" height="1.5" rx="0.6"/>
-          <circle fill="#d64545" cx="12" cy="7.2" r="0.55"/>
-          <!-- sleek face -->
-          <path fill="currentColor" d="M9.2 8.4c0-2.1 1.3-3.8 2.8-3.8s2.8 1.7 2.8 3.8c0 1.5-0.6 2.9-1.5 4L12.3 13.7c-0.7 0.9-1.9 0.9-2.6 0l-1-1.3c-0.9-1.1-1.4-2.5-1.5-4z"/>
-          <!-- eyes -->
-          <circle fill="#3a2a44" cx="10.4" cy="9.8" r="0.75"/>
-          <circle fill="#3a2a44" cx="13.6" cy="9.8" r="0.75"/>
-          <circle fill="#fff" cx="10.65" cy="9.6" r="0.24"/>
-          <circle fill="#fff" cx="13.85" cy="9.6" r="0.24"/>
-          <!-- storm bell robe -->
-          <path fill="currentColor" d="M8.4 15.2c0.4 2.4 1.9 4.7 4.6 5.9 2.7-1.2 4.2-3.5 4.6-5.9z"/>
-          <!-- frost wind swirls -->
-          <path fill="#9fc0e8" d="M6.4 17c-1.3 0.9-1.5 2.4-0.4 3.7-0.6-1.1-0.5-2.1 0.8-2.7-0.1-0.4-0.3-0.7-0.4-1z"/>
-          <path fill="#9fc0e8" d="M17.6 17c1.3 0.9 1.5 2.4 0.4 3.7 0.6-1.1 0.5-2.1-0.8-2.7 0.1-0.4 0.3-0.7 0.4-1z"/>
+          <path fill="#f2c14e" d="M9 7.4 L9 4.2 L11 6 L12 3.4 L13 6 L15 4.2 L15 7.4 Z"/>
+          <rect fill="#f2c14e" x="9" y="7.4" width="6" height="1.3" rx="0.5"/>
+          <circle fill="#d64545" cx="12" cy="8.05" r="0.45"/>
+          <!-- face -->
+          <rect fill="currentColor" x="9.3" y="8.7" width="5.4" height="4.8" rx="2.2"/>
+          <circle fill="#3a2a44" cx="10.7" cy="10.6" r="0.7"/>
+          <circle fill="#3a2a44" cx="13.3" cy="10.6" r="0.7"/>
+          <circle fill="#fff" cx="10.9" cy="10.3" r="0.24"/>
+          <circle fill="#fff" cx="13.5" cy="10.3" r="0.24"/>
+          <path fill="#7a3a22" d="M11 12.6c0.5 0.45 1.5 0.45 2 0"/>
+          <!-- flowing gown -->
+          <path fill="currentColor" d="M9.2 12.9 L14.8 12.9 c0.3 1.5 0.4 2.6 0.45 3.6 c0.15 1.9 0.45 3.1 1.35 3.8 c-1.3 0.9 -3 1.35 -4.6 1.35 c-1.6 0 -3.3-0.45 -4.6-1.35 c0.9-0.7 1.2-1.9 1.35-3.8 c0.05-1 0.15-2.1 0.45-3.6 Z"/>
+          <!-- gold bodice trim -->
+          <path fill="#f2c14e" d="M10.2 12.7h3.6l-0.6 1.2h-2.4z"/>
+          <!-- arms: right holds a golden orb -->
+          <path stroke="currentColor" stroke-width="1.9" stroke-linecap="round" d="M15.1 16.2 L17.2 15"/>
+          <circle fill="#f2c14e" cx="17.7" cy="14.4" r="1.25"/>
+          <circle fill="#ffe89a" cx="17.5" cy="14.2" r="0.45"/>
+          <path stroke="currentColor" stroke-width="1.9" stroke-linecap="round" d="M8.9 16.2 L7.4 17.7"/>
         </svg>` },
       ironjaw:    { name: "Ironjaw",    role: "c-ironjaw",    svg: MONSTER_SVG.golem },
       bloodroot:  { name: "Bloodroot",  role: "c-bloodroot",  svg: MONSTER_SVG.slime },

@@ -4427,8 +4427,11 @@ body.ult-hitstop .board-wrap {
     }
     body.skin-midnight .action-log-bar:active { background: rgba(70, 58, 40, 0.92); }
     body.skin-midnight .ult-tip { color: rgba(234, 223, 201, 0.82); }
-    body.skin-midnight .ap-pip,
-    body.skin-midnight .ult-pip { background: rgba(255, 255, 255, 0.14); }
+    body.skin-midnight .ap-pip.empty,
+    body.skin-midnight .ult-pip:not(.filled) { background: rgba(255, 255, 255, 0.16); border-color: rgba(255, 255, 255, 0.55); }
+    body.skin-midnight .ap-pip.filled { background: var(--accent); border-color: rgba(255, 255, 255, 0.9); }
+    body.skin-midnight .ult-pip.filled { background: var(--accent-2); border-color: rgba(255, 255, 255, 0.85); }
+    body.skin-midnight .enemy-charge-row .ult-pip.filled { background: #d9a08c; border-color: rgba(255, 255, 255, 0.85); }
     body.skin-midnight .section-label { color: #b5a88f; }
     body.skin-midnight .icon-btn {
       background: rgba(255, 255, 255, 0.08);
@@ -4478,12 +4481,30 @@ body.ult-hitstop .board-wrap {
     body.skin-midnight #passportOverlay.accent-player .pp-id-name,
     body.skin-midnight #passportOverlay.accent-player .info-section { color: var(--accent); }
     body.skin-midnight .upgrade-card { background: rgba(255, 255, 255, 0.06); color: #eae3d2; }
+    body.skin-midnight .up-card-title { color: #f7efdc; }
+    body.skin-midnight .up-card-callout {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.14);
+      color: #f2e9d3;
+    }
+    body.skin-midnight .up-card-desc { color: #c3b7a0; }
+    body.skin-midnight .up-card-desc b, body.skin-midnight .up-card-desc strong { color: #f7efdc; }
+    body.skin-midnight .up-card-synergy { color: #b5a88f; border-top-color: rgba(255, 255, 255, 0.1); }
+    body.skin-midnight .reward-tier.common, body.skin-midnight .reward-dur.floor { background: rgba(122, 110, 100, 0.3); color: #cfc3b2; }
+    body.skin-midnight .reward-tier.uncommon { color: #9cd8f2; }
+    body.skin-midnight .reward-tier.rare { color: #d4bcf0; }
+    body.skin-midnight .reward-dur.permanent { color: #efc3b0; }
+    body.skin-midnight .modifier-tier.easy { background: rgba(120, 180, 100, 0.3); color: #b8e6a4; }
+    body.skin-midnight .modifier-tier.hard { background: rgba(210, 100, 80, 0.32); color: #f0b09c; }
+    body.skin-midnight .modifier-reward { color: #e2c067; }
+    body.skin-midnight .up-card-archetype, body.skin-midnight .up-card-synergy-tag { filter: brightness(1.6); }
     body.skin-midnight .codex-card { background: #2a231a; border-color: rgba(255, 255, 255, 0.1); }
     body.skin-midnight .codex-card-name { color: #f5ecd8; }
     body.skin-midnight .codex-card-desc { color: #b5a88f; }
     body.skin-midnight .codex-tab:not(.active) { color: #b5a88f; }
     body.skin-midnight .codex-tab:hover:not(.active) { background: rgba(255, 255, 255, 0.08); }
     body.skin-midnight .help-note { color: #b5a88f; }
+    body.skin-midnight .victory-subtitle { color: #eadfc9; }
 
     /* Midnight skies: re-tint the act atmosphere behind the board */
     body.skin-midnight.tower-1 #actSky { background: linear-gradient(180deg, #243f56 0%, #33472e 46%, #221a12 100%); }

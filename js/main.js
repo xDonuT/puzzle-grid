@@ -2791,7 +2791,10 @@ function checkGameOver() {
     }
 
     document.getElementById("btnMenuSettings").addEventListener("click", openSettings);
-    document.getElementById("btnGameSettings").addEventListener("click", openSettings);
+    document.getElementById("btnGameSettings").addEventListener("click", (e) => {
+      e.stopPropagation();
+      openSettings();
+    });
     // Tiny tip line: click it to read the next tip
     const ultTipEl = document.getElementById("ultTip");
     if (ultTipEl) {

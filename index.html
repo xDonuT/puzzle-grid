@@ -1135,15 +1135,10 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      max-width: 104px;
-      padding: 2px 9px 2px 8px;
-      border-radius: 999px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.85), color-mix(in srgb, currentColor 12%, rgba(255,255,255,0.88)));
-      border: 1px solid color-mix(in srgb, currentColor 40%, rgba(90,80,72,0.45));
-      box-shadow: 0 1px 3px rgba(60,45,30,0.15), inset 0 1px 0 rgba(255,255,255,0.7);
       color: var(--accent);
       font-size: 0.7rem;
       font-weight: 750;
+      max-width: 104px;
     }
     .enemy-plate .plate-ico {
       flex: none;
@@ -1494,8 +1489,8 @@
       width: 100%;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 10px 14px;
+      gap: 4px;
+      padding: 6px 8px 6px 14px;
       min-height: 40px;
       border-radius: 14px;
       corner-shape: squircle;
@@ -1510,6 +1505,18 @@
       transition: background 0.15s ease;
     }
     .action-log-bar:active { background: rgba(250,242,228,0.75); }
+    .action-log-hit {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+    }
+    .log-pill-divider {
+      flex: none;
+      width: 1px;
+      height: 22px;
+      background: rgba(112, 76, 43, 0.18);
+    }
     .log-bar-text {
       font-size: 0.68rem;
       font-weight: 700;
@@ -1959,17 +1966,17 @@
       justify-content: center;
     }
     #btnGameSettings {
-      height: auto;
-      align-self: stretch;
-      aspect-ratio: 1;
-      width: auto;
-      border-radius: 14px;
-      font-size: 1.6rem;
+      flex: none;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      font-size: 1.15rem;
       color: var(--accent);
-      background: #fff;
-      border: 1.5px solid color-mix(in srgb, var(--accent) 60%, transparent);
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+      background: rgba(112, 76, 43, 0.12);
+      border: none;
+      box-shadow: none;
     }
+    #btnGameSettings:hover { background: rgba(112, 76, 43, 0.2); }
 
      /* Free shuffle badge */
     .shuffle-badge {
@@ -4478,6 +4485,7 @@ body.ult-hitstop .board-wrap {
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 8px rgba(0, 0, 0, 0.25);
     }
     body.skin-midnight .action-log-bar:active { background: rgba(70, 58, 40, 0.92); }
+    body.skin-midnight .log-pill-divider { background: rgba(255, 255, 255, 0.16); }
     body.skin-midnight .ult-tip { color: rgba(234, 223, 201, 0.82); }
     body.skin-midnight .ap-pip.empty,
     body.skin-midnight .ult-pip:not(.filled) { background: rgba(255, 255, 255, 0.16); border-color: rgba(255, 255, 255, 0.55); }
@@ -4491,10 +4499,12 @@ body.ult-hitstop .board-wrap {
       color: #eadfc9;
     }
     body.skin-midnight #btnGameSettings {
-      background: rgba(255, 255, 255, 0.09);
+      background: rgba(255, 255, 255, 0.1);
       color: var(--accent);
-      border: 1.5px solid color-mix(in srgb, var(--accent) 70%, transparent);
+      box-shadow: none;
+      border: none;
     }
+    body.skin-midnight #btnGameSettings:hover { background: rgba(255, 255, 255, 0.18); }
     body.skin-midnight .overlay { background: rgba(0, 0, 0, 0.55); }
     body.skin-midnight .panel,
     body.skin-midnight .overlay-panel {
@@ -5036,13 +5046,14 @@ body.ult-hitstop .board-wrap {
       <div id="tileTooltip" class="tile-tooltip" style="display:none"></div>
     </div>
 
-    <!-- Action history bar + settings (below board) -->
-    <div style="display:flex;gap:6px;align-items:center;width:100%">
-      <div class="action-log-bar" id="actionLogBar" role="button" tabindex="0" aria-label="Open action log" style="flex:1">
+    <!-- Action history + settings (single pill) -->
+    <div class="action-log-bar" id="actionLogBar" role="button" tabindex="0" aria-label="Open action log">
+      <div class="action-log-hit">
         <span class="log-bar-text" id="logBarText">Your turn</span>
         <span class="log-bar-chevron">›</span>
       </div>
-      <button type="button" class="icon-btn" id="btnGameSettings" title="Settings" style="flex-shrink:0">⚙</button>
+      <span class="log-pill-divider" aria-hidden="true"></span>
+      <button type="button" class="icon-btn" id="btnGameSettings" title="Settings" aria-label="Settings">⚙</button>
     </div>
 
     <!-- Action history modal -->

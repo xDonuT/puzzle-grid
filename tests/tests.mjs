@@ -248,7 +248,7 @@ assertEq(fullMap.acts.length, 3, "map has 3 acts");
 assert(isMapCompatible(fullMap), "generated map is compatible (version + shape)");
 assertEq(fullMap.acts[0].layers.length, MAP_LAYERS_PER_ACT.length + 1, "each act has battle layers + boss layer");
 (function () {
-  for (const act of fullMap.acts) {
+  fullMap.acts.forEach((act, i) => {
     // Flatten ids → count elites/mysteries
     let elites = 0, mysteries = 0;
     const byId = {};
@@ -266,9 +266,10 @@ assertEq(fullMap.acts[0].layers.length, MAP_LAYERS_PER_ACT.length + 1, "each act
       if (n.type === "mystery" || n.type === "voidMerchant") mysteries++;
     }
     assertEq(elites, 2, "each act has exactly 2 elites (reachable + avoidable)");
-    assertEq(mysteries, 3, "each act has exactly 3 mystery/seed nodes");
+    // Act 1 is a battles-only tutorial window; seeds return in acts 2-3
+    assertEq(mysteries, i === 0 ? 0 : 3, `act ${i + 1} mystery/seed count (act 1 = 0)`);
     assertEq(act.layers[0].every(n => n.type === "normal"), true, "act opens with a normal battle on every layer-0 node");
-  }
+  });
 })();
 assertEq(getConnectedNodes(fullMap.acts[0], "a1l0n0").length > 0, true, "layer-0 nodes expose connections");
 assert(isNodeReachable(fullMap.acts[0], "a1l0n0", new Set()), "first-layer node reachable with empty visited set");
@@ -278,13 +279,54 @@ assertEq(isNodeReachable(fullMap.acts[0], "a1boss", new Set()), false, "boss not
 (function () {
   resetRun();
   run.gameMap = generateFullMap();
-  const mystery = run.gameMap.acts[0].layers.flat().find(n => n.type === "mystery");
-  assert(mystery, "act 1 has a mystery (seed) node");
+  run.gameMap.currentAct = 2;
+  assertEq(run.gameMap.currentAct, 2, "test uses act 2 for the seed picker");
+  const mystery = run.gameMap.acts[1].layers.flat().find(n => n.type === "mystery" && getConnectedNodes(run.gameMap.acts[1], n.id).length > 0);
+  assert(mystery, "acts 2-3 still have a reachable mystery (seed) node");
+  assertEq(run.gameMap.acts[0].layers.flat().some(n => n.type === "mystery"), false, "act 1 has zero mystery/seed nodes");
   onMapNodeClick(mystery);
   const doneBtn = document.getElementById("btnMysteryDone");
   assert(typeof doneBtn.onclick === "function", "seed picker shows a Done button");
   doneBtn.onclick();
   assertEq(run.gameMap.visitedNodes[mystery.id], true, "seed node visited after reward picked (no repeats)");
+})();
+
+// ---------- Act 1 tutorial unlocks: 3 blessings + 3 shapes, one at a time ----------
+(function () {
+  const unlocks = [];
+  for (let k = 0; k < 40; k++) {
+    const sched = buildAct1Unlocks();
+    assertEq(sched.length, 6, "act-1 schedule always has 6 entries");
+    const kinds = sched.map(x => x.kind).sort();
+    assertEq(kinds.join(","), "blessing,blessing,blessing,shape,shape,shape", "schedule has exactly 3 blessings + 3 shapes");
+    const ids = sched.map(x => x.id).sort().join(",");
+    assertEq(ids, "bloom,charged,cross,cross,star,x", "schedule covers all 6 unlocks exactly once");
+    unlocks.push(sched);
+  }
+  // Consume the schedule through 6 imaginary battles — each battle grants one pick
+  const sched = buildAct1Unlocks();
+  resetRun();
+  run.act1Unlocks = sched.slice();
+  combat.playerClass = "ninja";
+  const blessed = [];
+  const shaped = [];
+  while (run.act1Unlocks.length) {
+    const u = run.act1Unlocks[0];
+    run.act1Unlocks.shift();
+    if (u.kind === "blessing") {
+      assertEq(["bloom", "cross", "x"].includes(u.id), true, "unlock is a tile blessing id");
+      blessed.push(u.id);
+      run.blessings[u.id] = "heal";
+    } else {
+      assertEq(["star", "charged", "cross"].includes(u.id), true, "unlock is a shape skill id");
+      shaped.push(u.id);
+      run.shapeSkills[u.id] = "nova";
+    }
+  }
+  assertEq(blessed.length, 3, "6th battle completes all 3 tile blessings");
+  assertEq(shaped.length, 3, "6th battle completes all 3 shape skills");
+  assert(Object.keys(run.blessings).length === 3, "all blessing slots filled");
+  assert(["star", "charged", "cross"].every(s => run.shapeSkills[s]), "all shape slots filled");
 })();
 
 // ---------- findMatches / analyzeShapes on a synthetic board (grid param) ----------
@@ -350,6 +392,7 @@ run.bonusApMax = 1;
 run.bonusStarDmg = 3;
 run.blessings = { bloom: "heal", cross: "shield" };
 run.shapeSkills = { star: "trail", cross: "burst", charged: null };
+run.act1Unlocks = [{ kind: "blessing", id: "x" }, { kind: "shape", id: "charged" }];
 combat.playerClass = "ninja";
 run.pickedUpgrades = ["venomous", "boardWhisper"];
 saveRun();
@@ -366,6 +409,8 @@ assertEq(run.venomous, true, "applyLoadedRun re-derives venomous from pickedUpgr
 assertEq(run.boardWhisper, true, "applyLoadedRun re-derives boardWhisper from pickedUpgrades");
 assertEq(run.blessings.bloom, "heal", "applyLoadedRun restores tile blessings");
 assertEq(run.shapeSkills.star, "trail", "applyLoadedRun restores shape skills");
+assertEq(run.act1Unlocks.length, 2, "applyLoadedRun restores the act-1 unlock queue");
+assertEq(run.act1Unlocks[1].id, "charged", "act-1 unlock queue order is preserved");
 assertEq(combat.playerClass, "ninja", "applyLoadedRun restores playerClass");
 assertEq(run.pickedUpgrades.includes("venomous"), true, "applyLoadedRun keeps picked upgrade ids");
 clearSave();

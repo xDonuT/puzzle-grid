@@ -306,7 +306,7 @@ const screenMenu = document.getElementById("screen-menu");
 
     // Tile Blessing ceremony — the player earns a choice for one enhanced tile
     // (bloom/cross/X) on its blessed floor. Icon-tile cards, tap to pick, ~1.5s.
-    function openTileBlessingPicker(special, onDone) {
+    function openTileBlessingPicker(special, onDone, progress) {
       const ov = document.getElementById("tileBlessingOverlay");
       const panel = document.getElementById("blessingPanel");
       const em = document.getElementById("blessingEmblem");
@@ -324,7 +324,7 @@ const screenMenu = document.getElementById("screen-menu");
       panel.style.setProperty("--bc", cfg.color);
       em.textContent = cfg.icon;
       title.textContent = cfg.label;
-      sub.textContent = cfg.note || "Choose what this tile does";
+      sub.textContent = progress ? `Unlock ${progress.at} of ${progress.of} — ${cfg.label}` : (cfg.note || "Choose what this tile does");
       sub.style.color = "#7a6e64";
 
       const current = run.blessings[special];
@@ -380,7 +380,7 @@ const screenMenu = document.getElementById("screen-menu");
     // shows only that shape's cards so the player reads each system one at a time
     // as milestones are earned (floor 6 Star, 12 Charged, 18 Cross). onDone() is
     // invoked to resume the victory flow.
-    function openShapeSkillPicker(shapeKey, onDone) {
+    function openShapeSkillPicker(shapeKey, onDone, progress) {
       const ov = document.getElementById("shapeSkillOverlay");
       const rows = document.getElementById("shapeRows");
       const doneBtn = document.getElementById("btnShapeSkillDone");
@@ -389,11 +389,15 @@ const screenMenu = document.getElementById("screen-menu");
       const sub = document.getElementById("shapeSkillSub");
       if (!ov || !rows || typeof SHAPE_SKILLS === "undefined") { if (onDone) onDone(); return; }
       pickerOnDone = onDone || null;
+      pickerProgress = progress || null;
       // Surface the shape just earned (defaulting to Star for safety).
       const openShape = shapeKey && SHAPE_SKILLS[shapeKey] ? shapeKey : "star";
+      pickerForceShape = progress ? openShape : null;
       if (emblem) emblem.textContent = "🏆";
       if (title) title.textContent = "Shape Skill Earned";
-      if (sub) sub.textContent = `Choose your ${shapeMeta(openShape).label} skill — from any class`;
+      if (sub) sub.textContent = progress
+        ? `Unlock ${progress.at} of ${progress.of} — pick your ${shapeMeta(openShape).label} skill to continue`
+        : `Choose your ${shapeMeta(openShape).label} skill — from any class`;
       const sk = run.shapeSkills || {};
       rows.innerHTML = "";
       const meta = shapeMeta(openShape);
@@ -410,11 +414,12 @@ const screenMenu = document.getElementById("screen-menu");
         chip.type = "button";
         chip.className = "shape-slot-chip" + (shp === openShape ? " active" : "") + (curId ? "" : " empty");
         chip.setAttribute("data-shape", shp);
+        if (progress && shp !== openShape) chip.disabled = true;
         chip.innerHTML =
           `<span class="shape-slot-ico">${m.icon}</span>` +
           `<span class="shape-slot-body"><span class="shape-slot-label">${m.label}</span>` +
           `<span class="shape-slot-state">${curSkill ? `${curSkill.icon} ${curSkill.name}` : "Empty slot"}</span></span>`;
-        chip.addEventListener("click", () => openShapeSkillPicker(shp, pickerOnDone));
+        chip.addEventListener("click", () => openShapeSkillPicker(shp, pickerOnDone, pickerProgress));
         strip.appendChild(chip);
       });
       rows.appendChild(strip);
@@ -445,11 +450,14 @@ const screenMenu = document.getElementById("screen-menu");
           // Tap again to clear that shape's skill.
           if (sk[shp] === id) sk[shp] = null;
           else sk[shp] = id;
-          openShapeSkillPicker(shp, pickerOnDone);
+          openShapeSkillPicker(shp, pickerOnDone, pickerProgress);
         });
       });
       rows.appendChild(row);
-      if (doneBtn) doneBtn.textContent = "Continue";
+      if (doneBtn) {
+        doneBtn.textContent = "Continue";
+        doneBtn.disabled = !!(progress && !run.shapeSkills[openShape]);
+      }
       ov.classList.add("open");
     }
 
@@ -463,11 +471,18 @@ const screenMenu = document.getElementById("screen-menu");
     }
 
     let pickerOnDone = null;
+    let pickerProgress = null;
+    let pickerForceShape = null;
 
     function closeShapeSkillPicker() {
+      // A tutorial pick must not be skipped: keep the overlay open until the
+      // earned shape actually has a skill assigned.
+      if (pickerForceShape && !run.shapeSkills[pickerForceShape]) return;
       const ov = document.getElementById("shapeSkillOverlay");
       if (ov) ov.classList.remove("open");
       if (typeof saveRun === "function") saveRun();
+      pickerForceShape = null;
+      pickerProgress = null;
       const fn = pickerOnDone;
       pickerOnDone = null;
       if (typeof fn === "function") fn();
@@ -1078,11 +1093,11 @@ const screenMenu = document.getElementById("screen-menu");
         run.floor = eliteFloors[map.currentAct - 1] || calcMapFloor(map);
         startBattle({ fromVictory: false });
       } else if (node.type === "mystery") {
-        openMysteryNode(() => { showMap(); saveRun(); });
+        openMysteryNode(() => { map.visitedNodes[node.id] = true; showMap(); saveRun(); });
       } else if (node.type === "shop") {
-        openShopNode(() => { showMap(); saveRun(); });
+        openShopNode(() => { map.visitedNodes[node.id] = true; showMap(); saveRun(); });
       } else if (node.type === "voidMerchant") {
-        openVoidMerchant(() => { showMap(); saveRun(); });
+        openVoidMerchant(() => { map.visitedNodes[node.id] = true; showMap(); saveRun(); });
       } else {
         run.floor = calcMapFloor(map);
         startBattle({ fromVictory: false });
@@ -1136,6 +1151,7 @@ const screenMenu = document.getElementById("screen-menu");
       map.visitedNodes = {};
       run.floor = 0;
       run.classUpgradeOfferedActs = [];
+      run.act1Unlocks = (typeof buildAct1Unlocks === "function") ? buildAct1Unlocks() : [];
       showScreen("game");
       showStoryIntro(() => showMap());
     }
@@ -1670,6 +1686,7 @@ function checkGameOver() {
         if (run.plague && combat.poisonStacks > 0) {
           run.plagueDmg = (run.plagueDmg || 0) + 10;
         }
+        const runFloorRewards = () => {
         if (isBossFloor(run.floor)) {
           run.bossesSlain = (run.bossesSlain || 0) + 1;
           // Final boss: no reward pick — the run just ended, and the last
@@ -1734,46 +1751,49 @@ function checkGameOver() {
             });
           });
         } else {
-          // Won a normal battle (not boss/elite). Consult floor-based milestones:
-          // the next unclaimed Tile Blessing and the next unclaimed Shape Skill
-          // whose floor thresholds the player has matched. Because these check
-          // "floor reached", a mystery/shop crossing a threshold never skips a
-          // window — the next battle win surfaces it.
-          const blessSpecial = (typeof getNextBlessing === "function") ? getNextBlessing() : null;
-          const shapeSpecial = (typeof getNextShapeSkill === "function") ? getNextShapeSkill() : null;
-
+          // Won a normal battle (not boss/elite): the usual floor reward chain.
+          // Act-1 tutorial unlocks (Tile Blessings / Shape Skills) are handled by
+          // the runFloorRewards caller for the first six battle wins.
           // Void Merchant: Skip act rewards
           if (run.skipActRewards) {
             run.skipActRewards = false;
             showVictoryOverlay({ label: "Rewards skipped — Key to the Back Door", permanent: false });
           } else {
-            const rewardFlow = () => openRewardPicker(buildFloorRewardChoices(), {
-            title: "Floor Reward",
-            sub: "Pick a permanent boon — it stays all run",
-            permanent: true,
-            nextFloor: run.floor + 1,
-            onPick: label => openModifierPicker(mod => {
-              run.pendingModifier = mod;
-              if (mod && mod.tier === "hard") {
-                run.pendingModifierRare = true;
-                openEasyBonusPicker(() => {
+            openRewardPicker(buildFloorRewardChoices(), {
+              title: "Floor Reward",
+              sub: "Pick a permanent boon — it stays all run",
+              permanent: true,
+              nextFloor: run.floor + 1,
+              onPick: label => openModifierPicker(mod => {
+                run.pendingModifier = mod;
+                if (mod && mod.tier === "hard") {
+                  run.pendingModifierRare = true;
+                  openEasyBonusPicker(() => {
+                    showVictoryOverlay({ label, permanent: false });
+                  });
+                } else {
                   showVictoryOverlay({ label, permanent: false });
-                });
-              } else {
-                showVictoryOverlay({ label, permanent: false });
-              }
-            })
-          });
-          // Chain: offer the earned Tile Blessing pick, then the earned Shape
-          // Skill pick (one shape at a time), then the normal floor reward.
-          const afterBlessing = () => {
-            if (shapeSpecial) openShapeSkillPicker(shapeSpecial, rewardFlow);
-            else rewardFlow();
-          };
-          if (blessSpecial) openTileBlessingPicker(blessSpecial, afterBlessing);
-          else if (shapeSpecial) openShapeSkillPicker(shapeSpecial, rewardFlow);
-          else rewardFlow();
+                }
+              })
+            });
+          }
         }
+        };
+        // Act 1 tutorial: the first six battle wins grant one Tile Blessing or
+        // Shape Skill each (fully random order) before that floor's rewards.
+        const act1Unlock = (run.gameMap && run.gameMap.currentAct === 1 &&
+          Array.isArray(run.act1Unlocks) && run.act1Unlocks.length > 0)
+          ? run.act1Unlocks.shift()
+          : null;
+        if (act1Unlock) {
+          const unlockProgress = { at: 6 - run.act1Unlocks.length, of: 6 };
+          if (act1Unlock.kind === "blessing") {
+            openTileBlessingPicker(act1Unlock.id, runFloorRewards, unlockProgress);
+          } else {
+            openShapeSkillPicker(act1Unlock.id, runFloorRewards, unlockProgress);
+          }
+        } else {
+          runFloorRewards();
         }
       } else if (combat.playerHp <= 0) {
         gameOver = true;
@@ -1955,7 +1975,8 @@ function checkGameOver() {
           currentAct: run.currentAct || 1,
           classUpgradeOfferedActs: run.classUpgradeOfferedActs || [],
           blessings: run.blessings || {},
-          shapeSkills: run.shapeSkills || { star: null, cross: null, charged: null }
+          shapeSkills: run.shapeSkills || { star: null, cross: null, charged: null },
+          act1Unlocks: run.act1Unlocks || []
         };
         localStorage.setItem(SAVE_KEY, JSON.stringify(data));
       } catch (_) {}
@@ -2135,6 +2156,7 @@ function checkGameOver() {
       run.classUpgradeOfferedActs = d.classUpgradeOfferedActs || [];
       run.blessings = d.blessings || {};
       run.shapeSkills = d.shapeSkills || { star: null, cross: null, charged: null };
+      run.act1Unlocks = Array.isArray(d.act1Unlocks) ? d.act1Unlocks.slice() : [];
       // Map layout changed (45-floor campaign): regenerate incompatible maps.
       // Player restarts the current act with all upgrades/passives intact.
       if (run.gameMap && !isMapCompatible(run.gameMap)) {

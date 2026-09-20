@@ -542,6 +542,7 @@
       pendingModifierEasy: null,
       blessings: {},         // special -> chosen blessing id ("bloom"/"cross"/"x")
       shapeSkills: { star: null, cross: null, charged: null }, // shape -> chosen skill id (any class)
+      act1Unlocks: [],       // remaining Act-1 tutorial unlocks {kind, id} (first 6 battle wins)
       elapsedMs: 0,
       floorElapsedMs: 0,
       gameMap: null,     // STS-style branching map
@@ -860,46 +861,21 @@
       ]
     };
 
-    // Which tile Blessing is earned as the player reaches each floor — gated on
-    // run.floor so mysteries/shops can never skip a blessing window (a blessing
-    // is offered on the first battle win after its floor threshold is crossed).
-    const FLOOR_BLESSING = {
-      3:  "bloom",
-      9:  "cross",
-      15: "x"
-    };
-    // Which Shape Skills milestone is earned as the player reaches each floor,
-    // interleaved with the blessings so only one new system surfaces at a time.
-    const FLOOR_SHAPE_SKILL = {
-      6:  "star",
-      12: "charged",
-      18: "cross"
-    };
+    // Act 1 tutorial unlocks. The first six battle wins of Act 1 each grant one
+    // of these — three Tile Blessings + three Shape Skills — in a fully random
+    // order, so both systems are taught one-at-a-time before the run deepens.
+    const ACT1_BLESSINGS = ["bloom", "cross", "x"];
+    const ACT1_SHAPES = ["star", "charged", "cross"];
 
-    // Return the special ("bloom"/"cross"/"x") of the next unclaimed Tile Blessing
-    // whose floor threshold the player has already matched (or exceeded). A mystery
-    // or shop crossing the floor never fires this by itself — it's only consulted
-    // on a battle win — so reaching the floor is enough; the exact floor number never
-    // has to line up with a battle.
-    function getNextBlessing() {
-      const keys = Object.keys(FLOOR_BLESSING).map(Number).sort((a, b) => a - b);
-      const bs = run.blessings || {};
-      for (const f of keys) {
-        const id = FLOOR_BLESSING[f];
-        if (run.floor >= f && !bs[id]) return id;
+    function buildAct1Unlocks() {
+      const pool = ACT1_BLESSINGS.map(id => ({ kind: "blessing", id }))
+        .concat(ACT1_SHAPES.map(id => ({ kind: "shape", id })));
+      // Fisher-Yates shuffle
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
       }
-      return null;
-    }
-
-    // Same as getNextBlessing but for Shape Skills ("star"/"charged"/"cross").
-    function getNextShapeSkill() {
-      const keys = Object.keys(FLOOR_SHAPE_SKILL).map(Number).sort((a, b) => a - b);
-      const ss = run.shapeSkills || {};
-      for (const f of keys) {
-        const id = FLOOR_SHAPE_SKILL[f];
-        if (run.floor >= f && !ss[id]) return id;
-      }
-      return null;
+      return pool;
     }
 
     // Shape skills — the player picks one skill for each shape (Star / Cross /

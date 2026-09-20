@@ -67,7 +67,7 @@ function generateActMap(act) {
     }
   }
 
-  assignNodeTypes(layers, connections, counts);
+  assignNodeTypes(layers, connections, counts, act);
 
   // Guarantee every node past the first layer has an incoming edge — the
   // fan-out above can strand nodes (unreachable mysteries/loot)
@@ -89,7 +89,7 @@ function generateActMap(act) {
 // Post-placement pass: decide node types AFTER the graph exists so we can
 // guarantee (a) elites are reachable, (b) elites always have a normal
 // alternative on their layer => genuine safe-vs-risky route decisions.
-function assignNodeTypes(layers, connections, counts) {
+function assignNodeTypes(layers, connections, counts, act) {
   // Set of node ids reachable when entering layer li
   const reachableEntering = (li) => {
     let frontier = new Set(layers[0].map(n => n.id));
@@ -130,7 +130,8 @@ function assignNodeTypes(layers, connections, counts) {
 
   // --- Mysteries: exactly 3 per act, mid-act only, always reachable ---
   // Rare enough that each flip matters — pairs with the permanent effects.
-  const mysteryCount = 3;
+  // Act 1 is a battles-only tutorial window (seeds return in acts 2–3).
+  const mysteryCount = act === 1 ? 0 : 3;
   let placed = 0;
   const mysteryLayerOrder = [2, 3, 4].sort(() => Math.random() - 0.5);
   for (const li of mysteryLayerOrder) {
@@ -143,7 +144,7 @@ function assignNodeTypes(layers, connections, counts) {
   }
 
   // --- Void Merchant: 10% chance to replace one mystery per act ---
-  if (Math.random() < 0.1) {
+  if (act !== 1 && Math.random() < 0.1) {
     const mysteryNodes = layers.flat().filter(n => n.type === "mystery");
     if (mysteryNodes.length) {
       const target = mysteryNodes[Math.floor(Math.random() * mysteryNodes.length)];
@@ -183,7 +184,7 @@ function isNodeReachable(map, nodeId, visited) {
 }
 
 // Bump when MAP_LAYERS_PER_ACT / node structure changes so old saves regenerate.
-const MAP_VERSION = 3; // v3: wider braided layers, fixed 3 mysteries/act, no entrance mystery
+const MAP_VERSION = 4; // v4: act 1 is battles-only (seeds return acts 2-3), 6 unlock schedule
 
 function generateFullMap() {
   return {

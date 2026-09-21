@@ -440,34 +440,58 @@ combat.floorModifier = null;
 applyFloorModifierLook();
 assert(!document.body.classList.contains("mod-active"), "no modifier → no mod-active");
 
-// ---------- Global skills: unlock milestones + effects ----------
-assertEq(Object.keys(GLOBAL_SKILLS).length, 4, "GLOBAL_SKILLS defines shuffleSurge + 3 new account skills");
-settings.skills = { shuffleSurge: true, fortifiedWard: true, fasterUlt: true, rejuvenation: true };
-const prevBestFloor = settings.bestFloor;
-settings.bestFloor = 9;
-assertEq(skillUnlocked("fortifiedWard"), false, "fortifiedWard locked below floor 15");
-settings.bestFloor = 15;
-assertEq(skillUnlocked("fortifiedWard"), true, "fortifiedWard unlocks at floor 15");
-assertEq(skillUnlocked("rejuvenation"), false, "rejuvenation still locked at floor 15");
+// ---------- Former global skills → run upgrades ----------
+["fortifiedWard", "rejuvenation", "shuffleSurge", "overclock"].forEach(id => {
+  const u = RUN_UPGRADES.find(o => o.id === id);
+  assertEq(!!u, true, `RUN_UPGRADES contains ${id}`);
+  assertEq(u.classRequirement, "ANY", `${id} is a generic ANY upgrade`);
+});
+assertEq(!!RUN_UPGRADES.find(u => u.id === "ultCharge"), true, "Faster Ult lives on as the classic ultCharge run upgrade");
 
-// Fortified Ward shield at battle start (also raises the cap so it can't clamp)
+// Rejuvenation: between-battle recovery 45% → 55%
 resetRun();
 combat.playerClass = "knight";
-run.floor = 10;
-settings.skills.fortifiedWard = false;
+run.floor = 2;
+combat.playerHp = 60; // knight maxHp 120 → missing 60
 startBattle({});
-const baseShield = combat.shield;
-settings.skills.fortifiedWard = true;
+assertEq(combat.playerHp, 87, "base between-battle heal is 45% of missing HP (60 → 87)");
 resetRun();
 combat.playerClass = "knight";
-run.floor = 10;
+run.floor = 2;
+combat.playerHp = 60;
+run.rejuvenation = true;
 startBattle({});
-assertEq(combat.shield, baseShield + 4, "fortifiedWard adds +4 starting shield above the cap");
+assertEq(combat.playerHp, 93, "Rejuvenation upgrade heals 55% of missing HP (60 → 93)");
 
-// Faster Ult unlock gating
-settings.bestFloor = 20;
-assertEq(skillUnlocked("fasterUlt"), true, "fasterUlt unlocks at floor 20");
-settings.bestFloor = prevBestFloor;
+// Shuffle Surge: picking the upgrade arms the shuffle handler
+resetRun();
+RUN_UPGRADES.find(u => u.id === "shuffleSurge").apply();
+assertEq(run.shuffleSurge, true, "picking Shuffle Surge sets run.shuffleSurge");
+
+// Overclock: overflow charge is banked as pips and the bar still clamps
+resetRun();
+const ocUpgrade = RUN_UPGRADES.find(u => u.id === "overclock");
+ocUpgrade.apply();
+assertEq(run.overclock, true, "picking Overclock sets run.overclock");
+combat.overCharge = 0;
+combat.sigBank = settings.ultMaxCharge; // 10
+addSigCharge(3);
+assertEq(combat.sigBank, settings.ultMaxCharge, "sigBank still clamps at the ult cap");
+assertEq(combat.overCharge, 3, "Overclock banks the 3 overflow pips");
+combat.sigBank = 9;
+combat.overCharge = 0;
+addSigCharge(3);
+assertEq(combat.overCharge, 2, "only the overflow past the cap is banked (9+3 → 2)");
+combat.sigBank = 2;
+combat.overCharge = 0;
+addSigCharge(2);
+assertEq(combat.overCharge, 0, "no overflow below the cap → nothing banked");
+
+// Bloom "Deferred" blessing data
+const bloomDef = TILE_BLESSINGS.bloom.find(b => b.id === "deferred");
+assertEq(!!bloomDef, true, "bloom blessings include Deferred");
+assertEq(bloomDef.tier, "mystery", "Deferred is the mystery-planting tier");
+assert(TILE_BLESSINGS.bloom.every(b => b.id), "every bloom blessing has an id");
 
 // ---------- Screen-reader live region ----------
 const srEl = document.getElementById("srAnnounce");
@@ -509,7 +533,6 @@ renderCareer();
 assertEq(cardEl.innerHTML, "", "renderCareer hides the line entirely when a hero has no records");
 
 // ---------- Shield carries over between floors ----------
-settings.skills.fortifiedWard = false;
 resetRun();
 combat.playerClass = "knight";
 run.floor = 1;
@@ -529,18 +552,24 @@ run.floor = 1;
 startBattle({});
 assertEq(combat.shield, 15, "a fresh run restores starting shield even after a carried-over 0");
 // Per-battle start bonuses still stack on the carried shield instead of refilling
-settings.skills.fortifiedWard = true;
-settings.bestFloor = 30; // ward is floor-15-gated — ensure it's unlocked for this block
+const wardUpgrade = RUN_UPGRADES.find(u => u.id === "fortifiedWard");
+resetRun();
+combat.playerClass = "knight";
+run.floor = 1;
+wardUpgrade.apply(); // → run.fortifiedWard = true
+startBattle({});
+assertEq(combat.shield, 19, "Fortified Ward starts a fresh battle at startShield + 4");
+combat.shield = 2;
+run.floor = 2;
+startBattle({});
+assertEq(combat.shield, 6, "Fortified Ward stacks on the carried shield (2 + 4), not a refill");
+// The upgrade flag is per-run: a fresh run loses it
 resetRun();
 combat.playerClass = "knight";
 run.floor = 1;
 startBattle({});
-assertEq(combat.shield, 19, "fortifiedWard starts a fresh battle at startShield + 4");
-combat.shield = 2;
-run.floor = 2;
-startBattle({});
-assertEq(combat.shield, 6, "fortifiedWard stacks on the carried shield (2 + 4), not a refill");
-settings.bestFloor = prevBestFloor;
+assert(run.fortifiedWard !== true, "resetRun clears the Fortified Ward upgrade flag");
+assertEq(combat.shield, 15, "a run without Fortified Ward starts at the plain starting shield");
 // Shield is persisted in the run save and restored on continue
 combat.shield = 7;
 saveRun();

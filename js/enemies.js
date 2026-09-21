@@ -736,6 +736,10 @@
       { id: "ultCharge", name: "🔥 Faster Ult", desc: "Signature charge +1 per signature match", classRequirement: "ANY", act: 1, apply: () => { run.ultChargeBonus += 1; } },
       { id: "apCarry", name: "⚡ Extra Action", desc: "Unused AP carries over up to +2 next turn", classRequirement: "ANY", act: 2, apply: () => { run.momentum = true; } },
       { id: "boardWhisper", name: "🔄 Free Shuffle", desc: "1 free Shuffle each floor", classRequirement: "ANY", act: 2, apply: () => { run.boardWhisper = true; } },
+      { id: "fortifiedWard", name: "🛡️ Fortified Ward", desc: "Start every battle with +4 Shield (even above your cap)", classRequirement: "ANY", act: 2, apply: () => { run.fortifiedWard = true; } },
+      { id: "rejuvenation", name: "💚 Rejuvenation", desc: "Between-battle recovery restores 55% of missing HP instead of 45%", classRequirement: "ANY", act: 2, apply: () => { run.rejuvenation = true; } },
+      { id: "shuffleSurge", name: "🌀 Shuffle Surge", desc: "Every shuffle used empowers your next turn: +25% damage per shuffle", classRequirement: "ANY", act: 2, apply: () => { run.shuffleSurge = true; } },
+      { id: "overclock", name: "⚡ Overclock", desc: "Ultimate charge overflow is banked as +15% damage per pip on your next ult", classRequirement: "ANY", act: 2, apply: () => { run.overclock = true; } },
       // ---- Ninja-specific skills ----
       { id: "poisonMaster", name: "☠️ Venomous", desc: "Sword matches can poison the enemy (30%)", classRequirement: "NINJA", act: 1, apply: () => { run.venomous = true; } },
       { id: "venomousBlade", name: "🗡️ Venomous Blade", desc: "Matches of 4+ Swords or cascades apply +2 Poison", classRequirement: "NINJA", act: 2, apply: () => { run.venomousBlade = true; } },
@@ -1010,7 +1014,9 @@
         { id: "radiance", special: "bloom", icon: "☀️", name: "Radiance", tier: "ult",
           desc: "Each Bloom cleared grants ultimate charge." },
         { id: "field", special: "bloom", icon: "🕸️", name: "Field", tier: "status",
-          desc: "Each Bloom leaves ember tiles that burn the rival." }
+          desc: "Each Bloom leaves ember tiles that burn the rival." },
+        { id: "deferred", special: "bloom", icon: "🎲", name: "Deferred", tier: "mystery",
+          desc: "Each Bloom cleared plants 2 Mystery tiles for later." }
       ],
       cross: [
         { id: "flow", special: "cross", icon: "⚡", name: "Flow", tier: "ap",

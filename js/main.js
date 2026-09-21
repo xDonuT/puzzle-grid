@@ -1327,7 +1327,7 @@ const screenMenu = document.getElementById("screen-menu");
         { icon: "⚡", name: "Surge", desc: "+1 max AP", costType: "hp", cost: 15, apply() { combat.ap = Math.min(AP_MAX + 1, combat.ap + 1); } },
         { icon: "🔮", name: "Enchant", desc: "Add a special tile to board", costType: "shield", cost: 5, apply() { if (typeof window.placeRandomSpecial === "function") window.placeRandomSpecial(); } },
         { icon: "💀", name: "Cracked Shard", desc: "Apply 2 Cracked to enemy", costType: "hp", cost: 12, apply() { combat.fractureStacks = Math.min(6, combat.fractureStacks + 2); combat.fractureTurns = Math.max(combat.fractureTurns, 3); } },
-        { icon: "🌟", name: "Golden Nectar", desc: "+4 ult charge", costType: "shield", cost: 6, apply() { combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + 4); } },
+        { icon: "🌟", name: "Golden Nectar", desc: "+4 ult charge", costType: "shield", cost: 6, apply() { addSigCharge(4); } },
       ];
       // Pick 4 random items
       const shuffled = items.slice();
@@ -2321,6 +2321,7 @@ function checkGameOver() {
       run.runicShield = false; run.manaSurge = false; run.mortalStrike = false; run.bulwark = false;
       run.venomousBlade = false; run.miasmaReflex = false; run.acidicBarrier = false; run.contagionCatalyst = false;
       run.corrosiveOverheal = false; run.toxicFortitude = false;
+      run.fortifiedWard = false; run.rejuvenation = false; run.shuffleSurge = false; run.overclock = false;
       // Passive-tree flags (PASSIVE_TREES applies) — without these a "new run"
       // would silently inherit powers from the previous run
       run.blitz = false; run.toxicBlade = false; run.lethalPoison = false; run.plague = false;
@@ -2406,6 +2407,10 @@ function checkGameOver() {
       run.contagionCatalyst = (run.pickedUpgrades || []).includes("contagionCatalyst");
       run.corrosiveOverheal = (run.pickedUpgrades || []).includes("corrosiveOverheal");
       run.toxicFortitude = (run.pickedUpgrades || []).includes("toxicFortitude");
+      run.fortifiedWard = (run.pickedUpgrades || []).includes("fortifiedWard");
+      run.rejuvenation = (run.pickedUpgrades || []).includes("rejuvenation");
+      run.shuffleSurge = (run.pickedUpgrades || []).includes("shuffleSurge");
+      run.overclock = (run.pickedUpgrades || []).includes("overclock");
       // Re-derive passive tree flags from the passive list.
       // Stat-granting passives are skipped: their bonuses are already baked
       // into the saved bonus* numbers, so re-applying would stack them again.
@@ -2463,7 +2468,7 @@ function checkGameOver() {
 
       const hero = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
       const maxHp = hero.hp + run.bonusMaxHp;
-      const wardBonus = (typeof skillEnabled === "function" && skillEnabled("fortifiedWard")) ? 4 : 0;
+      const wardBonus = (run.fortifiedWard) ? 4 : 0;
       const maxSh = hero.maxShieldCap + run.bonusShieldMax + wardBonus;
       AP_MAX = 3 + run.bonusApMax;
 
@@ -2481,8 +2486,8 @@ function checkGameOver() {
       const prevHp = combat.playerHp || maxHp;
       const missing = Math.max(0, maxHp - prevHp);
       let betweenHeal = Math.floor(missing * 0.45);
-      // 💚 Rejuvenation global skill: gentler climb between floors
-      if (typeof skillEnabled === "function" && skillEnabled("rejuvenation")) betweenHeal = Math.floor(missing * 0.55);
+      // 💚 Rejuvenation run upgrade: gentler climb between floors
+      if (run.rejuvenation) betweenHeal = Math.floor(missing * 0.55);
       if ((run.healBlockFloors || 0) > 0) betweenHeal = Math.floor(betweenHeal * 0.5); // 🥀 Wilted halves it
       combat.playerHp = Math.min(maxHp, prevHp + betweenHeal);
       // Shield carries over from the previous battle (it no longer refills each floor).
@@ -2500,13 +2505,14 @@ function checkGameOver() {
       combat.tempSwordDmg = (run.pending && run.pending.swordBoost) || 0;
       combat.critChance = (run.pending && run.pending.critChance) || 0;
       combat.cascadeApRefunded = false;
-      // 🌀 career tracking unlocks global skills
+      // 🏆 career-best floor record
       if (run.floor > (settings.bestFloor || 0)) {
         settings.bestFloor = run.floor;
         persistSettings();
       }
       combat.pendingSurge = 0;
       combat.surgeActive = 0;
+      combat.overCharge = 0;
       combat.reflectPct = Math.min(0.7, (hero.reflectPct || 0) + 0.02 * (run.floor - 1) + (run.arcaneMirror ? 0.1 : 0));
       combat.turn = 1;
       combat.playerTurn = true;
@@ -3014,7 +3020,6 @@ function checkGameOver() {
         if (!wrap) return;
         wrap.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.val === settings[pair[1]]));
       });
-      renderSkillList();
       const volSlider = document.getElementById("volSlider");
       const volLabel = document.getElementById("volLabel");
       if (volSlider) {
@@ -3035,47 +3040,6 @@ function checkGameOver() {
       if (screenGame.classList.contains("active")) resumeRunTimer();
     }
 
-    // ---- Global skills UI (Settings ▸ Game tab) ----
-    function renderSkillList() {
-      const wrap = document.getElementById("skillList");
-      if (!wrap || typeof GLOBAL_SKILLS === "undefined") return;
-      wrap.innerHTML = "";
-      Object.keys(GLOBAL_SKILLS).forEach(id => {
-        const s = GLOBAL_SKILLS[id];
-        const unlocked = skillUnlocked(id);
-        const row = document.createElement("div");
-        row.className = "skill-row" + (unlocked ? "" : " locked");
-        const info = document.createElement("div");
-        info.className = "skill-info";
-        const nm = document.createElement("div");
-        nm.className = "skill-name";
-        nm.textContent = s.name;
-        const ds = document.createElement("div");
-        ds.className = "skill-desc";
-        ds.textContent = s.desc;
-        info.append(nm, ds);
-        if (!unlocked) {
-          const ul = document.createElement("div");
-          ul.className = "skill-unlock";
-          ul.textContent = `🔒 ${s.unlockLabel} (best: floor ${settings.bestFloor || 0})`;
-          info.appendChild(ul);
-        }
-        row.appendChild(info);
-        if (unlocked) {
-          const tgl = document.createElement("button");
-          tgl.type = "button";
-          tgl.className = "toggle" + (skillEnabled(id) ? " on" : "");
-          tgl.setAttribute("aria-label", s.name);
-          tgl.addEventListener("click", () => {
-            settings.skills[id] = !settings.skills[id];
-            persistSettings();
-            tgl.classList.toggle("on", settings.skills[id]);
-          });
-          row.appendChild(tgl);
-        }
-        wrap.appendChild(row);
-      });
-    }
     function saveSettings() {
       settings.swordDmg = +document.getElementById("admSword").value || 0;
       settings.starDmg = +document.getElementById("admStar").value || 0;
@@ -3779,7 +3743,7 @@ function checkGameOver() {
         const markMult = combat.markStacks > 0 ? ` (+${Math.round(combat.markStacks * 15)}%)` : "";
         const critCh = combat.critChance || 0;
         const poisonInfo = combat.poisonTurns > 0 ? `${combat.poisonTurns}t` : combat.poisonStacks > 0 ? `${combat.poisonStacks} stacks` : "none";
-        const maxSh = s.maxShieldCap + run.bonusShieldMax + ((typeof skillEnabled === "function" && skillEnabled("fortifiedWard")) ? 4 : 0);
+        const maxSh = s.maxShieldCap + run.bonusShieldMax + (run.fortifiedWard ? 4 : 0);
         return `
           <div class="pp-photo"><div class="portrait ${combat.playerClass}" id="ppPhotoSlot"></div></div>
           <div class="pp-id-name">${s.name}</div>

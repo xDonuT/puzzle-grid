@@ -547,10 +547,8 @@
               }
             }
             if (blooms > 0) {
-              const before = combat.sigBank;
-              combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + blooms);
+              addSigCharge(blooms);
               refreshCombatUI();
-              if (before < settings.ultNeed && combat.sigBank >= settings.ultNeed) showUltReadyBanner();
             }
           }
         }

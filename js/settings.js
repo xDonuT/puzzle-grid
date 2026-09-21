@@ -34,8 +34,7 @@
       tutorialCompleted: false,
       clearedOnce: false,  // 🌟 Golden Cosmos unlocked after first final victory
       ngLoopsDone: 0,      // completed Golden Cosmos loops
-      bestFloor: 0,        // career-best floor reached (unlocks global skills)
-      skills: { shuffleSurge: true }, // global skill toggles
+      bestFloor: 0,        // career-best floor reached
       liteMode: null,        // null = auto-detect, true = forced lite, false = forced full
       animSpeed: 1,          // animation speed multiplier (1 = normal, 1.6 = fast)
       musicEnabled: true,    // background music on/off
@@ -52,41 +51,6 @@
       activeSlot: 0,          // selected save slot (0-2)
       career: {}              // per-hero career records: { ninja: { bestFloor, clears, bestTimeMs, mostDealt, mostUlts, bestChain } }
     };
-
-    // ---- Global skills (account-wide, unlock via milestones) ----
-    const GLOBAL_SKILLS = {
-      shuffleSurge: {
-        name: "🌀 Shuffle Surge",
-        desc: "Every shuffle empowers your next turn: +25% damage per shuffle used.",
-        unlockAt: 10,
-        unlockLabel: "Reach floor 10"
-      },
-      fortifiedWard: {
-        name: "🛡️ Fortified Ward",
-        desc: "Start EVERY battle with +4 Shield, even above your shield cap.",
-        unlockAt: 15,
-        unlockLabel: "Reach floor 15"
-      },
-      fasterUlt: {
-        name: "⚡ Faster Ult",
-        desc: "Each signature match grants +1 extra Ultimate charge per turn.",
-        unlockAt: 20,
-        unlockLabel: "Reach floor 20"
-      },
-      rejuvenation: {
-        name: "💚 Rejuvenation",
-        desc: "Between-battle recovery restores 55% of missing HP instead of 45%.",
-        unlockAt: 25,
-        unlockLabel: "Reach floor 25"
-      }
-    };
-    function skillUnlocked(id) {
-      const s = GLOBAL_SKILLS[id];
-      return !!s && (settings.bestFloor || 0) >= s.unlockAt;
-    }
-    function skillEnabled(id) {
-      return skillUnlocked(id) && (!settings.skills || settings.skills[id] !== false);
-    }
 
     function persistSettings() {
       try {
@@ -110,7 +74,6 @@
           clearedOnce: settings.clearedOnce,
           ngLoopsDone: settings.ngLoopsDone,
           bestFloor: settings.bestFloor || 0,
-          skills: settings.skills || { shuffleSurge: true },
           liteMode: settings.liteMode,
           animSpeed: settings.animSpeed || 1,
           musicEnabled: settings.musicEnabled,
@@ -149,11 +112,6 @@
         if (typeof o.clearedOnce === "boolean") settings.clearedOnce = o.clearedOnce;
         if (typeof o.ngLoopsDone === "number") settings.ngLoopsDone = o.ngLoopsDone;
         if (typeof o.bestFloor === "number") settings.bestFloor = o.bestFloor;
-        if (o.skills && typeof o.skills === "object") {
-          Object.keys(settings.skills).forEach(k => {
-            if (typeof o.skills[k] === "boolean") settings.skills[k] = o.skills[k];
-          });
-        }
         if (typeof o.liteMode === "boolean" || o.liteMode === null) settings.liteMode = o.liteMode;
         if (typeof o.animSpeed === "number" && o.animSpeed >= 0.5 && o.animSpeed <= 3) settings.animSpeed = o.animSpeed;
         if (typeof o.musicEnabled === "boolean") settings.musicEnabled = o.musicEnabled;

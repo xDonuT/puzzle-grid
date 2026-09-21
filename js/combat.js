@@ -649,7 +649,7 @@
         return text;
       }},
       { id: "charge", label: "Charge", apply: () => {
-        combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + 2);
+        addSigCharge(2);
         dmgPop("player", "+2 charge", "heal");
         return `+2 charge`;
       }},
@@ -697,7 +697,7 @@
       // Phase Attunement: mystery gets the best blessing during Full Bloom (+1 charge)
       let extra = "";
       if (phase === "impact" && run.phasePower && isBuff) {
-        combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + 1);
+        addSigCharge(1);
         extra = " +1 charge";
       }
       playDice();
@@ -1331,6 +1331,19 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       return parts.join(" · ") || "match";
     }
 
+    // Bank ultimate charge, capturing any overflow past the cap as Overclock
+    // bonus pips (only banked while the Overclock run upgrade is owned).
+    function addSigCharge(n) {
+      if (!(n > 0)) return;
+      const before = combat.sigBank;
+      const target = combat.sigBank + n;
+      if (target > settings.ultMaxCharge && run && run.overclock) {
+        combat.overCharge = (combat.overCharge || 0) + (target - settings.ultMaxCharge);
+      }
+      combat.sigBank = Math.min(settings.ultMaxCharge, target);
+      if (before < settings.ultNeed && combat.sigBank >= settings.ultNeed) showUltReadyBanner();
+    }
+
     function convertRandomTiles(count, toType) {
       const empties = [];
       for (let r = 0; r < ROWS; r++)
@@ -1610,9 +1623,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
             bitsExtra.push("Mirror Cross (no shield to steal)");
           }
         } else if (isCross && sk.cross === "tidal") {
-          const before = combat.sigBank;
-          combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + 2);
-          if (before < settings.ultNeed && combat.sigBank >= settings.ultNeed) showUltReadyBanner();
+          addSigCharge(2);
           bitsExtra.push("Tidal +2 ult");
         }
         // Charged skills
@@ -1645,9 +1656,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
             bitsExtra.push("Earthquake Dizzy!");
           }
         } else if (isCharged && sk.charged === "feedback") {
-          const before = combat.sigBank;
-          combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + 2);
-          if (before < settings.ultNeed && combat.sigBank >= settings.ultNeed) showUltReadyBanner();
+          addSigCharge(2);
           const n = convertRandomTiles(2, "shield");
           bitsExtra.push(`Feedback +2 ult · ${n}→🛡️`);
         } else if (isCharged && sk.charged === "bloodSurge") {
@@ -1655,9 +1664,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           combat.playerHp += heal;
           bitsExtra.push(`Blood Surge +${heal} HP`);
         } else if (isCharged && sk.charged === "brilliance") {
-          const before = combat.sigBank;
-          combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + 4);
-          if (before < settings.ultNeed && combat.sigBank >= settings.ultNeed) showUltReadyBanner();
+          addSigCharge(4);
           bitsExtra.push("Brilliance +4 ult");
         }
       }
@@ -1667,12 +1674,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       if (!forEnemy) {
         const seals = shape.seals || { bloom: 0, cross: 0, x: 0 };
         const bs = run.blessings || {};
-        const addUlt = n => {
-          if (n <= 0) return;
-          const before = combat.sigBank;
-          combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + n);
-          if (before < settings.ultNeed && combat.sigBank >= settings.ultNeed) showUltReadyBanner();
-        };
+        const addUlt = n => addSigCharge(n);
         // X seals (diagonal detonation)
         if (seals.x > 0) {
           const id = bs.x;
@@ -1723,6 +1725,9 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
             combat.enemyBurnTurns = Math.max(combat.enemyBurnTurns || 0, 3);
             combat.enemyBurnDmg = Math.max(combat.enemyBurnDmg || 0, 3 * seals.bloom);
             bitsExtra.push(`Ember 🔥${3 * seals.bloom}`);
+          } else if (id === "deferred") {
+            const n = convertRandomTiles(2 * seals.bloom, "question");
+            if (n > 0) bitsExtra.push(`Deferred 🎲${n} mystery`);
           }
           // "ripple" (base) has no extra effect — the 3×3 clear is the payoff.
         }
@@ -1858,19 +1863,14 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           // Track total signature tiles cleared this turn (3 tiles = 1 charge, cascades count)
           const sigTiles = sigSwordCount + sigShieldCount + sigHpCount;
           combat.sigTilesThisTurn += sigTiles;
-          // Faster Ult / Battle Cry: each signature match grants bonus charge(s)
+          // Faster Ult (ultCharge upgrade) / Battle Cry: each signature match grants bonus charge(s)
           combat._sigMatchesThisTurn = (combat._sigMatchesThisTurn || 0) + 1;
-          // ⚡ Faster Ult global skill: +1 charge per signature match
-          const fasterUltCharges = (typeof skillEnabled === "function" && skillEnabled("fasterUlt")) ? combat._sigMatchesThisTurn : 0;
-          const totalCharges = Math.floor(combat.sigTilesThisTurn / 3) + combat._sigMatchesThisTurn * (run.ultChargeBonus || 0) + fasterUltCharges;
+          const totalCharges = Math.floor(combat.sigTilesThisTurn / 3) + combat._sigMatchesThisTurn * (run.ultChargeBonus || 0);
           const chargesToAdd = totalCharges - (combat._lastSigChargeTotal || 0);
           combat._lastSigChargeTotal = totalCharges;
           if (chargesToAdd > 0) {
             const before = combat.sigBank;
-            combat.sigBank = Math.min(settings.ultMaxCharge, combat.sigBank + chargesToAdd);
-            if (before < settings.ultNeed && combat.sigBank >= settings.ultNeed) {
-              showUltReadyBanner();
-            }
+            addSigCharge(chargesToAdd);
             // Trace base signature charge with distinct color
             const chargeText = `⚡ +${chargesToAdd} charge · ${before}/${settings.ultMaxCharge}→${combat.sigBank}/${settings.ultMaxCharge}`;
             bitsExtra.push(chargeText);
@@ -2629,6 +2629,12 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         ultDmg += shieldBonus;
         combat.shield = 0;
       }
+      // ⚡ Overclock: each banked overflow pip adds +15% damage
+      if (run.overclock && combat.overCharge > 0) {
+        const pips = combat.overCharge || 0;
+        ultDmg = Math.round(ultDmg * (1 + 0.15 * pips));
+        bits.push(`Overclock +${pips * 15}%`);
+      }
 
       // --- Wind-up ---
       if (playerPort) {
@@ -2750,6 +2756,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         combat._moonstormLinks = null;
       }
       combat.sigBank = 0;
+      combat.overCharge = 0;
       combat.ultAnnounced = false;
       const liveBits = bits.filter((b) => b !== `${ultDmg} true` && b !== `${ultDmg} dmg`);
       setLog(liveBits.join(" · "), bits.join(" · "));
@@ -2850,8 +2857,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       }
       busy = true;
       playGooeyPlop(0.9, 0.5);
-      // 🌀 Shuffle Surge (global skill): shuffles empower the next turn
-      if (typeof skillEnabled === "function" && skillEnabled("shuffleSurge")) {
+      // 🌀 Shuffle Surge (run upgrade): shuffles empower the next turn
+      if (run.shuffleSurge) {
         combat.pendingSurge = (combat.pendingSurge || 0) + 1;
         setLog("Shuffle Surge", `🌀 Shuffle Surge · next turn +${25 * combat.pendingSurge}% damage`);
       }

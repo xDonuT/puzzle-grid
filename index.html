@@ -839,23 +839,7 @@
 .tile[data-type="question"] svg .pip-b { fill: #2b2420; }
 .tile[data-type="question"] svg .pip-r { fill: #d64545; }
 
-    /* ===== Global skills (settings) + Shuffle Surge badge ===== */
-    .skill-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 10px;
-      margin-bottom: 8px;
-      background: rgba(255,252,244,0.7);
-      border: 1.5px solid rgba(112,76,43,0.16);
-      border-radius: 12px;
-      corner-shape: squircle;
-    }
-    .skill-row.locked { opacity: 0.55; }
-    .skill-info { flex: 1; text-align: left; }
-    .skill-name { font-size: 0.82rem; font-weight: 800; color: #4a3f34; }
-    .skill-desc { font-size: 0.72rem; font-weight: 600; color: #7a6e64; margin-top: 2px; }
-    .skill-unlock { font-size: 0.66rem; font-weight: 700; color: #b8912e; margin-top: 3px; letter-spacing: 0.04em; }
+    /* ===== Shuffle Surge badge ===== */
     .shuffle-badge.surge {
       background: linear-gradient(135deg, #e8c25a, #d8a832);
       color: #fff;
@@ -4652,10 +4636,6 @@ body.ult-hitstop .board-wrap {
     body.skin-midnight .panel input[type="number"], body.skin-midnight .panel select {
       background: #1f1912; color: #f5ecd8; border-color: rgba(255, 255, 255, 0.16);
     }
-    body.skin-midnight .skill-row { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); }
-    body.skin-midnight .skill-name { color: #f5ecd8; }
-    body.skin-midnight .skill-desc { color: #b5a88f; }
-    body.skin-midnight .skill-unlock { color: #e0b050; }
     body.skin-midnight .info-row { color: #cfc2a8; border-bottom-color: rgba(255, 255, 255, 0.08); }
     body.skin-midnight .info-row span:last-child { color: #eadfc9; }
     body.skin-midnight .info-section { color: #a99c82; }
@@ -5239,9 +5219,6 @@ body.ult-hitstop .board-wrap {
           <input type="range" id="volSlider" min="0" max="100" value="80" style="flex:1;accent-color:#efb09a" />
           <span id="volLabel" style="min-width:2.2em;text-align:right;font-variant-numeric:tabular-nums">80</span>
         </div>
-
-        <h3>Global Skills</h3>
-        <div id="skillList"></div>
 
         <h3>Gameplay</h3>
         <div class="row">

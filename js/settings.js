@@ -37,6 +37,7 @@
       bestFloor: 0,        // career-best floor reached (unlocks global skills)
       skills: { shuffleSurge: true }, // global skill toggles
       liteMode: null,        // null = auto-detect, true = forced lite, false = forced full
+      animSpeed: 1,          // animation speed multiplier (1 = normal, 1.6 = fast)
       musicEnabled: true,    // background music on/off
       musicVolume: 0.5,      // music volume 0-1 (separate from SFX)
       ultTips: true,         // in-battle rotating tip line (gameplay tutorial)
@@ -47,7 +48,9 @@
       fxShake: true,         // board/combat screen shake + hit shake
       skin: "paper",         // paper | midnight (dark UI theme)
       pipStyle: "circle",    // circle | square | diamond
-      stampTheme: "leaf"     // passport stamp look: leaf | gold | ink
+      stampTheme: "leaf",     // passport stamp look: leaf | gold | ink
+      activeSlot: 0,          // selected save slot (0-2)
+      career: {}              // per-hero career records: { ninja: { bestFloor, clears, bestTimeMs, mostDealt, mostUlts, bestChain } }
     };
 
     // ---- Global skills (account-wide, unlock via milestones) ----
@@ -57,6 +60,24 @@
         desc: "Every shuffle empowers your next turn: +25% damage per shuffle used.",
         unlockAt: 10,
         unlockLabel: "Reach floor 10"
+      },
+      fortifiedWard: {
+        name: "🛡️ Fortified Ward",
+        desc: "Start EVERY battle with +4 Shield, even above your shield cap.",
+        unlockAt: 15,
+        unlockLabel: "Reach floor 15"
+      },
+      fasterUlt: {
+        name: "⚡ Faster Ult",
+        desc: "Each signature match grants +1 extra Ultimate charge per turn.",
+        unlockAt: 20,
+        unlockLabel: "Reach floor 20"
+      },
+      rejuvenation: {
+        name: "💚 Rejuvenation",
+        desc: "Between-battle recovery restores 55% of missing HP instead of 45%.",
+        unlockAt: 25,
+        unlockLabel: "Reach floor 25"
       }
     };
     function skillUnlocked(id) {
@@ -91,6 +112,7 @@
           bestFloor: settings.bestFloor || 0,
           skills: settings.skills || { shuffleSurge: true },
           liteMode: settings.liteMode,
+          animSpeed: settings.animSpeed || 1,
           musicEnabled: settings.musicEnabled,
           musicVolume: settings.musicVolume,
           ultTips: settings.ultTips,
@@ -101,7 +123,9 @@
           fxShake: settings.fxShake,
           skin: settings.skin,
           pipStyle: settings.pipStyle,
-          stampTheme: settings.stampTheme
+          stampTheme: settings.stampTheme,
+          activeSlot: settings.activeSlot || 0,
+          career: settings.career || {}
         }));
       } catch (_) {}
     }
@@ -131,6 +155,7 @@
           });
         }
         if (typeof o.liteMode === "boolean" || o.liteMode === null) settings.liteMode = o.liteMode;
+        if (typeof o.animSpeed === "number" && o.animSpeed >= 0.5 && o.animSpeed <= 3) settings.animSpeed = o.animSpeed;
         if (typeof o.musicEnabled === "boolean") settings.musicEnabled = o.musicEnabled;
         if (typeof o.musicVolume === "number") settings.musicVolume = Math.max(0, Math.min(1, o.musicVolume));
         if (typeof o.ultTips === "boolean") settings.ultTips = o.ultTips;
@@ -142,6 +167,8 @@
         if (["paper", "midnight"].includes(o.skin)) settings.skin = o.skin;
         if (["circle", "square", "diamond"].includes(o.pipStyle)) settings.pipStyle = o.pipStyle;
         if (["leaf", "gold", "ink"].includes(o.stampTheme)) settings.stampTheme = o.stampTheme;
+        if (typeof o.activeSlot === "number" && o.activeSlot >= 0 && o.activeSlot <= 2) settings.activeSlot = o.activeSlot;
+        if (o.career && typeof o.career === "object" && !Array.isArray(o.career)) settings.career = o.career;
       } catch (_) {}
     }
     loadSettings();
@@ -157,4 +184,23 @@
 
     function isLite() {
       return settings.liteMode === true;
+    }
+
+    // ---- Global animation speed ----
+    // Wraps Element.animate so the "Fast animations" setting scales every
+    // Web-Animation-API duration/delay game-wide without touching each call site.
+    function animScale() {
+      return (settings.animSpeed > 0 && settings.animSpeed !== 1) ? settings.animSpeed : 1;
+    }
+    if (typeof Element !== "undefined" && typeof Element.prototype.animate === "function") {
+      const nativeAnimate = Element.prototype.animate;
+      Element.prototype.animate = function (frames, opts) {
+        const m = animScale();
+        if (m !== 1 && opts) {
+          opts = Object.assign({}, opts);
+          if (opts.duration !== undefined) opts.duration = Math.max(30, Math.round(opts.duration / m));
+          if (opts.delay !== undefined && opts.delay > 0) opts.delay = Math.round(opts.delay / m);
+        }
+        return nativeAnimate.call(this, frames, opts);
+      };
     }

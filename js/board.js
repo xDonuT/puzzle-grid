@@ -345,6 +345,7 @@
     }
 
     function build() {
+      gridEl.setAttribute("aria-label", `${ROWS} by ${COLS} puzzle grid`);
       gridEl.innerHTML = "";
       board = [];
       specials = [];
@@ -370,6 +371,7 @@
           gridEl.appendChild(el);
         }
       }
+      kyReset();
     }
 
     // ---------- shuffle (preserves tile types AND specials) ----------
@@ -1060,6 +1062,88 @@
         clearPotentialHighlights();
         applyDropEffect(el);
         pointer = null;
+      }
+    });
+
+    // ---------- keyboard play (a11y) ----------
+    // Arrow keys move a cursor ring; Enter/Space grabs the tile under it, then
+    // arrows swap it with a neighbour. Escape (or Enter again) drops the tile.
+    let kyR = -1, kyC = -1;
+    let kyGrabbed = null;
+    function kyInBoard(r, c) { return r >= 0 && r < ROWS && c >= 0 && c < COLS; }
+    function kyRenderCursor() {
+      for (const el of cells) el.classList.remove("ky-cursor", "ky-grabbed");
+      const cur = getCell(kyR, kyC);
+      if (cur) cur.classList.add("ky-cursor");
+      if (kyGrabbed) {
+        const held = getCell(kyGrabbed[0], kyGrabbed[1]);
+        if (held) held.classList.add("ky-grabbed");
+      }
+    }
+    function kyGoto(r, c) {
+      if (!kyInBoard(r, c)) return;
+      kyR = r; kyC = c;
+      kyRenderCursor();
+    }
+    function kyReset() {
+      kyGrabbed = null;
+      kyR = Math.floor(ROWS / 2);
+      kyC = Math.floor(COLS / 2);
+      kyRenderCursor();
+    }
+    function kyTrySwap(dr, dc) {
+      if (!kyGrabbed) return false;
+      let tr = kyGrabbed[0] + dr, tc = kyGrabbed[1] + dc;
+      // Disorientation confuses the rival — even keyboard navigation gets flipped
+      if (combat.disorientedTurns > 0) { tr = kyGrabbed[0] - dr; tc = kyGrabbed[1] - dc; }
+      if (!kyInBoard(tr, tc)) return false;
+      const held = kyGrabbed;
+      kyGrabbed = null;
+      clearPotentialHighlights();
+      kyGoto(tr, tc);
+      trySwap(held[0], held[1], tr, tc);
+      return true;
+    }
+
+    gridEl.addEventListener("keydown", e => {
+      if (busy) return;
+      const k = e.key;
+      const isSwap = k === "ArrowUp" || k === "ArrowDown" || k === "ArrowLeft" || k === "ArrowRight";
+      if (isSwap || k === "Enter" || k === " " || k === "Escape") {
+        e.preventDefault();
+      } else {
+        return;
+      }
+      if (e.repeat && !isSwap) return;
+
+      if (isSwap) {
+        const dr = k === "ArrowUp" ? -1 : k === "ArrowDown" ? 1 : 0;
+        const dc = k === "ArrowLeft" ? -1 : k === "ArrowRight" ? 1 : 0;
+        if (kyGrabbed) { kyTrySwap(dr, dc); }
+        else { kyGoto(kyR + dr, kyC + dc); }
+        return;
+      }
+
+      if (k === "Escape") {
+        kyGrabbed = null;
+        clearPotentialHighlights();
+        kyRenderCursor();
+        return;
+      }
+
+      // Enter / Space
+      if (!combat.playerTurn || combat.ap <= 0) return;
+      if (combat.boundTiles && combat.boundTiles.has(kyR + "," + kyC)) return;
+      if (!kyGrabbed) {
+        kyGrabbed = [kyR, kyC];
+        ensureAudio();
+        playPickup();
+        showPotentialMatches(kyR, kyC);
+        kyRenderCursor();
+      } else {
+        kyGrabbed = null;
+        clearPotentialHighlights();
+        kyRenderCursor();
       }
     });
 

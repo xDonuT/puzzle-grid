@@ -935,6 +935,7 @@ const screenMenu = document.getElementById("screen-menu");
       sayVoice("victory", { force: true });
       playVictory();
       clearFloorModifierLook();
+      if (typeof srSay === "function") srSay(isFinal ? "Victory. The Bloom Tower is cleared!" : `Victory on floor ${run.floor}.`);
       gameOverOverlay.classList.add("open");
       recordRun(true);
       if (isFinal) showRecap(true); // after recordRun so final-battle stats are included
@@ -1812,6 +1813,7 @@ function checkGameOver() {
         accumulateBattleStats(); // the losing battle still counts toward the story
         showRecap(false);
         saveRun(); // resume same floor
+        if (typeof srSay === "function") srSay(`Defeat. Fell on floor ${run.floor}${run.gameMap ? `, ${ACT_NAMES[run.gameMap.currentAct || 1] || ""}` : ""}. ${fmtTime(run.elapsedMs)}.`);
         sayVoice("defeat", { force: true });
         playDefeat();
         clearFloorModifierLook();
@@ -1823,6 +1825,12 @@ function checkGameOver() {
     const SAVE_KEY = "puzzleGridRun_v1";
     const HISTORY_KEY = "puzzleGridHistory_v1";
     const MAX_HISTORY = 20;
+    const SLOT_COUNT = 3;
+    function slotKey(i) { return SAVE_KEY + "_s" + i; }
+    function currentSlot() {
+      const s = (typeof settings.activeSlot === "number") ? settings.activeSlot : 0;
+      return (s >= 0 && s < SLOT_COUNT) ? s : 0;
+    }
 
     // ---------- Run Recap Card ----------
     function buildRecapHtml(won) {
@@ -1896,6 +1904,70 @@ function checkGameOver() {
       } catch (_) { return []; }
     }
 
+    // Full run-level stats modal (accessible from the victory/defeat overlay)
+    function openRunStats() {
+      const ov = document.getElementById("runStatsOverlay");
+      const body = document.getElementById("runStatsBody");
+      if (!ov || !body) return;
+      const c = run.cumulative || {};
+      const s = combat.stats || {};
+      const hero = CHARACTERS[combat.playerClass] || {};
+      const inRun = run.floor >= 1 && run.floor <= MAX_FLOOR;
+      const finalWin = inRun && combat.enemyHp <= 0 && run.floor >= MAX_FLOOR;
+      const actName = run.gameMap ? (ACT_NAMES[run.gameMap.currentAct || 1] || "") : "";
+      const pill = (t) => `<span class="rs-pill">${t}</span>`;
+      const row = (k, v) => `<div><span>${k}</span><b>${v}</b></div>`;
+      const head = `<div class="rs-head">${hero.name || combat.playerClass || "Hero"}${(run.ngLoop || 0) > 0 ? " · 🌟 Loop " + run.ngLoop : ""}</div>
+        <div>${pill(finalWin ? "🌸 Tower cleared" : "Floor " + run.floor + (actName ? " · " + actName : ""))}${pill((settings.difficulty || "normal")[0].toUpperCase() + (settings.difficulty || "normal").slice(1))}${pill("⏱ " + fmtTime(run.elapsedMs || 0))}</div>`;
+      const battles = `<div class="rs-sec">Combat Totals</div>
+        <div class="rs-grid">
+          ${row("⚔️ Damage dealt", (c.dealt || 0).toLocaleString())}
+          ${row("💔 Damage taken", (c.taken || 0).toLocaleString())}
+          ${row("💚 Healed", (c.healed || 0).toLocaleString())}
+          ${row("🛡️ Shield raised", (c.shield || 0).toLocaleString())}
+          ${row("⚡ Ultimates", c.ults || 0)}
+        </div>`;
+      const lastBattle = `<div class="rs-sec">Last Battle</div>
+        <div class="rs-grid">
+          ${((s.sword||0)>0 ? row("⚔️ Sword", s.sword) : "")}
+          ${((s.star||0)>0 ? row("⭐ Star", s.star) : "")}
+          ${((s.runic||0)>0 ? row("🔮 Runic", s.runic) : "")}
+          ${((s.poison||0)>0 ? row("☠️ Poison", s.poison) : "")}
+          ${((s.fracture||0)>0 ? row("🦴 Cracked", s.fracture) : "")}
+          ${((s.ult||0)>0 ? row("💥 Ultimate", s.ult) : "")}
+          ${((s.reflect||0)>0 ? row("↩️ Reflect", s.reflect) : "")}
+          ${row("💔 Taken", s.taken || 0)}
+          ${row("💚 Healed", s.healed || 0)}
+          ${row("🛡️ Shield", s.shield || 0)}
+          ${row("🔁 Turns", combat.turn || 0)}
+        </div>`;
+      const milestones = `<div class="rs-sec">Milestones</div>
+        <div class="rs-grid">
+          ${row("🏆 Elites felled", run.elitesSlain || 0)}
+          ${row("👑 Bosses felled", run.bossesSlain || 0)}
+          ${row("🎲 Mysteries flipped", run.mysteriesFlipped || 0)}
+          ${row("🔗 Best chain", "×" + (run.maxCombo || 0))}
+          ${row("🎁 Rewards taken", (run.pickLog || []).length)}
+          ${row("🧭 Career best floor", settings.bestFloor || 1)}
+        </div>`;
+      const kitList = (run.pickLog || []).map(x => pill(x)).join("");
+      const kit = kitList ? `<div class="rs-sec">Kit Collected</div><div class="rs-kit">${kitList}</div>` : "";
+      const cur = settings.career && settings.career[combat.playerClass || "ninja"];
+      const hasRec = !!(cur && (cur.bestFloor || cur.clears));
+      const clearTime = cur && cur.bestTimeMs ? "Best clear " + fmtDuration(cur.bestTimeMs) : (cur && cur.clears ? "No best clear yet" : "No clear yet");
+      const career = hasRec ? `<div class="rs-sec">🏆 ${hero.name || "Hero"} Career Records</div>
+        <div class="rs-kit">
+          ${pill("Best floor " + (cur.bestFloor || 1))}
+          ${pill("Cleared " + (cur.clears || 0))}
+          ${pill(clearTime)}
+          ${pill("Most dmg " + (cur.mostDealt || 0).toLocaleString())}
+          ${pill("Peak ults " + (cur.mostUlts || 0))}
+          ${pill("Chain ×" + (cur.bestChain || 0))}
+        </div>` : "";
+      body.innerHTML = head + battles + (s.taken !== undefined ? lastBattle : "") + milestones + kit + career;
+      ov.classList.add("open");
+    }
+
     function saveHistory(entry) {
       try {
         const list = loadHistory();
@@ -1934,6 +2006,59 @@ function checkGameOver() {
         dealt: (s.sword || 0) + (s.star || 0) + (s.runic || 0) + (s.poison || 0) + (s.fracture || 0) + (s.ult || 0) + (s.reflect || 0),
         timeMs: run.elapsedMs || 0
       });
+      // 🏆 Fold this run into the account-wide career records for this hero
+      updateCareer({
+        won: !!won,
+        floor: run.floor,
+        timeMs: run.elapsedMs || 0,
+        dealt: (s.sword || 0) + (s.star || 0) + (s.runic || 0) + (s.poison || 0) + (s.fracture || 0) + (s.ult || 0) + (s.reflect || 0),
+        ultCasts: s.ultCasts || 0,
+        bestChain: run.maxCombo || 0
+      });
+    }
+
+    // 🏆 Account-wide career records, keyed by hero class
+    function updateCareer(entry) {
+      try {
+        if (!settings.career || typeof settings.career !== "object") settings.career = {};
+        const e = settings.career;
+        const cls = combat.playerClass || "ninja";
+        const cur = e[cls] || (e[cls] = { bestFloor: 0, clears: 0, bestTimeMs: null, mostDealt: 0, mostUlts: 0, bestChain: 0 });
+        cur.bestFloor = Math.max(cur.bestFloor || 0, entry.floor);
+        if (entry.won) {
+          cur.clears = (cur.clears || 0) + 1;
+          if (!cur.bestTimeMs || entry.timeMs > 0 && entry.timeMs < cur.bestTimeMs) cur.bestTimeMs = entry.timeMs;
+        }
+        cur.mostDealt = Math.max(cur.mostDealt || 0, entry.dealt);
+        cur.mostUlts = Math.max(cur.mostUlts || 0, entry.ultCasts);
+        cur.bestChain = Math.max(cur.bestChain || 0, entry.bestChain);
+        persistSettings();
+        renderCareer();
+      } catch (_) {}
+    }
+
+    function fmtDuration(ms) {
+      if (!ms) return "—";
+      const s = Math.max(1, Math.round(ms / 1000));
+      const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+      return (h > 0 ? h + "h " : "") + (m > 0 ? m + "m " : "") + sec + "s";
+    }
+
+    function renderCareer() {
+      const el = document.getElementById("careerLine");
+      if (!el) return;
+      const cls = combat.playerClass || "ninja";
+      const cur = settings.career && settings.career[cls];
+      const heroName = (CHARACTERS[cls] || {}).name || "this hero";
+      if (!cur || (!cur.bestFloor && !cur.clears)) {
+        el.innerHTML = "";
+        return;
+      }
+      const bits = [];
+      if (cur.bestFloor) bits.push("best floor " + cur.bestFloor);
+      if (cur.clears) bits.push(cur.clears === 1 ? "1 clear" : cur.clears + " clears");
+      if (cur.bestTimeMs) bits.push("fastest clear " + fmtDuration(cur.bestTimeMs));
+      el.innerHTML = `🏆 <span class="cc-label">${heroName}</span> · ${bits.join(" · ")}`;
     }
 
     function saveRun() {
@@ -1960,6 +2085,7 @@ function checkGameOver() {
           pendingModifierRare: run.pendingModifierRare,
           pendingModifierEasy: run.pendingModifierEasy ? run.pendingModifierEasy.id : null,
           playerClass: combat.playerClass,
+          shield: combat.shield,
           difficulty: settings.difficulty,
           elapsedMs: run.elapsedMs || 0,
           floorElapsedMs: run.floorElapsedMs || 0,
@@ -1978,13 +2104,22 @@ function checkGameOver() {
           shapeSkills: run.shapeSkills || { star: null, cross: null, charged: null },
           act1Unlocks: run.act1Unlocks || []
         };
-        localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+        localStorage.setItem(slotKey(currentSlot()), JSON.stringify(data));
       } catch (_) {}
     }
 
     function loadRun() {
       try {
-        const raw = localStorage.getItem(SAVE_KEY);
+        const k = slotKey(currentSlot());
+        let raw = localStorage.getItem(k);
+        // Migration: the pre-slots single save becomes slot 0.
+        if (!raw && currentSlot() === 0) {
+          const legacy = localStorage.getItem(SAVE_KEY);
+          if (legacy) {
+            raw = legacy;
+            try { localStorage.setItem(k, legacy); localStorage.removeItem(SAVE_KEY); } catch (_) {}
+          }
+        }
         if (!raw) return null;
         return JSON.parse(raw);
       } catch (_) {
@@ -1993,26 +2128,165 @@ function checkGameOver() {
     }
 
     function clearSave() {
-      try { localStorage.removeItem(SAVE_KEY); } catch (_) {}
+      try { localStorage.removeItem(slotKey(currentSlot())); } catch (_) {}
+    }
+
+    function slotHasRun(i) {
+      try {
+        const raw = localStorage.getItem(slotKey(i));
+        if (!raw) return false;
+        const d = JSON.parse(raw);
+        return !!(d && d.floor >= 1 && d.floor <= MAX_FLOOR);
+      } catch (_) { return false; }
     }
 
     function hasSave() {
-      const d = loadRun();
-      return !!(d && d.floor >= 1 && d.floor <= MAX_FLOOR);
+      return slotHasRun(currentSlot());
+    }
+
+    function slotMeta(i) {
+      try {
+        let raw = localStorage.getItem(slotKey(i));
+        // Migration display: a pre-slots single save still shows as slot 0.
+        if (!raw && i === 0) raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return null;
+        const d = JSON.parse(raw);
+        if (!(d && d.floor >= 1 && d.floor <= MAX_FLOOR)) return null;
+        const hero = CHARACTERS[d.playerClass] || {};
+        return {
+          hero: d.playerClass || "ninja",
+          heroName: hero.name || d.playerClass || "—",
+          floor: d.floor,
+          act: d.currentAct || Math.min(3, Math.ceil(d.floor / 15)),
+          timeMs: d.elapsedMs || 0,
+          loop: d.ngLoop || 0,
+          diff: d.difficulty || settings.difficulty
+        };
+      } catch (_) { return null; }
+    }
+
+    function setActiveSlot(i) {
+      if (i < 0 || i >= SLOT_COUNT) i = 0;
+      settings.activeSlot = i;
+      persistSettings();
+      refreshContinueBtn();
+    }
+
+    function deleteSlotSave(i) {
+      try {
+        localStorage.removeItem(slotKey(i));
+        buildSlotBar();
+        refreshContinueBtn();
+      } catch (_) {}
     }
 
     function refreshContinueBtn() {
       const btn = document.getElementById("btnContinue");
       const span = document.getElementById("continueFloor");
-      if (!btn) return;
-      if (hasSave()) {
-        const d = loadRun();
-        btn.style.display = "";
-        if (span) span.textContent = String(d.floor);
+      const m = slotMeta(currentSlot());
+      if (m) {
+        if (btn) btn.style.display = "";
+        if (span) span.textContent = String(m.floor);
       } else {
-        btn.style.display = "none";
+        if (btn) btn.style.display = "none";
       }
+      buildSlotBar();
     }    let nextRunNg = 0; // 🌟 set by the Golden Cosmos card before resetRun()
+
+    function buildSlotBar() {
+      const wrap = document.getElementById("saveSlots");
+      if (!wrap) return;
+      wrap.innerHTML = "";
+      const active = currentSlot();
+      for (let i = 0; i < SLOT_COUNT; i++) {
+        const m = slotMeta(i);
+        const card = document.createElement("div");
+        card.className = "save-slot" + (i === active ? " active" : "");
+        if (m) {
+          const portrait = `<div class="portrait ${(CHARACTERS[m.hero] || {}).role || ""}" style="width:34px;height:34px">${characterSvg(m.hero, "classic", "classic")}</div>`;
+          card.innerHTML = `
+            <div class="slot-head">${portrait}<div class="slot-name">${m.heroName}${m.loop > 0 ? ' · 🌟' : ''}</div><div class="slot-del" data-slot="${i}" role="button" tabindex="0" aria-label="Delete save slot ${i + 1}">🗑</div></div>
+            <div class="slot-line">Floor ${m.floor} · ${ACT_NAMES[m.act] || "Act " + m.act}</div>
+            <div class="slot-line">⏱ ${fmtTime(m.timeMs)}${m.diff !== "normal" ? ` · ${m.diff}` : ""}</div>
+            <div class="slot-btns">
+              <button type="button" class="action-btn primary" style="flex:1;padding:7px 8px;font-size:0.7rem" data-continue="${i}">Continue</button>
+            </div>`;
+        } else {
+          card.innerHTML = `
+            <div class="slot-head"><div class="slot-name">Save ${i + 1}</div></div>
+            <div class="slot-line muted">Empty slot</div>
+            <div class="slot-btns">
+              <button type="button" class="action-btn" style="flex:1;padding:7px 8px;font-size:0.7rem" data-new="${i}">New Run here</button>
+            </div>`;
+        }
+        wrap.appendChild(card);
+        card.addEventListener("click", () => {
+          if (i === active) return;
+          setActiveSlot(i);
+          buildSlotBar();
+        });
+      }
+      wrap.querySelectorAll("[data-continue]").forEach(b => {
+        b.addEventListener("click", e => {
+          e.stopPropagation();
+          setActiveSlot(+b.dataset.continue);
+          continueActiveSlot();
+        });
+      });
+      wrap.querySelectorAll("[data-new]").forEach(b => {
+        b.addEventListener("click", e => {
+          e.stopPropagation();
+          setActiveSlot(+b.dataset.new);
+          openDiffPicker();
+        });
+      });
+      wrap.querySelectorAll(".slot-del").forEach(b => {
+        const remove = () => deleteSlotSave(+b.dataset.slot);
+        let armed = false;
+        let timer = null;
+        const arm = () => {
+          armed = true;
+          b.textContent = "Sure?";
+          b.classList.add("armed");
+          timer = setTimeout(() => {
+            b.textContent = "🗑";
+            b.classList.remove("armed");
+            armed = false;
+          }, 2400);
+        };
+        b.addEventListener("click", e => {
+          e.stopPropagation();
+          if (armed) { clearTimeout(timer); remove(); return; }
+          arm();
+        });
+        b.addEventListener("keydown", e => {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); b.click(); }
+        });
+      });
+    }
+
+    function continueActiveSlot() {
+      const d = loadRun();
+      if (!d) return;
+      applyLoadedRun(d);
+      saveRun(); // persists regenerated map if migration occurred
+      if (run.gameMap) {
+        showScreen("game");
+        const map = run.gameMap;
+        const cur = map.currentNode ? getNodeById(map.acts[map.currentAct - 1], map.currentNode) : null;
+        const unfinished = cur && !map.visitedNodes[cur.id];
+        if (unfinished) {
+          // Quit out mid-battle on this node → resume it instead of parking on
+          // the map, so the floor isn't skipped in the path.
+          resumeCurrentNode();
+        } else {
+          showMap();
+        }
+      } else {
+        startBattle({ retry: true }); // stay on saved floor
+      }
+      refreshContinueBtn();
+    }
 
     function resetRun() {
       run.floor = 1;
@@ -2076,6 +2350,7 @@ function checkGameOver() {
       run.maxCombo = 0;
       timerRunning = false;
       AP_MAX = 3;
+      combat.shield = null; // next run's first battle restores the hero's starting shield
       clearSave();
     }
 
@@ -2151,6 +2426,8 @@ function checkGameOver() {
       run.pendingModifierEasy = d.pendingModifierEasy ? FLOOR_MODIFIERS.find(m => m.id === d.pendingModifierEasy) || null : null;
       if (d.playerClass && HERO_STATS[d.playerClass]) combat.playerClass = d.playerClass;
       if (d.difficulty) settings.difficulty = d.difficulty;
+      // Shield is persisted with the save; old saves without it get a fresh starting shield.
+      combat.shield = (typeof d.shield === "number") ? Math.max(0, d.shield) : null;
       run.gameMap = d.gameMap || null;
       run.currentAct = d.currentAct || 1;
       run.classUpgradeOfferedActs = d.classUpgradeOfferedActs || [];
@@ -2186,7 +2463,8 @@ function checkGameOver() {
 
       const hero = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
       const maxHp = hero.hp + run.bonusMaxHp;
-      const maxSh = hero.maxShieldCap + run.bonusShieldMax;
+      const wardBonus = (typeof skillEnabled === "function" && skillEnabled("fortifiedWard")) ? 4 : 0;
+      const maxSh = hero.maxShieldCap + run.bonusShieldMax + wardBonus;
       AP_MAX = 3 + run.bonusApMax;
 
       gameOver = false;
@@ -2203,9 +2481,18 @@ function checkGameOver() {
       const prevHp = combat.playerHp || maxHp;
       const missing = Math.max(0, maxHp - prevHp);
       let betweenHeal = Math.floor(missing * 0.45);
+      // 💚 Rejuvenation global skill: gentler climb between floors
+      if (typeof skillEnabled === "function" && skillEnabled("rejuvenation")) betweenHeal = Math.floor(missing * 0.55);
       if ((run.healBlockFloors || 0) > 0) betweenHeal = Math.floor(betweenHeal * 0.5); // 🥀 Wilted halves it
       combat.playerHp = Math.min(maxHp, prevHp + betweenHeal);
-      combat.shield = Math.min(maxSh, hero.startShield + (run.floorShieldBonus || 0) + ((run.pending && run.pending.shield) || 0) + (run.fortifiedStart ? 4 + Math.floor(Math.random() * 3) : 0) + (run.unbreakable ? 10 : 0));
+      // Shield carries over from the previous battle (it no longer refills each floor).
+      // A brand-new run (resetRun marks shield as null) starts with the hero's starting shield.
+      const shieldBase = (combat.shield === null || combat.shield === undefined) ? hero.startShield : Math.max(0, combat.shield || 0);
+      // 🧙 Wizard class identity: rebuilds a chunk of his shield every floor (capped)
+      const wizardRecover = (combat.playerClass === "wizard") ? Math.min(6, Math.max(0, maxSh - shieldBase)) : 0;
+      const shieldBonus = wizardRecover + (run.floorShieldBonus || 0) + ((run.pending && run.pending.shield) || 0) + (run.fortifiedStart ? 4 + Math.floor(Math.random() * 3) : 0) + (run.unbreakable ? 10 : 0) + wardBonus;
+      combat.shield = Math.min(maxSh, shieldBase + shieldBonus);
+      if (run.pending) run.pending.shield = 0; // one-shot "start next battle" bonus is consumed here
       combat.enemyShield = 0;
       combat.sigBank = (run.floorChargeBonus || 0);
       combat.ap = AP_MAX + ((run.pending && run.pending.bonusAp) || 0);
@@ -2447,6 +2734,22 @@ function checkGameOver() {
       buildCharPick();
       refreshContinueBtn();
     });
+    const btnRunStatsEl = document.getElementById("btnRunStats");
+    if (btnRunStatsEl) {
+      btnRunStatsEl.addEventListener("click", openRunStats);
+    }
+    const btnRunStatsClose = document.getElementById("btnRunStatsClose");
+    if (btnRunStatsClose) {
+      btnRunStatsClose.addEventListener("click", () => {
+        document.getElementById("runStatsOverlay").classList.remove("open");
+      });
+    }
+    const runStatsOverlayEl = document.getElementById("runStatsOverlay");
+    if (runStatsOverlayEl) {
+      runStatsOverlayEl.addEventListener("click", e => {
+        if (e.target === runStatsOverlayEl) runStatsOverlayEl.classList.remove("open");
+      });
+    }
     document.getElementById("btnGoRetry").addEventListener("click", () => {
       if (combat.enemyHp <= 0 && run.floor < MAX_FLOOR) {
         gameOverOverlay.classList.remove("open");
@@ -2584,6 +2887,8 @@ function checkGameOver() {
       });
       buildCosmeticBar();
       renderRunHistory();
+      renderCareer();
+      refreshContinueBtn();
     }
 
     // Costume / weapon picker for the currently selected hero.
@@ -2945,6 +3250,20 @@ function checkGameOver() {
         el.classList.toggle("on", settings[pair[1]]);
       });
     });
+    const speedToggleEl = document.getElementById("speedToggle");
+    if (speedToggleEl) {
+      // Show current state on open
+      function syncSpeedToggle() {
+        const isFast = (settings.animSpeed || 1) > 1;
+        speedToggleEl.classList.toggle("on", isFast);
+      }
+      syncSpeedToggle();
+      speedToggleEl.addEventListener("click", () => {
+        settings.animSpeed = (settings.animSpeed || 1) > 1 ? 1 : 1.6;
+        persistSettings();
+        syncSpeedToggle();
+      });
+    }
     [["skinSeg", "skin", applySkin], ["pipSeg", "pipStyle", applyPips], ["stampSeg", "stampTheme", applyStamp]].forEach(pair => {
       const wrap = document.getElementById(pair[0]);
       if (!wrap) return;
@@ -3130,26 +3449,7 @@ function checkGameOver() {
     });
 
     document.getElementById("btnContinue").addEventListener("click", () => {
-      const d = loadRun();
-      if (!d) return;
-      applyLoadedRun(d);
-      saveRun(); // persists regenerated map if migration occurred
-      if (run.gameMap) {
-        showScreen("game");
-        const map = run.gameMap;
-        const cur = map.currentNode ? getNodeById(map.acts[map.currentAct - 1], map.currentNode) : null;
-        const unfinished = cur && !map.visitedNodes[cur.id];
-        if (unfinished) {
-          // Quit out mid-battle on this node → resume it instead of parking on
-          // the map, so the floor isn't skipped in the path.
-          resumeCurrentNode();
-        } else {
-          showMap();
-        }
-      } else {
-        startBattle({ retry: true }); // stay on saved floor
-      }
-      refreshContinueBtn();
+      continueActiveSlot();
     });
 
     document.getElementById("btnExit").addEventListener("click", () => {
@@ -3479,7 +3779,7 @@ function checkGameOver() {
         const markMult = combat.markStacks > 0 ? ` (+${Math.round(combat.markStacks * 15)}%)` : "";
         const critCh = combat.critChance || 0;
         const poisonInfo = combat.poisonTurns > 0 ? `${combat.poisonTurns}t` : combat.poisonStacks > 0 ? `${combat.poisonStacks} stacks` : "none";
-        const maxSh = s.maxShieldCap + run.bonusShieldMax;
+        const maxSh = s.maxShieldCap + run.bonusShieldMax + ((typeof skillEnabled === "function" && skillEnabled("fortifiedWard")) ? 4 : 0);
         return `
           <div class="pp-photo"><div class="portrait ${combat.playerClass}" id="ppPhotoSlot"></div></div>
           <div class="pp-id-name">${s.name}</div>

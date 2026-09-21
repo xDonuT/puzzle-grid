@@ -12,6 +12,21 @@
     const actionLogClose = document.getElementById("actionLogClose");
     const actionLogScroll = document.getElementById("actionLogScroll");
 
+    // Screen-reader live region: announce the latest battle outcome in plain text.
+    // Repeated identical lines gain a trailing space so every line gets re-announced.
+    const srLive = document.getElementById("srAnnounce");
+    let _srLast = "";
+    function srSay(text) {
+      if (!srLive) return;
+      const t = String(text != null ? text : "");
+      if (srLive.textContent !== null && srLive.textContent !== undefined) {
+        srLive.textContent = t === _srLast ? t + " " : t;
+      } else {
+        srLive.textContent = t;
+      }
+      _srLast = t;
+    }
+
     function pushLog(msg, detail) {
       const full = String(detail != null ? detail : msg);
       const entry = `[T${combat.turn}] ${full}`;
@@ -25,6 +40,7 @@
       });
       if (combat.logHistory.length > 250) combat.logHistory = combat.logHistory.slice(-250);
       if (logBarText) logBarText.textContent = msg || full;
+      srSay(full);
     }
 
     // Cap concurrent FX elements so big cascades stay cheap on mobile.
@@ -1844,7 +1860,9 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           combat.sigTilesThisTurn += sigTiles;
           // Faster Ult / Battle Cry: each signature match grants bonus charge(s)
           combat._sigMatchesThisTurn = (combat._sigMatchesThisTurn || 0) + 1;
-          const totalCharges = Math.floor(combat.sigTilesThisTurn / 3) + combat._sigMatchesThisTurn * (run.ultChargeBonus || 0);
+          // ⚡ Faster Ult global skill: +1 charge per signature match
+          const fasterUltCharges = (typeof skillEnabled === "function" && skillEnabled("fasterUlt")) ? combat._sigMatchesThisTurn : 0;
+          const totalCharges = Math.floor(combat.sigTilesThisTurn / 3) + combat._sigMatchesThisTurn * (run.ultChargeBonus || 0) + fasterUltCharges;
           const chargesToAdd = totalCharges - (combat._lastSigChargeTotal || 0);
           combat._lastSigChargeTotal = totalCharges;
           if (chargesToAdd > 0) {

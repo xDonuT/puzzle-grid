@@ -76,10 +76,21 @@ scrollEl.querySelectorAll = (s) => {
 };
 scrollEl.querySelector = () => stubEl();
 const docById = new Map();
+// Recorded elements let tests observe aria-live announces and rendered chips.
+function recordedEl() {
+  const el = stubEl();
+  Object.defineProperty(el, "innerHTML", { set(v) { el.__html = String(v); }, get() { return el.__html || ""; } });
+  Object.defineProperty(el, "textContent", { set(v) { el.__text = String(v); }, get() { return el.__text || ""; } });
+  return el;
+}
 const docProxy = new Proxy({}, {
   get(_, p) {
     if (p === "getElementById") return (id) => {
       if (id === "actionLogScroll") return scrollEl;
+      if (id === "srAnnounce" || id === "careerLine") {
+        if (!docById.has(id)) docById.set(id, recordedEl());
+        return docById.get(id);
+      }
       if (!docById.has(id)) docById.set(id, makeStubEl());
       return docById.get(id);
     };

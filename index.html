@@ -346,6 +346,20 @@
       filter: brightness(1.06);
     }
 
+    /* Keyboard cursor ring (a11y) */
+    .tile.ky-cursor {
+      z-index: 22;
+      border: 2.5px solid rgba(255, 255, 255, 0.92);
+      box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.3), 0 0 12px rgba(255, 255, 255, 0.7);
+    }
+    /* Keyboard held tile (Enter, then arrow to swap) */
+    .tile.ky-grabbed {
+      z-index: 21;
+      transform: scale(1.12);
+      border: 2.5px solid rgba(255, 214, 102, 0.95);
+      box-shadow: 0 0 14px rgba(255, 214, 102, 0.85), inset 0 0 6px rgba(255, 255, 255, 0.25);
+    }
+
     /* Tile that would match if swapped with the held tile */
     .tile.potential-match {
       z-index: 9;
@@ -1871,6 +1885,37 @@
     }
     .menu-actions .action-btn { width: 100%; padding: 12px; }
 
+    .save-slots {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      max-width: 420px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .save-slot {
+      flex: 1 1 128px;
+      min-width: 124px;
+      max-width: 176px;
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1.5px solid rgba(60, 50, 40, 0.14);
+      cursor: pointer;
+      transition: transform 0.12s, border-color 0.12s;
+    }
+    .save-slot:hover { transform: translateY(-2px); }
+    .save-slot.active { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
+    .save-slot .slot-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .save-slot .slot-name { font-weight: 800; font-size: 0.82rem; flex: 1; }
+    .save-slot .slot-del { font-size: 0.8rem; opacity: 0.55; padding: 2px 4px; border-radius: 6px; }
+    .save-slot .slot-del:hover { opacity: 1; }
+    .save-slot .slot-del.armed { opacity: 1; color: #c23b2f; font-weight: 800; }
+    .save-slot .slot-line { font-size: 0.72rem; color: #5a4a3c; margin-bottom: 2px; line-height: 1.35; }
+    .save-slot .slot-line.muted { opacity: 0.6; }
+    .save-slot .slot-btns { margin-top: 8px; }
+
     .run-history {
       width: 100%;
       max-width: 260px;
@@ -1896,6 +1941,16 @@
     }
     .last-run-card.win .last-run-label { color: #2e8b57; }
     .last-run-card.loss .last-run-label { color: #c23b2f; }
+    .career-line {
+      margin-top: 10px;
+      font-size: 0.72rem;
+      color: #8a7a63;
+      line-height: 1.4;
+    }
+    .career-line .cc-label {
+      color: #5a4020;
+      font-weight: 600;
+    }
     .last-run-info {
       font-size: 0.78rem;
       color: #4a4035;
@@ -3346,6 +3401,20 @@ body.ult-hitstop .board-wrap {
       .action-btn { padding: 9px 12px; font-size: 0.74rem; }
     }
 
+    /* Visually hidden but still exposed to screen readers (aria-live target) */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
+    }
+
     /* Keep the two-line tip readable on small screens without shifting the board */
     @media (max-width: 480px) {
       .ult-tip {
@@ -3835,6 +3904,64 @@ body.ult-hitstop .board-wrap {
     @keyframes goldBreath { from { opacity: 0.82; } to { opacity: 1; } }
     body.golden .tile { --skin: rgba(240, 190, 80, 0.19); }
     body.golden .recap-title { color: #b8912e; }
+
+    .run-stats-body {
+      max-height: 56vh;
+      overflow-y: auto;
+      text-align: left;
+      padding: 2px 2px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .run-stats-body .rs-head {
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: #4a4035;
+    }
+    .run-stats-body .rs-pill {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(60, 50, 40, 0.15);
+      border-radius: 20px;
+      padding: 2px 9px;
+      margin: 2px 3px 0 0;
+      color: #5a4a3c;
+    }
+    .run-stats-body .rs-sec {
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .run-stats-body .rs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px 12px;
+      font-size: 0.8rem;
+    }
+    .run-stats-body .rs-grid div {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      border-bottom: 1px dashed rgba(60, 50, 40, 0.12);
+      padding-bottom: 3px;
+    }
+    .run-stats-body .rs-grid b { font-variant-numeric: tabular-nums; }
+    .run-stats-body .rs-kit {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    body.skin-midnight .run-stats-body .rs-head { color: #e8e2d8; }
+    body.skin-midnight .run-stats-body .rs-pill { background: rgba(255, 255, 255, 0.07); color: #cfc7b8; border-color: rgba(255, 255, 255, 0.12); }
+    body.skin-midnight .run-stats-body .rs-grid div { border-bottom-color: rgba(255, 255, 255, 0.12); }
 
     /* ===== Tile skins — subtle act-tinted faces ===== */
     .tile::before {
@@ -4907,6 +5034,7 @@ body.ult-hitstop .board-wrap {
     <div class="menu-sub">Be brave for the tower — climb the grid and help it bloom</div>
     <div class="char-pick" id="charPick"></div>
     <div class="cosmetic-bar" id="cosmeticBar"></div>
+    <div class="save-slots" id="saveSlots" role="group" aria-label="Save slots"></div>
     <div class="menu-actions">
       <button type="button" class="action-btn primary" id="btnStart">New Run</button>
       <button type="button" class="action-btn" id="btnContinue" style="display:none">Continue Floor <span id="continueFloor">1</span></button>
@@ -4915,6 +5043,7 @@ body.ult-hitstop .board-wrap {
       <button type="button" class="action-btn" id="btnCodex">📖 Codex</button>
     </div>
     <div class="run-history" id="runHistory"></div>
+    <div class="career-line" id="careerLine" aria-live="polite"></div>
   </div>
 
   <!-- GAME -->
@@ -5042,7 +5171,7 @@ body.ult-hitstop .board-wrap {
       <svg class="board-vine bv2" viewBox="0 0 36 220" aria-hidden="true"><use href="#hangVine"/></svg>
       <svg class="board-vine bv3" viewBox="0 0 36 170" aria-hidden="true"><use href="#hangRoot"/></svg>
       <div class="combo-display" id="comboText"></div>
-      <div class="grid" id="grid" aria-label="5 by 5 puzzle grid"></div>
+      <div class="grid" id="grid" role="grid" tabindex="0" aria-label="7 by 6 puzzle grid, arrow keys to move, Enter to grab a tile"></div>
       <div id="tileTooltip" class="tile-tooltip" style="display:none"></div>
     </div>
 
@@ -5055,6 +5184,9 @@ body.ult-hitstop .board-wrap {
       <span class="log-pill-divider" aria-hidden="true"></span>
       <button type="button" class="icon-btn" id="btnGameSettings" title="Settings" aria-label="Settings">⚙</button>
     </div>
+
+    <!-- Live screen-reader region: announces the latest battle outcome -->
+    <div class="sr-only" id="srAnnounce" aria-live="polite"></div>
 
     <!-- Action history modal -->
     <div class="action-log-modal" id="actionLogModal">
@@ -5156,6 +5288,12 @@ body.ult-hitstop .board-wrap {
           <button type="button" class="toggle on" id="fxShakeToggle" aria-label="Screen shake"></button>
         </div>
         <div style="font-size:0.65rem;color:#a89a8c;margin-top:2px">Combat flourishes while pure damage keeps hitting: turn off what bothers you.</div>
+
+        <div class="row">
+          <label>Fast animations</label>
+          <button type="button" class="toggle" id="speedToggle" aria-label="Fast animations"></button>
+        </div>
+        <div style="font-size:0.65rem;color:#a89a8c;margin-top:2px">Run battles at ~1.6× speed for snappier cascades and FX.</div>
 
         <h3>Skin</h3>
         <div class="row">
@@ -5458,12 +5596,22 @@ body.ult-hitstop .board-wrap {
       <div id="victoryStats" class="victory-stats"></div>
       <div id="recapCard" class="recap-card" hidden></div>
       <button type="button" class="action-btn" id="btnCopyRecap" hidden style="width:100%;margin-bottom:10px">📋 Copy Recap</button>
+      <button type="button" class="action-btn" id="btnRunStats" style="width:100%;margin-bottom:10px">📊 Full Run Stats</button>
       <div class="panel-actions">
         <button type="button" class="action-btn" id="btnGoMenu">Menu</button>
         <button type="button" class="action-btn primary" id="btnGoRetry">Next Floor</button>
       </div>
    </div>
    </div>
+
+  <!-- FULL RUN STATS -->
+  <div class="overlay" id="runStatsOverlay">
+    <div class="panel" style="margin:auto;max-width:420px">
+      <h2>📊 Run Stats</h2>
+      <div id="runStatsBody" class="run-stats-body"></div>
+      <button type="button" class="action-btn primary" id="btnRunStatsClose" style="width:100%;margin-top:12px">Close</button>
+    </div>
+  </div>
 
   <!-- DIFFICULTY PICKER -->
   <div class="overlay" id="diffPickerOverlay">

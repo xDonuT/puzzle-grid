@@ -440,5 +440,115 @@ combat.floorModifier = null;
 applyFloorModifierLook();
 assert(!document.body.classList.contains("mod-active"), "no modifier → no mod-active");
 
+// ---------- Global skills: unlock milestones + effects ----------
+assertEq(Object.keys(GLOBAL_SKILLS).length, 4, "GLOBAL_SKILLS defines shuffleSurge + 3 new account skills");
+settings.skills = { shuffleSurge: true, fortifiedWard: true, fasterUlt: true, rejuvenation: true };
+const prevBestFloor = settings.bestFloor;
+settings.bestFloor = 9;
+assertEq(skillUnlocked("fortifiedWard"), false, "fortifiedWard locked below floor 15");
+settings.bestFloor = 15;
+assertEq(skillUnlocked("fortifiedWard"), true, "fortifiedWard unlocks at floor 15");
+assertEq(skillUnlocked("rejuvenation"), false, "rejuvenation still locked at floor 15");
+
+// Fortified Ward shield at battle start (also raises the cap so it can't clamp)
+resetRun();
+combat.playerClass = "knight";
+run.floor = 10;
+settings.skills.fortifiedWard = false;
+startBattle({});
+const baseShield = combat.shield;
+settings.skills.fortifiedWard = true;
+resetRun();
+combat.playerClass = "knight";
+run.floor = 10;
+startBattle({});
+assertEq(combat.shield, baseShield + 4, "fortifiedWard adds +4 starting shield above the cap");
+
+// Faster Ult unlock gating
+settings.bestFloor = 20;
+assertEq(skillUnlocked("fasterUlt"), true, "fasterUlt unlocks at floor 20");
+settings.bestFloor = prevBestFloor;
+
+// ---------- Screen-reader live region ----------
+const srEl = document.getElementById("srAnnounce");
+pushLog("You matched 3 swords for 9 damage");
+assertEq(srEl.textContent, "You matched 3 swords for 9 damage", "pushLog announces the battle line to the aria-live region");
+pushLog("You matched 3 swords for 9 damage");
+assertEq(srEl.textContent, "You matched 3 swords for 9 damage ", "repeated line gets a trailing space so it re-announces");
+srSay("Custom announce");
+assertEq(srEl.textContent, "Custom announce", "srSay sets live region directly");
+
+// ---------- Career records ----------
+settings.career = {}; // previous simulated full runs pollute this — start fresh
+resetRun();
+combat.playerClass = "wizard";
+run.floor = 5;
+combat.stats = { sword: 10, star: 2, ult: 3, taken: 4, healed: 1, shield: 2, ultCasts: 1 };
+run.elapsedMs = 70000;
+run.maxCombo = 4;
+run.gameMap = null;
+recordRun(true);
+const careerWiz = settings.career && settings.career.wizard;
+assertEq(!!careerWiz, true, "recordRun(true) folds stats into career.wizard");
+assertEq(careerWiz.bestFloor, 5, "career records best floor reached");
+assertEq(careerWiz.clears, 1, "career counts a clear");
+assertEq(careerWiz.mostDealt, 15, "career records most damage dealt in a battle");
+assertEq(careerWiz.bestTimeMs, 70000, "career records best clear time");
+assertEq(careerWiz.bestChain, 4, "career records longest chain");
+run.floor = 3;
+recordRun(false);
+assertEq(settings.career.wizard.clears, 1, "a defeat does not add a clear");
+assertEq(settings.career.wizard.bestFloor, 5, "best floor stays the max reached");
+const cardEl = document.getElementById("careerLine");
+assert(cardEl.innerHTML.includes("best floor 5"), "renderCareer shows the best-floor stat");
+assert(cardEl.innerHTML.includes("1 clear"), "renderCareer shows the clear count");
+assert(cardEl.innerHTML.includes("fastest clear 1m 10s"), "renderCareer shows fastest clear time");
+renderCareer();
+combat.playerClass = "ninja";
+renderCareer();
+assertEq(cardEl.innerHTML, "", "renderCareer hides the line entirely when a hero has no records");
+
+// ---------- Shield carries over between floors ----------
+settings.skills.fortifiedWard = false;
+resetRun();
+combat.playerClass = "knight";
+run.floor = 1;
+startBattle({});
+assertEq(combat.shield, 15, "a fresh run starts with the hero's starting shield");
+combat.shield = 3;
+run.floor = 2;
+startBattle({});
+assertEq(combat.shield, 3, "shield carries over — floor 2 does NOT refill to 15");
+combat.shield = 0;
+run.floor = 3;
+startBattle({});
+assertEq(combat.shield, 0, "a spent shield stays spent next floor (no free refill)");
+resetRun();
+combat.playerClass = "knight";
+run.floor = 1;
+startBattle({});
+assertEq(combat.shield, 15, "a fresh run restores starting shield even after a carried-over 0");
+// Per-battle start bonuses still stack on the carried shield instead of refilling
+settings.skills.fortifiedWard = true;
+settings.bestFloor = 30; // ward is floor-15-gated — ensure it's unlocked for this block
+resetRun();
+combat.playerClass = "knight";
+run.floor = 1;
+startBattle({});
+assertEq(combat.shield, 19, "fortifiedWard starts a fresh battle at startShield + 4");
+combat.shield = 2;
+run.floor = 2;
+startBattle({});
+assertEq(combat.shield, 6, "fortifiedWard stacks on the carried shield (2 + 4), not a refill");
+settings.bestFloor = prevBestFloor;
+// Shield is persisted in the run save and restored on continue
+combat.shield = 7;
+saveRun();
+const sdSave = loadRun();
+assertEq(sdSave.shield, 7, "saveRun persists the current shield");
+combat.shield = null;
+applyLoadedRun(sdSave);
+assertEq(combat.shield, 7, "applyLoadedRun restores the saved shield");
+
 if (failures) { console.error(`\n${failures} FAILURE(S)`); Deno.exit(1); }
 console.log("\nALL CHECKS PASSED");

@@ -1,7 +1,10 @@
-const CACHE_NAME = 'bloom-tower-v2';
+const CACHE_NAME = 'bloom-tower-v3';
 const ASSETS = [
   './index.html',
   './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/maskable-512.png',
   './fonts/fredoka.woff2',
   './fonts/nunito.woff2',
   './js/settings.js',

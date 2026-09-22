@@ -1860,6 +1860,13 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
           bitsExtra.push(`Bulwark Cracked ${combat.fractureStacks}`);
         }
         if (hasSigMatch) {
+          // Mana Surge (Wizard, mana 2): matching your signature tile at full
+          // charge refunds 1 AP
+          if (!forEnemy && run.manaSurge && combat.sigBank >= settings.ultMaxCharge) {
+            combat.ap = Math.min(AP_MAX, combat.ap + 1);
+            refreshCombatUI();
+            bitsExtra.push("Mana Surge +1 AP");
+          }
           // Track total signature tiles cleared this turn (3 tiles = 1 charge, cascades count)
           const sigTiles = sigSwordCount + sigShieldCount + sigHpCount;
           combat.sigTilesThisTurn += sigTiles;

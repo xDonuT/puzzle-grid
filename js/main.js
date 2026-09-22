@@ -2865,7 +2865,7 @@ function checkGameOver() {
     });
     const btnRunStatsEl = document.getElementById("btnRunStats");
     if (btnRunStatsEl) {
-      btnRunStatsEl.addEventListener("click", openRunStats);
+      btnRunStatsEl.addEventListener("click", () => openRunStats());
     }
     const btnRunStatsClose = document.getElementById("btnRunStatsClose");
     if (btnRunStatsClose) {
@@ -4059,6 +4059,16 @@ function checkGameOver() {
       else if (btn.classList.contains("primary") || btn.classList.contains("end-btn")) playUiClick("primary");
       else playUiClick("tap");
     }, true);
+
+    // Visible press pulse for action buttons that need unmistakable feedback
+    function pressFx(btn) {
+      if (!btn) return;
+      btn.classList.remove("press-pulse");
+      void btn.offsetWidth; // restart animation
+      btn.classList.add("press-pulse");
+      clearTimeout(btn._pressFxTimer);
+      btn._pressFxTimer = setTimeout(() => btn.classList.remove("press-pulse"), 220);
+    }
 
     // ---------- start ----------
     buildCharPick();

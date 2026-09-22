@@ -102,6 +102,80 @@
       playGooeyPlop(1.15, 0.45);
     }
 
+    // Board shuffle — soft whoosh: filtered noise sweep plus a fast rising tone.
+    // Distinctly audible so a tap on Shuffle never feels dead.
+    function playShuffleSfx() {
+      const volume = sfxVol(0.42);
+      if (volume <= 0) return;
+      if (!ensureAudio()) return;
+      const t = audioCtx.currentTime;
+      const dur = 0.22;
+      const bufferSize = Math.max(1, Math.floor(audioCtx.sampleRate * dur));
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 1.6);
+      }
+      const src = audioCtx.createBufferSource();
+      src.buffer = buffer;
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.Q.value = 1.4;
+      filter.frequency.setValueAtTime(320, t);
+      filter.frequency.exponentialRampToValueAtTime(1500, t + dur);
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.linearRampToValueAtTime(volume, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+      src.start(t);
+      // Rising whistle layer for a decisive "fresh board" feel
+      const o = audioCtx.createOscillator();
+      const og = audioCtx.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(160, t);
+      o.frequency.exponentialRampToValueAtTime(520, t + 0.16);
+      og.gain.setValueAtTime(0.0001, t);
+      og.gain.exponentialRampToValueAtTime(volume * 0.35, t + 0.02);
+      og.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+      o.connect(og);
+      og.connect(audioCtx.destination);
+      o.start(t);
+      o.stop(t + 0.2);
+      haptic(16);
+    }
+
+    // Pass turn — a short, firm downward "turn-over" tone with a double knuckle
+    // so ending your turn is unmistakable even on the faintest phone speaker.
+    function playPassSfx() {
+      const volume = sfxVol(0.5);
+      if (volume <= 0) return;
+      if (!ensureAudio()) return;
+      const t = audioCtx.currentTime;
+      [0, 0.12].forEach((off, i) => {
+        const o = audioCtx.createOscillator();
+        const f = audioCtx.createBiquadFilter();
+        const g = audioCtx.createGain();
+        o.type = "triangle";
+        const f0 = 220 - i * 40;
+        o.frequency.setValueAtTime(f0 * (i ? 0.92 : 1), t + off);
+        o.frequency.exponentialRampToValueAtTime(f0 * 0.55, t + off + 0.14);
+        f.type = "lowpass";
+        f.frequency.value = 900;
+        g.gain.setValueAtTime(0.0001, t + off);
+        g.gain.exponentialRampToValueAtTime(volume * (i ? 0.5 : 0.7), t + off + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + off + 0.2);
+        o.connect(f);
+        f.connect(g);
+        g.connect(audioCtx.destination);
+        o.start(t + off);
+        o.stop(t + off + 0.22);
+      });
+      haptic(24);
+    }
+
     // Soft mallet plop — warm wood-strike feel with gentle ring
     function playGooeyPlop(pitch = 1, volume = 0.65) {
       volume = sfxVol(volume);

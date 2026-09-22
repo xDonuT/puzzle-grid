@@ -2787,6 +2787,7 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
 
     btnEnd.addEventListener("click", async () => {
   if (busy || !combat.playerTurn) return;
+  pressFx(btnEnd);
   // Guardrail: if the ultimate is charged and castable but the player is about
   // to pass, confirm it's intentional so a charged ult isn't wasted by accident.
   if (ultReady() && combat.ap > 0) {
@@ -2823,8 +2824,10 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       refreshCombatUI();
       return; // don't end turn — player continues with extra AP
     }
+    playPassSfx();
     enemyTurn();
   } else {
+    playPassSfx();
     enemyTurn();
   }
 });
@@ -2856,7 +2859,8 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         combat.ap -= 1;
       }
       busy = true;
-      playGooeyPlop(0.9, 0.5);
+      playShuffleSfx();
+      pressFx(btnShuffle);
       // 🌀 Shuffle Surge (run upgrade): shuffles empower the next turn
       if (run.shuffleSurge) {
         combat.pendingSurge = (combat.pendingSurge || 0) + 1;

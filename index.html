@@ -1349,6 +1349,14 @@
       animation: endGlowFade 1.4s ease-in-out infinite;
     }
     @keyframes endGlowFade { 0%,100%{opacity:.35} 50%{opacity:1} }
+    .action-btn.press-pulse {
+      animation: pressPulse 0.22s ease-out;
+    }
+    @keyframes pressPulse {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(122, 166, 94, 0); }
+      40% { transform: scale(0.92); box-shadow: 0 0 0 5px rgba(122, 166, 94, 0.35); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(122, 166, 94, 0); }
+    }
     #btnShuffle {
       position: relative;
       height: 30px;

@@ -585,5 +585,60 @@ assert(statusSummaryPlayer().includes("Wilted 3f"), "statusSummaryPlayer shows W
 run.healBlockFloors = 0;
 assert(!statusSummaryPlayer().includes("Wilted"), "statusSummaryPlayer hides Wilted once expired");
 
+// ---------- Death Defiance (purchased revive) ----------
+
+// Persist/load round-trip
+settings.deathDefiance = 3;
+settings.gcashRefs = ["ABC123", "ZZZ999"];
+persistSettings();
+settings.deathDefiance = 0;
+settings.gcashRefs = [];
+loadSettings();
+assertEq(settings.deathDefiance, 3, "deathDefiance persists through save/load");
+assertEq(settings.gcashRefs.length, 2, "gcashRefs persist through save/load");
+assert(settings.gcashRefs.includes("ABC123"), "gcash reference registry survives reload");
+
+// A fatal hit with a charge consumes it and revives at half HP, once per battle
+resetRun();
+combat.playerClass = "knight"; // knight: no dodge roll to fight — Iron Will is disabled below
+combat.knightDeathSaveUsed = false;
+run.lostIronWill = true; // isolate Death Defiance from the knight's free save
+run.floor = 1;
+startBattle({});
+combat.playerHp = 10;
+combat.deathDefianceUsed = false;
+settings.deathDefiance = 2; // try it manually — grants 2 but only 1 may be used per battle
+const maxHpKnight = combat.playerMaxHp;
+const beforeTaken = combat.stats.taken;
+dealDamageToPlayer(999);
+assert(combat.playerHp > 0, "Death Defiance revives from a lethal hit");
+assertEq(combat.playerHp, Math.max(1, Math.ceil(maxHpKnight / 2)), "revive lands at half max HP");
+assertEq(settings.deathDefiance, 1, "exactly one charge is consumed per purchase per battle");
+assertEq(combat.deathDefianceUsed, true, "combat flag marks the charge as spent this battle");
+
+// A second lethal hit the same battle must NOT revive again (only 1 charge/battle)
+dealDamageToPlayer(999);
+assertEq(combat.playerHp, 0, "no second revive in the same battle — death stands");
+assert(combat.stats.taken > beforeTaken, "second lethal hit still registers damage");
+
+// Next battle resets the once-per-battle flag
+combat.playerHp = 5;
+run.lostIronWill = true;
+run.floor = 2;
+startBattle({});
+assertEq(combat.deathDefianceUsed, false, "Death Defiance flag resets at the start of each battle");
+
+// No charges → no revive, no crash
+resetRun();
+combat.playerClass = "knight";
+run.lostIronWill = true;
+run.floor = 1;
+startBattle({});
+combat.playerHp = 5;
+settings.deathDefiance = 0;
+dealDamageToPlayer(999);
+assertEq(combat.playerHp, 0, "without a charge, a lethal hit is not revived");
+assertEq(settings.deathDefiance, 0, "no charge is consumed when none exist"); // restore
+
 if (failures) { console.error(`\n${failures} FAILURE(S)`); Deno.exit(1); }
 console.log("\nALL CHECKS PASSED");

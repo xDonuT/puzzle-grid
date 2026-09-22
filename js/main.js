@@ -2657,6 +2657,7 @@ function checkGameOver() {
       combat.fractureTurns = 0;
       combat.mortalWoundTurns = 0;
       combat.manaLockTurns = 0;
+      combat.deathDefianceUsed = false; // 💀 purchased revive refreshes each battle
       combat.enemyVeilUsed = false;
       combat.enemyAfterglowTurns = 0;
       combat.playerFractureStacks = 0;
@@ -3202,6 +3203,96 @@ function checkGameOver() {
     if (btnMenuHelp) btnMenuHelp.addEventListener("click", openHelp);
     const btnCodex = document.getElementById("btnCodex");
     if (btnCodex) btnCodex.addEventListener("click", () => { if (typeof codexOpen === "function") codexOpen(); });
+
+    // ----- Support: buy Death Defiance revives / donate via GCash -----
+    const GCASH_REVIVE_PRICE = 3; // ₱ per revive
+    let _supportQty = 1;
+    function updateDefianceBadge() {
+      const el = document.getElementById("menuDefiance");
+      if (!el) return;
+      const n = settings.deathDefiance || 0;
+      el.textContent = n > 0 ? `💀 Death Defiance: ${n} run${n === 1 ? "" : "s"} ready` : "💀 Death Defiance: none — earn one via 💛 Support";
+    }
+    function refreshSupportOverlay() {
+      const count = settings.deathDefiance || 0;
+      const cnt = document.getElementById("supportCount");
+      if (cnt) cnt.textContent = count > 0 ? `You have ${count} Death Defiance${count === 1 ? "" : "s"}` : `You have no Death Defiance yet`;
+      const msg = document.getElementById("supportMsg");
+      if (msg) msg.textContent = `Each revive is ₱${GCASH_REVIVE_PRICE}. Send via GCash and paste your reference number to get it instantly.`;
+    }
+    function openSupport() {
+      refreshSupportOverlay();
+      const buy = document.getElementById("supportBuy"), don = document.getElementById("supportDonate");
+      const dn = document.getElementById("btnSupportDonate");
+      if (buy) buy.style.display = "";
+      if (don) don.style.display = "none";
+      if (dn) dn.style.display = "";
+      document.getElementById("supportRef").value = "";
+      const hint = document.getElementById("supportHint");
+      if (hint) hint.style.display = "";
+      const ov = document.getElementById("supportOverlay");
+      if (ov) ov.classList.add("open");
+    }
+    function closeSupport() {
+      const ov = document.getElementById("supportOverlay");
+      if (ov) ov.classList.remove("open");
+    }
+    function setSupportQty(n) {
+      _supportQty = n;
+      [["supportQty1", 1], ["supportQty3", 3], ["supportQty5", 5]].forEach(([id, v]) => {
+        const b = document.getElementById(id);
+        if (b) b.classList.toggle("on", v === n);
+      });
+      const msg = document.getElementById("supportMsg");
+      if (msg) msg.textContent = n === 1
+        ? `Each revive is ₱${GCASH_REVIVE_PRICE}. Send via GCash and paste your reference number to get it instantly.`
+        : `That's ${n} revives for ₱${n * GCASH_REVIVE_PRICE}. Send via GCash, then paste your reference below.`;
+    }
+    const btnSupport = document.getElementById("btnSupport");
+    if (btnSupport) btnSupport.addEventListener("click", openSupport);
+    const btnSupportClose = document.getElementById("btnSupportClose");
+    if (btnSupportClose) btnSupportClose.addEventListener("click", closeSupport);
+    [["supportQty1", 1], ["supportQty3", 3], ["supportQty5", 5]].forEach(([id, n]) => {
+      const b = document.getElementById(id);
+      if (b) b.addEventListener("click", () => setSupportQty(n));
+    });
+    const btnSupportClaim = document.getElementById("btnSupportClaim");
+    if (btnSupportClaim) btnSupportClaim.addEventListener("click", () => {
+      const ref = (document.getElementById("supportRef").value || "").trim();
+      if (!ref) {
+        alert("Please paste your GCash reference number first.");
+        return;
+      }
+      if (settings.gcashRefs.includes(ref)) {
+        alert("That reference number has already been used.");
+        return;
+      }
+      settings.gcashRefs.push(ref);
+      settings.deathDefiance = (settings.deathDefiance || 0) + _supportQty;
+      persistSettings();
+      if (typeof srSay === "function") srSay(`${_supportQty} Death Defiance added.`);
+      playHeal();
+      updateDefianceBadge();
+      refreshSupportOverlay();
+      const hint = document.getElementById("supportHint");
+      if (hint) {
+        hint.style.display = "block";
+        hint.textContent = `✅ Claimed! ${_supportQty} Death Defiance${_supportQty === 1 ? "" : "s"} added. You can close this window.`;
+        hint.style.color = "#4f7a33";
+      }
+      document.getElementById("supportRef").value = "";
+    });
+    const btnSupportDonate = document.getElementById("btnSupportDonate");
+    if (btnSupportDonate) btnSupportDonate.addEventListener("click", () => {
+      const buy = document.getElementById("supportBuy"), don = document.getElementById("supportDonate");
+      const dn = document.getElementById("btnSupportDonate");
+      if (buy) buy.style.display = "none";
+      if (don) don.style.display = "";
+      if (dn) dn.style.display = "none";
+    });
+    const btnSupportDonateDone = document.getElementById("btnSupportDonateDone");
+    if (btnSupportDonateDone) btnSupportDonateDone.addEventListener("click", closeSupport);
+    updateDefianceBadge();
     const btnSettingsHelp = document.getElementById("btnSettingsHelp");
     if (btnSettingsHelp) btnSettingsHelp.addEventListener("click", openHelp);
     const btnHelpClose = document.getElementById("btnHelpClose");

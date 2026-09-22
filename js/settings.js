@@ -49,7 +49,9 @@
       pipStyle: "circle",    // circle | square | diamond
       stampTheme: "leaf",     // passport stamp look: leaf | gold | ink
       activeSlot: 0,          // selected save slot (0-2)
-      career: {}              // per-hero career records: { ninja: { bestFloor, clears, bestTimeMs, mostDealt, mostUlts, bestChain } }
+      career: {},             // per-hero career records: { ninja: { bestFloor, clears, bestTimeMs, mostDealt, mostUlts, bestChain } }
+      deathDefiance: 0,       // purchased "revive" charges (1 charge = survive a lethal hit at half HP)
+      gcashRefs: []           // GCash reference numbers already honored (prevents reuse)
     };
 
     function persistSettings() {
@@ -88,7 +90,9 @@
           pipStyle: settings.pipStyle,
           stampTheme: settings.stampTheme,
           activeSlot: settings.activeSlot || 0,
-          career: settings.career || {}
+          career: settings.career || {},
+          deathDefiance: settings.deathDefiance || 0,
+          gcashRefs: Array.isArray(settings.gcashRefs) ? settings.gcashRefs : []
         }));
       } catch (_) {}
     }
@@ -127,6 +131,8 @@
         if (["leaf", "gold", "ink"].includes(o.stampTheme)) settings.stampTheme = o.stampTheme;
         if (typeof o.activeSlot === "number" && o.activeSlot >= 0 && o.activeSlot <= 2) settings.activeSlot = o.activeSlot;
         if (o.career && typeof o.career === "object" && !Array.isArray(o.career)) settings.career = o.career;
+        if (typeof o.deathDefiance === "number" && o.deathDefiance >= 0) settings.deathDefiance = Math.floor(o.deathDefiance);
+        if (Array.isArray(o.gcashRefs)) settings.gcashRefs = o.gcashRefs.filter(r => typeof r === "string");
       } catch (_) {}
     }
     loadSettings();

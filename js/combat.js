@@ -1164,6 +1164,20 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
         setLog("[Enemy] Iron Will", "[Enemy] Iron Will · Survived with 1 HP! +5 Cracked");
         dmgPop("player", "Iron Will!", "heal");
       }
+      // 💀 Death Defiance: a purchased revive charge. One charge auto-spends on a
+      // lethal hit (once per battle) and brings you back at half HP — the fight
+      // continues exactly where it stopped, no run loss.
+      if (combat.playerHp <= 0 && !combat.deathDefianceUsed && (settings.deathDefiance || 0) > 0) {
+        combat.deathDefianceUsed = true;
+        settings.deathDefiance -= 1;
+        persistSettings();
+        combat.playerHp = Math.max(1, Math.ceil((combat.playerMaxHp || BASE_HP) / 2));
+        setLog("💀 Death Defiance", "💀 Death Defiance · Revived at half HP");
+        dmgPop("player", "Death Defiance!", "heal");
+        playHeal();
+        if (typeof updateDefianceBadge === "function") updateDefianceBadge();
+        refreshCombatUI();
+      }
       const lost = before - combat.playerHp;
       if (combat.stats) combat.stats.taken += lost;
       if (lost > 0) {

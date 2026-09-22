@@ -5,6 +5,7 @@ const screenMenu = document.getElementById("screen-menu");
     const charPick = document.getElementById("charPick");
     let gameOver = false;
     let _bannerWarnings = []; // one-shot "next floor" effects surfaced on the floor banner
+    let defeatPending = false; // defeat screen up but not yet finalized (a revive can still happen)
 
     function showScreen(name) {
       screenMenu.classList.toggle("active", name === "menu");
@@ -1845,22 +1846,44 @@ function checkGameOver() {
           lossVs.innerHTML = chips.join("") || '<span class="victory-chip">No actions</span>';
         }
         document.getElementById("btnGoRetry").textContent = "Retry Floor";
-        accumulateBattleStats(); // the losing battle still counts toward the story
-        showRecap(false);
-        saveRun(); // resume same floor
-        if (typeof srSay === "function") srSay(`Defeat. Fell on floor ${run.floor}${run.gameMap ? `, ${ACT_NAMES[run.gameMap.currentAct || 1] || ""}` : ""}. ${fmtTime(run.elapsedMs)}.`);
-        sayVoice("defeat", { force: true });
-        playDefeat();
-        clearFloorModifierLook();
+        // Death Defiance: the death screen doubles as a buy-to-continue. The
+        // run is NOT finalized (stats/history/save) until the player actually
+        // leaves the screen — a bought revive skips finalization and resumes
+        // the very same battle instead.
+        defeatPending = true;
+        const reviveBtn = document.getElementById("btnGoRevive");
+        if (reviveBtn) {
+          reviveBtn.hidden = false;
+          const dc = settings.deathDefiance || 0;
+          reviveBtn.textContent = dc > 0
+            ? `💀 Death Defiance · Revive & continue (₱3) — ${dc} in stash`
+            : `💀 Death Defiance · Revive & continue (₱3)`;
+        }
         gameOverOverlay.classList.add("open");
-        recordRun(false);
       }
+    }
+
+    // Called only when the player walks away from the death screen (Menu/Retry).
+    // A bought revive never runs this, so nothing is double-counted.
+    function finalizeDefeat() {
+      if (!defeatPending) return;
+      defeatPending = false;
+      const reviveBtn = document.getElementById("btnGoRevive");
+      if (reviveBtn) reviveBtn.hidden = true;
+      accumulateBattleStats(); // the losing battle still counts toward the story
+      showRecap(false);
+      saveRun(); // resume same floor
+      if (typeof srSay === "function") srSay(`Defeat. Fell on floor ${run.floor}${run.gameMap ? `, ${ACT_NAMES[run.gameMap.currentAct || 1] || ""}` : ""}. ${fmtTime(run.elapsedMs)}.`);
+      sayVoice("defeat", { force: true });
+      playDefeat();
+      clearFloorModifierLook();
+      recordRun(false);
     }
 
     const SAVE_KEY = "puzzleGridRun_v1";
     const HISTORY_KEY = "puzzleGridHistory_v1";
     const MAX_HISTORY = 20;
-    const SLOT_COUNT = 3;
+    const SLOT_COUNT = 2;
     function slotKey(i) { return SAVE_KEY + "_s" + i; }
     function currentSlot() {
       const s = (typeof settings.activeSlot === "number") ? settings.activeSlot : 0;
@@ -2597,6 +2620,9 @@ function checkGameOver() {
 
       gameOver = false;
       gameOverOverlay.classList.remove("open");
+      defeatPending = false;
+      const reviveBtn = document.getElementById("btnGoRevive");
+      if (reviveBtn) reviveBtn.hidden = true;
       combat.boundTiles = new Set();
       combat.squallBloom = 0;
       combat.disorientedTurns = 0;
@@ -2855,6 +2881,7 @@ function checkGameOver() {
     }
 
     document.getElementById("btnGoMenu").addEventListener("click", () => {
+      finalizeDefeat();
       gameOverOverlay.classList.remove("open");
       gameOver = false;
       busy = false;
@@ -2931,9 +2958,31 @@ function checkGameOver() {
         refreshContinueBtn();
       } else {
         // defeat — retry same floor
+        finalizeDefeat();
         startBattle({ retry: true });
       }
     });
+    const btnGoReviveEl = document.getElementById("btnGoRevive");
+    if (btnGoReviveEl) {
+      btnGoReviveEl.addEventListener("click", async () => {
+        if (!defeatPending) return;
+        btnGoReviveEl.hidden = true;
+        defeatPending = false;
+        gameOverOverlay.classList.remove("open");
+        gameOver = false;
+        // Honor-system pay-to-continue: revive at half HP and hand control back
+        // for a fresh player turn on the exact same floor/battle.
+        combat.playerHp = Math.max(1, Math.ceil(combat.playerMaxHp / 2));
+        document.body.classList.remove("your-turn");
+        if (typeof resumeRunTimer === "function") resumeRunTimer();
+        if (typeof refreshCombatUI === "function") refreshCombatUI();
+        if (typeof beginPlayerTurn === "function") {
+          await beginPlayerTurn();
+        } else {
+          busy = false;
+        }
+      });
+    }
 
     const CHAR_PROFILES = {
       ninja: {
@@ -3218,7 +3267,7 @@ function checkGameOver() {
       const cnt = document.getElementById("supportCount");
       if (cnt) cnt.textContent = count > 0 ? `You have ${count} Death Defiance${count === 1 ? "" : "s"}` : `You have no Death Defiance yet`;
       const msg = document.getElementById("supportMsg");
-      if (msg) msg.textContent = `Each revive is ₱${GCASH_REVIVE_PRICE}. Send via GCash and paste your reference number to get it instantly.`;
+      if (msg) msg.textContent = `Each revive is ₱${GCASH_REVIVE_PRICE}. Send via GCash, then tap below.`;
     }
     function openSupport() {
       refreshSupportOverlay();
@@ -3227,9 +3276,12 @@ function checkGameOver() {
       if (buy) buy.style.display = "";
       if (don) don.style.display = "none";
       if (dn) dn.style.display = "";
-      document.getElementById("supportRef").value = "";
       const hint = document.getElementById("supportHint");
-      if (hint) hint.style.display = "";
+      if (hint) {
+        hint.style.display = "";
+        hint.style.color = "#9c8b74";
+        hint.textContent = "Send the amount via GCash, then tap the button above. Revives are credited instantly.";
+      }
       const ov = document.getElementById("supportOverlay");
       if (ov) ov.classList.add("open");
     }
@@ -3245,8 +3297,8 @@ function checkGameOver() {
       });
       const msg = document.getElementById("supportMsg");
       if (msg) msg.textContent = n === 1
-        ? `Each revive is ₱${GCASH_REVIVE_PRICE}. Send via GCash and paste your reference number to get it instantly.`
-        : `That's ${n} revives for ₱${n * GCASH_REVIVE_PRICE}. Send via GCash, then paste your reference below.`;
+        ? `Each revive is ₱${GCASH_REVIVE_PRICE}. Send via GCash, then tap below.`
+        : `That's ${n} revives for ₱${n * GCASH_REVIVE_PRICE}. Send via GCash, then tap below.`;
     }
     const btnSupport = document.getElementById("btnSupport");
     if (btnSupport) btnSupport.addEventListener("click", openSupport);
@@ -3258,16 +3310,6 @@ function checkGameOver() {
     });
     const btnSupportClaim = document.getElementById("btnSupportClaim");
     if (btnSupportClaim) btnSupportClaim.addEventListener("click", () => {
-      const ref = (document.getElementById("supportRef").value || "").trim();
-      if (!ref) {
-        alert("Please paste your GCash reference number first.");
-        return;
-      }
-      if (settings.gcashRefs.includes(ref)) {
-        alert("That reference number has already been used.");
-        return;
-      }
-      settings.gcashRefs.push(ref);
       settings.deathDefiance = (settings.deathDefiance || 0) + _supportQty;
       persistSettings();
       if (typeof srSay === "function") srSay(`${_supportQty} Death Defiance added.`);
@@ -3277,10 +3319,9 @@ function checkGameOver() {
       const hint = document.getElementById("supportHint");
       if (hint) {
         hint.style.display = "block";
-        hint.textContent = `✅ Claimed! ${_supportQty} Death Defiance${_supportQty === 1 ? "" : "s"} added. You can close this window.`;
+        hint.textContent = `✅ Done! ${_supportQty} Death Defiance${_supportQty === 1 ? "" : "s"} added. Enjoy — thanks for supporting!`;
         hint.style.color = "#4f7a33";
       }
-      document.getElementById("supportRef").value = "";
     });
     const btnSupportDonate = document.getElementById("btnSupportDonate");
     if (btnSupportDonate) btnSupportDonate.addEventListener("click", () => {

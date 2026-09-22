@@ -2334,6 +2334,13 @@ apPipsEl.querySelectorAll(".ap-pip").forEach((pip, i) => {
       combat._enemyAttacksThisTurn = 0;
       combat._enemyTotalDmgThisTurn = 0;
 
+      await beginPlayerTurn();
+    }
+
+    // Hands the battle back to the player for a fresh turn. Shared by the
+    // normal enemy-turn end AND the death-screen "buy a revive to continue"
+    // path, so a purchased revive resumes exactly like a won enemy turn.
+    async function beginPlayerTurn() {
       combat.ap = AP_MAX + unusedApBonus;
       unusedApBonus = 0; // Reset for this turn
       combat.enemyAp = Math.min(AP_MAX, 3); // rival caps at base AP

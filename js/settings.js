@@ -48,10 +48,9 @@
       skin: "paper",         // paper | midnight (dark UI theme)
       pipStyle: "circle",    // circle | square | diamond
       stampTheme: "leaf",     // passport stamp look: leaf | gold | ink
-      activeSlot: 0,          // selected save slot (0-2)
+      activeSlot: 0,          // selected save slot (0-1)
       career: {},             // per-hero career records: { ninja: { bestFloor, clears, bestTimeMs, mostDealt, mostUlts, bestChain } }
-      deathDefiance: 0,       // purchased "revive" charges (1 charge = survive a lethal hit at half HP)
-      gcashRefs: []           // GCash reference numbers already honored (prevents reuse)
+      deathDefiance: 0        // purchased "revive" charges (1 charge = survive a lethal hit at half HP)
     };
 
     function persistSettings() {
@@ -91,8 +90,7 @@
           stampTheme: settings.stampTheme,
           activeSlot: settings.activeSlot || 0,
           career: settings.career || {},
-          deathDefiance: settings.deathDefiance || 0,
-          gcashRefs: Array.isArray(settings.gcashRefs) ? settings.gcashRefs : []
+          deathDefiance: settings.deathDefiance || 0
         }));
       } catch (_) {}
     }
@@ -129,10 +127,9 @@
         if (["paper", "midnight"].includes(o.skin)) settings.skin = o.skin;
         if (["circle", "square", "diamond"].includes(o.pipStyle)) settings.pipStyle = o.pipStyle;
         if (["leaf", "gold", "ink"].includes(o.stampTheme)) settings.stampTheme = o.stampTheme;
-        if (typeof o.activeSlot === "number" && o.activeSlot >= 0 && o.activeSlot <= 2) settings.activeSlot = o.activeSlot;
+        if (typeof o.activeSlot === "number" && o.activeSlot >= 0 && o.activeSlot <= 1) settings.activeSlot = o.activeSlot;
         if (o.career && typeof o.career === "object" && !Array.isArray(o.career)) settings.career = o.career;
         if (typeof o.deathDefiance === "number" && o.deathDefiance >= 0) settings.deathDefiance = Math.floor(o.deathDefiance);
-        if (Array.isArray(o.gcashRefs)) settings.gcashRefs = o.gcashRefs.filter(r => typeof r === "string");
       } catch (_) {}
     }
     loadSettings();

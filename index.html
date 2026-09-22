@@ -5534,6 +5534,7 @@ body.ult-hitstop .board-wrap {
       <div id="victoryStats" class="victory-stats"></div>
       <div id="recapCard" class="recap-card" hidden></div>
       <button type="button" class="action-btn" id="btnCopyRecap" hidden style="width:100%;margin-bottom:10px">📋 Copy Recap</button>
+      <button type="button" class="action-btn" id="btnGoRevive" hidden style="width:100%;padding:13px 12px;margin-bottom:10px;font-weight:800;background:linear-gradient(135deg,#c2412f,#e07a3d);border-color:#a3321f;color:#fff">💀 Death Defiance · Revive &amp; continue (₱3)</button>
       <button type="button" class="action-btn" id="btnRunStats" style="width:100%;margin-bottom:10px">📊 Full Run Stats</button>
       <div class="panel-actions">
         <button type="button" class="action-btn" id="btnGoMenu">Menu</button>
@@ -5612,9 +5613,8 @@ body.ult-hitstop .board-wrap {
           <button type="button" id="supportQty5">5 revives · ₱15</button>
         </div>
         <p style="color:#7a6e64;font-size:0.85rem;margin:4px 0 8px;font-weight:600">💀 A Death Defiance auto-revives you at half HP on a fatal hit — once per battle.</p>
-        <input type="text" id="supportRef" inputmode="numeric" placeholder="Paste your GCash reference number here" aria-label="GCash reference number" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #cfc3ae;font-size:0.95rem;margin-bottom:10px;box-sizing:border-box">
-        <button type="button" class="action-btn primary" id="btnSupportClaim" style="width:100%">✅ Claim my revive</button>
-        <p id="supportHint" style="color:#9c8b74;font-size:0.8rem;margin:8px 0 0;font-weight:600">Send the amount via GCash above, then paste the reference number. Revives are granted right away.</p>
+        <button type="button" class="action-btn primary" id="btnSupportClaim" style="width:100%">✅ Pay & get my revives</button>
+        <p id="supportHint" style="color:#9c8b74;font-size:0.8rem;margin:8px 0 0;font-weight:600">Send the amount via GCash, then tap the button above. Revives are credited instantly.</p>
       </div>
       <div id="supportDonate" style="display:none">
         <p style="color:#7a6e64;font-size:0.9rem;margin:6px 0 10px;font-weight:600">Scan the QR and send any amount — every peso helps the garden grow. 💚</p>

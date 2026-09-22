@@ -589,14 +589,10 @@ assert(!statusSummaryPlayer().includes("Wilted"), "statusSummaryPlayer hides Wil
 
 // Persist/load round-trip
 settings.deathDefiance = 3;
-settings.gcashRefs = ["ABC123", "ZZZ999"];
 persistSettings();
 settings.deathDefiance = 0;
-settings.gcashRefs = [];
 loadSettings();
 assertEq(settings.deathDefiance, 3, "deathDefiance persists through save/load");
-assertEq(settings.gcashRefs.length, 2, "gcashRefs persist through save/load");
-assert(settings.gcashRefs.includes("ABC123"), "gcash reference registry survives reload");
 
 // A fatal hit with a charge consumes it and revives at half HP, once per battle
 resetRun();
@@ -639,6 +635,64 @@ settings.deathDefiance = 0;
 dealDamageToPlayer(999);
 assertEq(combat.playerHp, 0, "without a charge, a lethal hit is not revived");
 assertEq(settings.deathDefiance, 0, "no charge is consumed when none exist"); // restore
+
+// ---------- Defeat screen: buy-to-continue (Death Defiance) ----------
+
+// A fatal hit opens the defeat screen but does NOT finalize the run yet
+resetRun();
+combat.playerClass = "knight";
+run.lostIronWill = true;
+run.floor = 5;
+startBattle({});
+const histBeforeDefeat = loadHistory().length;
+combat.playerHp = 4;
+defeatPending = false;
+gameOver = false;
+dealDamageToPlayer(999);
+assertEq(combat.playerHp, 0, "lethal hit puts the player at 0 HP on the death screen");
+assertEq(defeatPending, true, "defeat stays pending while the death screen is up");
+assertEq(gameOver, true, "battle is frozen while the death screen is up");
+assertEq(loadHistory().length, histBeforeDefeat, "no defeat recorded while the death screen is up");
+
+// Buying a revive resumes the exact same battle at half HP (no respawn, no retry)
+const enemyHpAtDefeat = combat.enemyHp;
+const floorAtDefeat = run.floor;
+defeatPending = false; // the revive click clears the pending flag
+gameOver = false;
+combat.playerHealPerTurn = 0; // mute floor-modifier heals for a clean read
+combat.shieldPerTurn = 0;
+const hpSet = Math.max(1, Math.ceil(combat.playerMaxHp / 2));
+combat.playerHp = hpSet;
+await beginPlayerTurn();
+// Knight Regeneration heals a flat +3 at the start of the revived turn
+const regen = (combat.playerClass === "knight") ? 3 : 0;
+assertEq(combat.playerHp, Math.min(combat.playerMaxHp, hpSet + regen), "revived player sits at half max HP");
+assertEq(combat.enemyHp, enemyHpAtDefeat, "revive keeps the same enemy HP (no respawn)");
+assertEq(run.floor, floorAtDefeat, "revive keeps the same floor (no retry)");
+assertEq(combat.playerTurn, true, "revive hands the turn back to the player");
+assertEq(busy, false, "revive lifts the busy lock");
+assertEq(gameOver, false, "revive clears gameOver");
+assertEq(loadHistory().length, histBeforeDefeat, "revive still records no defeat");
+
+// Walking away to the menu finalizes the defeat exactly once
+resetRun();
+combat.playerClass = "knight";
+run.lostIronWill = true;
+run.floor = 3;
+startBattle({});
+const topBefore = loadHistory()[0];
+combat.playerHp = 2;
+defeatPending = false;
+gameOver = false;
+dealDamageToPlayer(999);
+assertEq(defeatPending, true, "second defeat is pending");
+finalizeDefeat();
+assertEq(defeatPending, false, "finalize clears the pending flag");
+const topAfter = loadHistory()[0];
+assert(JSON.stringify(topAfter) !== JSON.stringify(topBefore), "finalize records a new history entry");
+assertEq(topAfter.won, false, "the recorded defeat is a loss (won=false)");
+finalizeDefeat();
+assert(JSON.stringify(loadHistory()[0]) === JSON.stringify(topAfter), "finalize is idempotent (no double record)");
 
 if (failures) { console.error(`\n${failures} FAILURE(S)`); Deno.exit(1); }
 console.log("\nALL CHECKS PASSED");

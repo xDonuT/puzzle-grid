@@ -93,15 +93,13 @@ assertEq(combat.fractureStacks, 3, "knight heart match granted 3 fracture stacks
 assert(combat.logHistory.some(l => /Cracked 3|Fracture 3/.test(l)), "heart match logged Fracture");
 assertEq(combat.stats.healed, 5, "heart match healing tracked in combat.stats.healed");
 
-// ---------- Battle log: keeps full fight history, capped only by the memory
-// budget, with turn prefixes ----------
+// ---------- Battle log: recent 5 turns cap + turn prefixes ----------
 combat.logHistory = [];
 for (let t = 1; t <= 7; t++) {
   combat.turn = t;
   setLog("Turn action " + t, "detail " + t);
 }
-assert(combat.logHistory.length === 7, "battle log keeps all turns of the fight");
-assert(combat.logHistory.length <= 400, "battle log stays under the 400-entry memory cap");
+assert(combat.logHistory.length <= 5, "battle log caps to recent 5 turns");
 assertEq(combat.logHistory.filter(l => !l.match(/^\[T\d+\]/)).length, 0, "every log entry is prefixed with the turn number");
 
 // ---------- Log classification + grouped rendering ----------

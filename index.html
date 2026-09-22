@@ -5535,6 +5535,13 @@ body.ult-hitstop .board-wrap {
       <div id="recapCard" class="recap-card" hidden></div>
       <button type="button" class="action-btn" id="btnCopyRecap" hidden style="width:100%;margin-bottom:10px">📋 Copy Recap</button>
       <button type="button" class="action-btn" id="btnGoRevive" hidden style="width:100%;padding:13px 12px;margin-bottom:10px;font-weight:800;background:linear-gradient(135deg,#c2412f,#e07a3d);border-color:#a3321f;color:#fff">💀 Death Defiance · Revive &amp; continue (₱3)</button>
+      <div id="revivePay" hidden style="text-align:center">
+        <p style="color:#7a6e64;font-size:0.9rem;margin:0 0 10px;font-weight:700">💀 One more try — ₱3 via GCash</p>
+        <img src="GCASH.jpg" alt="GCash payment QR" style="width:170px;height:170px;object-fit:contain;border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,0.18);margin:0 auto 10px;display:block">
+        <p style="color:#9c8b74;font-size:0.8rem;margin:0 0 10px;font-weight:600">Scan the QR or send ₱3, then tap below. No reference number needed.</p>
+        <button type="button" class="action-btn primary" id="btnReviveConfirm" style="width:100%">✅ I sent it — Revive me at half HP</button>
+        <button type="button" class="action-btn" id="btnReviveBack" style="width:100%;margin-top:8px">← Wait, take me back</button>
+      </div>
       <button type="button" class="action-btn" id="btnRunStats" style="width:100%;margin-bottom:10px">📊 Full Run Stats</button>
       <div class="panel-actions">
         <button type="button" class="action-btn" id="btnGoMenu">Menu</button>

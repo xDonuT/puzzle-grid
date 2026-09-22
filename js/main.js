@@ -1850,6 +1850,7 @@ function checkGameOver() {
         // run is NOT finalized (stats/history/save) until the player actually
         // leaves the screen — a bought revive skips finalization and resumes
         // the very same battle instead.
+        resetGameOverPanel(); // clear any lingering payment step
         defeatPending = true;
         const reviveBtn = document.getElementById("btnGoRevive");
         if (reviveBtn) {
@@ -2621,8 +2622,7 @@ function checkGameOver() {
       gameOver = false;
       gameOverOverlay.classList.remove("open");
       defeatPending = false;
-      const reviveBtn = document.getElementById("btnGoRevive");
-      if (reviveBtn) reviveBtn.hidden = true;
+      resetGameOverPanel();
       combat.boundTiles = new Set();
       combat.squallBloom = 0;
       combat.disorientedTurns = 0;
@@ -2962,27 +2962,77 @@ function checkGameOver() {
         startBattle({ retry: true });
       }
     });
+    // Restores the overlay to its normal (victory/defeat) layout — used when a
+    // fresh battle or a new death screen is shown, so no payment step lingers.
+    function resetGameOverPanel() {
+      const pay = document.getElementById("revivePay");
+      if (pay) pay.hidden = true;
+      const rv = document.getElementById("btnGoRevive");
+      if (rv) rv.hidden = true;
+      const hide = ["recapCard", "btnCopyRecap", "bloomPayoff"];
+      hide.forEach(id => { const el = document.getElementById(id); if (el) el.hidden = true; });
+      const show = ["victorySummary", "victoryStats", "gameOverMsg", "gameOverSubtitle", "btnRunStats", "btnGoRetry", "btnGoMenu", "rewardMsg"];
+      show.forEach(id => { const el = document.getElementById(id); if (el) el.hidden = false; });
+      const t = document.getElementById("gameOverTitle");
+      if (t) t.textContent = "Victory";
+    }
+    // Death-screen → live payment step: swap the defeat buttons for the pay-card
+    function showRevivePayment() {
+      const pay = document.getElementById("revivePay");
+      if (pay) pay.hidden = false;
+      ["victorySummary", "victoryStats", "gameOverMsg", "gameOverSubtitle", "btnRunStats", "btnGoRetry", "btnGoMenu", "btnGoRevive", "rewardMsg"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.hidden = true;
+      });
+      const t = document.getElementById("gameOverTitle");
+      if (t) t.textContent = "💀 Pay ₱3 to keep climbing";
+    }
+    function backToDeathScreen() {
+      const pay = document.getElementById("revivePay");
+      if (pay) pay.hidden = true;
+      ["victorySummary", "victoryStats", "gameOverMsg", "gameOverSubtitle", "btnRunStats", "btnGoRetry", "btnGoMenu", "btnGoRevive", "rewardMsg"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.hidden = false;
+      });
+      const t = document.getElementById("gameOverTitle");
+      if (t) t.textContent = "Defeat";
+    }
+    // The actual revive: honor-system confirm resumes the very same battle at half HP
+    async function doRevive() {
+      const rv = document.getElementById("btnGoRevive");
+      if (rv) rv.hidden = true;
+      defeatPending = false;
+      gameOverOverlay.classList.remove("open");
+      gameOver = false;
+      combat.playerHp = Math.max(1, Math.ceil(combat.playerMaxHp / 2));
+      document.body.classList.remove("your-turn");
+      if (typeof resumeRunTimer === "function") resumeRunTimer();
+      if (typeof refreshCombatUI === "function") refreshCombatUI();
+      if (typeof beginPlayerTurn === "function") {
+        await beginPlayerTurn();
+      } else {
+        busy = false;
+      }
+    }
     const btnGoReviveEl = document.getElementById("btnGoRevive");
     if (btnGoReviveEl) {
-      btnGoReviveEl.addEventListener("click", async () => {
+      btnGoReviveEl.addEventListener("click", () => {
         if (!defeatPending) return;
-        btnGoReviveEl.hidden = true;
-        defeatPending = false;
-        gameOverOverlay.classList.remove("open");
-        gameOver = false;
-        // Honor-system pay-to-continue: revive at half HP and hand control back
-        // for a fresh player turn on the exact same floor/battle.
-        combat.playerHp = Math.max(1, Math.ceil(combat.playerMaxHp / 2));
-        document.body.classList.remove("your-turn");
-        if (typeof resumeRunTimer === "function") resumeRunTimer();
-        if (typeof refreshCombatUI === "function") refreshCombatUI();
-        if (typeof beginPlayerTurn === "function") {
-          await beginPlayerTurn();
-        } else {
-          busy = false;
-        }
+        showRevivePayment();
       });
     }
+    const btnReviveConfirm = document.getElementById("btnReviveConfirm");
+    if (btnReviveConfirm) {
+      btnReviveConfirm.addEventListener("click", async () => {
+        if (!defeatPending) return;
+        await doRevive();
+      });
+    }
+    const btnReviveBack = document.getElementById("btnReviveBack");
+    if (btnReviveBack) btnReviveBack.addEventListener("click", () => {
+      if (!defeatPending) return;
+      backToDeathScreen();
+    });
 
     const CHAR_PROFILES = {
       ninja: {

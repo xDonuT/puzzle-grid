@@ -31,14 +31,8 @@
       const full = String(detail != null ? detail : msg);
       const entry = `[T${combat.turn}] ${full}`;
       combat.logHistory.push(entry);
-      // Cap action log history to the recent 5 turns only (no lag)
-      const minTurn = Math.max(1, combat.turn - 4);
-      combat.logHistory = combat.logHistory.filter(item => {
-        const m = String(item).match(/^\[T(\d+)\]/);
-        if (!m) return true;
-        return Number(m[1]) >= minTurn;
-      });
-      if (combat.logHistory.length > 250) combat.logHistory = combat.logHistory.slice(-250);
+      // Keep the whole fight in history (modal batches DOM; these caps bound memory).
+      if (combat.logHistory.length > 400) combat.logHistory = combat.logHistory.slice(-400);
       if (logBarText) logBarText.textContent = msg || full;
       srSay(full);
     }

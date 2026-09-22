@@ -93,13 +93,15 @@ assertEq(combat.fractureStacks, 3, "knight heart match granted 3 fracture stacks
 assert(combat.logHistory.some(l => /Cracked 3|Fracture 3/.test(l)), "heart match logged Fracture");
 assertEq(combat.stats.healed, 5, "heart match healing tracked in combat.stats.healed");
 
-// ---------- Battle log: recent 5 turns cap + turn prefixes ----------
+// ---------- Battle log: keeps full fight history, capped only by the memory
+// budget, with turn prefixes ----------
 combat.logHistory = [];
 for (let t = 1; t <= 7; t++) {
   combat.turn = t;
   setLog("Turn action " + t, "detail " + t);
 }
-assert(combat.logHistory.length <= 5, "battle log caps to recent 5 turns");
+assert(combat.logHistory.length === 7, "battle log keeps all turns of the fight");
+assert(combat.logHistory.length <= 400, "battle log stays under the 400-entry memory cap");
 assertEq(combat.logHistory.filter(l => !l.match(/^\[T\d+\]/)).length, 0, "every log entry is prefixed with the turn number");
 
 // ---------- Log classification + grouped rendering ----------
@@ -578,6 +580,12 @@ assertEq(sdSave.shield, 7, "saveRun persists the current shield");
 combat.shield = null;
 applyLoadedRun(sdSave);
 assertEq(combat.shield, 7, "applyLoadedRun restores the saved shield");
+
+// Wilted shows in the player status summary while active, and hides when gone
+run.healBlockFloors = 3;
+assert(statusSummaryPlayer().includes("Wilted 3f"), "statusSummaryPlayer shows Wilted with remaining floors");
+run.healBlockFloors = 0;
+assert(!statusSummaryPlayer().includes("Wilted"), "statusSummaryPlayer hides Wilted once expired");
 
 if (failures) { console.error(`\n${failures} FAILURE(S)`); Deno.exit(1); }
 console.log("\nALL CHECKS PASSED");

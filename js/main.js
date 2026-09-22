@@ -4,6 +4,7 @@ const screenMenu = document.getElementById("screen-menu");
     const gameOverOverlay = document.getElementById("gameOverOverlay");
     const charPick = document.getElementById("charPick");
     let gameOver = false;
+    let _bannerWarnings = []; // one-shot "next floor" effects surfaced on the floor banner
 
     function showScreen(name) {
       screenMenu.classList.toggle("active", name === "menu");
@@ -751,6 +752,9 @@ const screenMenu = document.getElementById("screen-menu");
       const sub = document.getElementById("floorBannerSub");
       const card = document.getElementById("floorBannerCard");
       if (!ov) return;
+      // Warn about one-shot pending effects this floor (consumed at battle start)
+      const warns = _bannerWarnings;
+      _bannerWarnings = [];
       let kick = "Floor";
       let extra = "";
       if (card) card.style.background = "";
@@ -775,6 +779,14 @@ const screenMenu = document.getElementById("screen-menu");
         sub.textContent = ACT_NAMES[actIdx] || "";
       } else {
         sub.textContent = extra;
+      }
+      if (warns.length) {
+        sub.textContent += (sub.textContent ? "  " : "") + warns.join("  ");
+        sub.style.fontSize = "0.72rem";
+        sub.style.color = (warns[0].startsWith("⚠️ −") ? "#b04830" : "#a06a10");
+      } else {
+        sub.style.fontSize = "";
+        sub.style.color = "";
       }
       ov.classList.add("open");
       setTimeout(() => ov.classList.remove("open"), 1400);
@@ -1806,9 +1818,32 @@ function checkGameOver() {
         document.getElementById("gameOverTitle").textContent = "Defeat";
         document.getElementById("gameOverMsg").textContent = `Fell on floor ${run.floor}${run.gameMap ? ` · ${ACT_NAMES[run.gameMap.currentAct || 1] || ""}` : ""} · ⏱ ${fmtTime(run.elapsedMs)}`;
         document.getElementById("rewardMsg").textContent = "";
-        document.getElementById("victoryStats").innerHTML = "";
-        document.getElementById("victorySummary").innerHTML = "";
-        document.getElementById("gameOverSubtitle").textContent = "";
+        document.getElementById("gameOverSubtitle").textContent = `Floor ${run.floor} · ${combat.enemyName || "Rival"} · ⏱ ${fmtTime(run.floorElapsedMs)}`;
+        const ls = combat.stats || {};
+        const lossSum = document.getElementById("victorySummary");
+        if (lossSum) {
+          const totalDealt = (ls.sword || 0) + (ls.star || 0) + (ls.runic || 0) + (ls.poison || 0) + (ls.fracture || 0) + (ls.ult || 0) + (ls.reflect || 0);
+          lossSum.innerHTML =
+            `<div class="victory-stat damage"><span>⚔️ Damage dealt</span><b>${totalDealt}</b></div>` +
+            `<div class="victory-stat"><span>💔 Damage taken</span><b>${ls.taken || 0}</b></div>` +
+            `<div class="victory-stat heal"><span>💚 Healed</span><b>${ls.healed || 0}</b></div>` +
+            `<div class="victory-stat shield"><span>🛡️ Shield gained</span><b>${ls.shield || 0}</b></div>` +
+            `<div class="victory-stat"><span>🔁 Turns</span><b>${combat.turn || 0}</b></div>` +
+            `<div class="victory-stat"><span>⭐ Charge</span><b>${combat.sigBank}/${settings.ultMaxCharge}</b></div>`;
+        }
+        const lossVs = document.getElementById("victoryStats");
+        if (lossVs) {
+          const chips = [];
+          const add = (emoji, label, val) => { if (val > 0) chips.push(`<span class="victory-chip">${emoji} ${label} <b>${val}</b></span>`); };
+          add("⚔️", "Sword", ls.sword);
+          add("⭐", "Star", ls.star);
+          add("🔮", "Runic", ls.runic);
+          add("☠️", "Poison", ls.poison);
+          add("🦴", "Cracked", ls.fracture);
+          add("💥", "Ult", ls.ult);
+          add("↩️", "Reflect", ls.reflect);
+          lossVs.innerHTML = chips.join("") || '<span class="victory-chip">No actions</span>';
+        }
         document.getElementById("btnGoRetry").textContent = "Retry Floor";
         accumulateBattleStats(); // the losing battle still counts toward the story
         showRecap(false);
@@ -1904,21 +1939,21 @@ function checkGameOver() {
       } catch (_) { return []; }
     }
 
-    // Full run-level stats modal (accessible from the victory/defeat overlay)
-    function openRunStats() {
-      const ov = document.getElementById("runStatsOverlay");
-      const body = document.getElementById("runStatsBody");
-      if (!ov || !body) return;
-      const c = run.cumulative || {};
-      const s = combat.stats || {};
-      const hero = CHARACTERS[combat.playerClass] || {};
-      const inRun = run.floor >= 1 && run.floor <= MAX_FLOOR;
-      const finalWin = inRun && combat.enemyHp <= 0 && run.floor >= MAX_FLOOR;
-      const actName = run.gameMap ? (ACT_NAMES[run.gameMap.currentAct || 1] || "") : "";
+    // Shared full-stats renderer. Data shape:
+    // { heroName, loop, pills:[html], cumulative:{}, lastBattle:{s:{},turns}|null,
+    //   milestones:{elites,bosses,mysteries,chain,rewards,careerBest},
+    //   kit:[labels], career:{...records}|null }
+    function buildRunStatsSections(d) {
       const pill = (t) => `<span class="rs-pill">${t}</span>`;
       const row = (k, v) => `<div><span>${k}</span><b>${v}</b></div>`;
-      const head = `<div class="rs-head">${hero.name || combat.playerClass || "Hero"}${(run.ngLoop || 0) > 0 ? " · 🌟 Loop " + run.ngLoop : ""}</div>
-        <div>${pill(finalWin ? "🌸 Tower cleared" : "Floor " + run.floor + (actName ? " · " + actName : ""))}${pill((settings.difficulty || "normal")[0].toUpperCase() + (settings.difficulty || "normal").slice(1))}${pill("⏱ " + fmtTime(run.elapsedMs || 0))}</div>`;
+      const kitPills = (list) => {
+        const counts = {}; const order = [];
+        (list || []).forEach(x => { if (!counts[x]) { counts[x] = 0; order.push(x); } counts[x]++; });
+        return order.map(x => pill(counts[x] > 1 ? `${x} ×${counts[x]}` : x));
+      };
+      const head = `<div class="rs-head">${d.heroName || "Hero"}${(d.loop || 0) > 0 ? " · 🌟 Loop " + d.loop : ""}</div>
+        <div>${(d.pills || []).map(pill).join("")}</div>`;
+      const c = d.cumulative || {};
       const battles = `<div class="rs-sec">Combat Totals</div>
         <div class="rs-grid">
           ${row("⚔️ Damage dealt", (c.dealt || 0).toLocaleString())}
@@ -1927,7 +1962,8 @@ function checkGameOver() {
           ${row("🛡️ Shield raised", (c.shield || 0).toLocaleString())}
           ${row("⚡ Ultimates", c.ults || 0)}
         </div>`;
-      const lastBattle = `<div class="rs-sec">Last Battle</div>
+      const s = d.lastBattle && d.lastBattle.s;
+      const lastBattle = s && s.taken !== undefined ? `<div class="rs-sec">Last Battle</div>
         <div class="rs-grid">
           ${((s.sword||0)>0 ? row("⚔️ Sword", s.sword) : "")}
           ${((s.star||0)>0 ? row("⭐ Star", s.star) : "")}
@@ -1939,32 +1975,97 @@ function checkGameOver() {
           ${row("💔 Taken", s.taken || 0)}
           ${row("💚 Healed", s.healed || 0)}
           ${row("🛡️ Shield", s.shield || 0)}
-          ${row("🔁 Turns", combat.turn || 0)}
-        </div>`;
+          ${row("🔁 Turns", (d.lastBattle.turns || 0))}
+        </div>` : "";
+      const m = d.milestones || {};
       const milestones = `<div class="rs-sec">Milestones</div>
         <div class="rs-grid">
-          ${row("🏆 Elites felled", run.elitesSlain || 0)}
-          ${row("👑 Bosses felled", run.bossesSlain || 0)}
-          ${row("🎲 Mysteries flipped", run.mysteriesFlipped || 0)}
-          ${row("🔗 Best chain", "×" + (run.maxCombo || 0))}
-          ${row("🎁 Rewards taken", (run.pickLog || []).length)}
-          ${row("🧭 Career best floor", settings.bestFloor || 1)}
+          ${row("🏆 Elites felled", m.elites || 0)}
+          ${row("👑 Bosses felled", m.bosses || 0)}
+          ${row("🎲 Mysteries flipped", m.mysteries || 0)}
+          ${row("🔗 Best chain", "×" + (m.chain || 0))}
+          ${row("🎁 Rewards taken", m.rewards || 0)}
+          ${row("🧭 Career best floor", m.careerBest || 1)}
         </div>`;
-      const kitList = (run.pickLog || []).map(x => pill(x)).join("");
-      const kit = kitList ? `<div class="rs-sec">Kit Collected</div><div class="rs-kit">${kitList}</div>` : "";
-      const cur = settings.career && settings.career[combat.playerClass || "ninja"];
-      const hasRec = !!(cur && (cur.bestFloor || cur.clears));
-      const clearTime = cur && cur.bestTimeMs ? "Best clear " + fmtDuration(cur.bestTimeMs) : (cur && cur.clears ? "No best clear yet" : "No clear yet");
-      const career = hasRec ? `<div class="rs-sec">🏆 ${hero.name || "Hero"} Career Records</div>
+      const kitList = kitPills(d.kit || []).join("");
+      const kit = kitList ? `<details class="rs-kit-details"><summary class="rs-kit-summary"><span class="rs-caret">▸</span><span class="rs-sec">Kit Collected</span><span class="rs-kit-count">${(d.kit || []).length}</span></summary><div class="rs-kit">${kitList}</div></details>` : "";
+      const cur = d.career;
+      const career = cur && (cur.bestFloor || cur.clears) ? `<div class="rs-sec">🏆 ${cur.name || "Hero"} Career Records</div>
         <div class="rs-kit">
           ${pill("Best floor " + (cur.bestFloor || 1))}
           ${pill("Cleared " + (cur.clears || 0))}
-          ${pill(clearTime)}
+          ${pill(cur.bestTimeMs ? "Best clear " + fmtDuration(cur.bestTimeMs) : (cur.clears ? "No best clear yet" : "No clear yet"))}
           ${pill("Most dmg " + (cur.mostDealt || 0).toLocaleString())}
           ${pill("Peak ults " + (cur.mostUlts || 0))}
           ${pill("Chain ×" + (cur.bestChain || 0))}
         </div>` : "";
-      body.innerHTML = head + battles + (s.taken !== undefined ? lastBattle : "") + milestones + kit + career;
+      return head + battles + lastBattle + milestones + kit + career;
+    }
+
+    // Full run-level stats modal (accessible from the victory/defeat overlay,
+    // and from the menu last-run card with a saved history entry)
+    function openRunStats(entry) {
+      const ov = document.getElementById("runStatsOverlay");
+      const body = document.getElementById("runStatsBody");
+      const title = document.getElementById("runStatsTitle");
+      if (!ov || !body) return;
+      let data;
+      if (entry) {
+        const cur = settings.career && settings.career[entry.hero || ""];
+        data = {
+          heroName: entry.heroName || entry.hero || "Hero",
+          loop: entry.loop,
+          pills: [
+            (entry.won ? "🏆 Victory" : "💀 Defeat") + " · Floor " + (entry.floor || 1) + (entry.act ? " · " + (ACT_NAMES[entry.act] || "") : ""),
+            (entry.diff || "normal")[0].toUpperCase() + (entry.diff || "normal").slice(1),
+            "⏱ " + fmtTime(entry.timeMs || 0)
+          ],
+          cumulative: entry.cumulative || {},
+          lastBattle: entry.lastBattle && entry.lastBattle.s ? { s: entry.lastBattle.s, turns: entry.lastBattle.turns || 0 } : null,
+          milestones: {
+            elites: entry.elites || 0,
+            bosses: entry.bosses || 0,
+            mysteries: entry.mysteries || 0,
+            chain: entry.maxCombo || 0,
+            rewards: (entry.picks || []).length,
+            careerBest: (cur && cur.bestFloor) || 1
+          },
+          kit: entry.picks || [],
+          career: cur && (cur.bestFloor || cur.clears) ? { ...cur, name: entry.heroName || entry.hero || "Hero" } : null
+        };
+        if (title) title.textContent = entry.won ? "🏆 Victory Stats" : "💀 Defeat Stats";
+      } else {
+        const c = run.cumulative || {};
+        const s = combat.stats || {};
+        const hero = CHARACTERS[combat.playerClass] || {};
+        const inRun = run.floor >= 1 && run.floor <= MAX_FLOOR;
+        const finalWin = inRun && combat.enemyHp <= 0 && run.floor >= MAX_FLOOR;
+        const actName = run.gameMap ? (ACT_NAMES[run.gameMap.currentAct || 1] || "") : "";
+        const cur = settings.career && settings.career[combat.playerClass || "ninja"];
+        data = {
+          heroName: hero.name || combat.playerClass || "Hero",
+          loop: run.ngLoop || 0,
+          pills: [
+            finalWin ? "🌸 Tower cleared" : "Floor " + run.floor + (actName ? " · " + actName : ""),
+            (settings.difficulty || "normal")[0].toUpperCase() + (settings.difficulty || "normal").slice(1),
+            "⏱ " + fmtTime(run.elapsedMs || 0)
+          ],
+          cumulative: c,
+          lastBattle: s.taken !== undefined ? { s, turns: combat.turn || 0 } : null,
+          milestones: {
+            elites: run.elitesSlain || 0,
+            bosses: run.bossesSlain || 0,
+            mysteries: run.mysteriesFlipped || 0,
+            chain: run.maxCombo || 0,
+            rewards: (run.pickLog || []).length,
+            careerBest: settings.bestFloor || 1
+          },
+          kit: run.pickLog || [],
+          career: cur && (cur.bestFloor || cur.clears) ? { ...cur, name: hero.name || "Hero" } : null
+        };
+        if (title) title.textContent = "📊 Run Stats";
+      }
+      body.innerHTML = buildRunStatsSections(data);
       ov.classList.add("open");
     }
 
@@ -1992,7 +2093,9 @@ function checkGameOver() {
     function recordRun(won) {
       if (won) accumulateBattleStats();
       const s = combat.stats || {};
+      const c = run.cumulative || {};
       const hero = CHARACTERS[combat.playerClass] || {};
+      const act = run.gameMap ? (run.gameMap.currentAct || 1) : Math.max(1, Math.min(3, Math.ceil((run.floor || 1) / 15)));
       saveHistory({
         ts: Date.now(),
         hero: combat.playerClass,
@@ -2004,7 +2107,15 @@ function checkGameOver() {
         maxHp: combat.playerMaxHp,
         picks: run.pickLog || [],
         dealt: (s.sword || 0) + (s.star || 0) + (s.runic || 0) + (s.poison || 0) + (s.fracture || 0) + (s.ult || 0) + (s.reflect || 0),
-        timeMs: run.elapsedMs || 0
+        timeMs: run.elapsedMs || 0,
+        loop: run.ngLoop || 0,
+        act,
+        cumulative: { dealt: c.dealt || 0, taken: c.taken || 0, healed: c.healed || 0, shield: c.shield || 0, ults: c.ults || 0 },
+        lastBattle: { s: { ...s }, turns: combat.turn || 0 },
+        elites: run.elitesSlain || 0,
+        bosses: run.bossesSlain || 0,
+        mysteries: run.mysteriesFlipped || 0,
+        maxCombo: run.maxCombo || 0
       });
       // 🏆 Fold this run into the account-wide career records for this hero
       updateCareer({
@@ -2465,6 +2576,18 @@ function checkGameOver() {
         if (combat.tutorial) combat.tutorial = false;
       }
       // defeat retry keeps same floor; fresh start from the menu resets via resetRun
+
+      // Capture one-shot "next floor" effects BEFORE they're consumed below, so
+      // the floor banner can warn the player instead of them feeling like a bug.
+      _bannerWarnings = [];
+      const _pend = run.pending || {};
+      const _apStart = 3 + run.bonusApMax + (_pend.bonusAp || 0);
+      if (_pend.bonusAp < 0) _bannerWarnings.push(`⚠️ −${-Math.floor(_pend.bonusAp)} AP: you start turns at ${_apStart} AP`);
+      if (_pend.shield > 0) _bannerWarnings.push(`🛡️ +${_pend.shield} starting shield`);
+      if (run.pendingStatusTiles) {
+        const _tileLabel = { poison: "poisoned", burn: "on fire", stun: "stunning", frost: "frozen" }[run.pendingStatusTiles.type] || "cursed";
+        _bannerWarnings.push(`⚠️ ${run.pendingStatusTiles.count || "5"} tiles are ${_tileLabel} this floor`);
+      }
 
       const hero = HERO_STATS[combat.playerClass] || HERO_STATS.ninja;
       const maxHp = hero.hp + run.bonusMaxHp;
@@ -2949,33 +3072,8 @@ function checkGameOver() {
           <div class="last-run-info">${hero} · Floor ${last.floor}${last.timeMs != null ? ` · ⏱ ${fmtTime(last.timeMs)}` : ""}</div>
         </div>`;
       el.querySelector(".last-run-card").addEventListener("click", () => {
-        showLastRunOverlay(last);
+        openRunStats(last);
       });
-    }
-
-    function showLastRunOverlay(run) {
-      const won = run.won;
-      const hero = run.heroName || run.hero || "???";
-      const result = won ? "Victory" : "Defeat";
-      const diff = (run.diff || "normal").charAt(0).toUpperCase() + (run.diff || "normal").slice(1);
-      const picks = (run.picks || []).filter(Boolean);
-      const picksHtml = picks.length
-        ? `<div class="last-run-ov-picks">${picks.map(p => `<span class="last-run-ov-chip">${p}</span>`).join("")}</div>`
-        : `<div class="last-run-ov-picks" style="color:#b0a89e;font-size:0.65rem">No upgrades picked</div>`;
-      const ov = document.createElement("div");
-      ov.className = "overlay open";
-      ov.innerHTML = `
-        <div class="overlay-panel" style="max-width:260px;text-align:center;padding:20px">
-          <div class="last-run-ov-result ${won ? 'win' : 'loss'}">${result}</div>
-          <div class="last-run-ov-hero">${hero}</div>
-          <div class="last-run-ov-detail">Floor ${run.floor} · ${diff}${run.timeMs != null ? ` · ⏱ ${fmtTime(run.timeMs)}` : ""}</div>
-          <div class="last-run-ov-section">Upgrades</div>
-          ${picksHtml}
-          <button type="button" class="action-btn primary" id="lastRunClose" style="margin-top:14px;min-height:48px;font-size:0.85rem">Close</button>
-        </div>`;
-      document.body.appendChild(ov);
-      ov.querySelector("#lastRunClose").addEventListener("click", () => ov.remove());
-      ov.addEventListener("click", e => { if (e.target === ov) ov.remove(); });
     }
 
     function openSettings() {
@@ -3569,6 +3667,7 @@ function checkGameOver() {
       if (combat.empowerNext) parts.push("Empower");
       if (combat.blindNext) parts.push("Blind");
       if (combat.weakenNextSword) parts.push("Weaken");
+      if ((run.healBlockFloors || 0) > 0) parts.push(`🥀 Wilted ${run.healBlockFloors}f`);
       if (combat.shield > 0) parts.push(`Shield ${combat.shield}`);
       return parts.length ? parts.join(" · ") : "None";
     }

@@ -292,25 +292,6 @@
       align-items: center;
       justify-content: center;
       cursor: grab;
-      /* 3D candy face: light top → rich middle → shaded bottom */
-      --tile-base: #b9c4d0;
-      --tile-light: #e4ecf3;
-      --tile-dark: #7fa3bd;
-      background: linear-gradient(
-        180deg,
-        var(--tile-light) 0%,
-        var(--tile-base) 48%,
-        var(--tile-dark) 100%
-      );
-      box-shadow:
-        var(--bevel),
-        0 3px 0 rgba(60, 50, 40, 0.12),
-        0 5px 12px rgba(60, 50, 40, 0.1);
-      border: 1.5px solid var(--tile-outline);
-      will-change: transform, opacity, box-shadow;
-      transform-origin: center center;
-      transition: box-shadow 0.18s ease, filter 0.15s ease, transform 0.18s cubic-bezier(0.25, 0.8, 0.25, 1);
-      touch-action: none;
     }
     /* Specular glint – a soft highlight spot near the top edge */
     .tile::before {
@@ -344,20 +325,6 @@
       border: 2.5px solid rgba(255, 255, 255, 1);
       box-shadow: 0 0 14px rgba(255, 255, 255, 0.75), inset 0 0 8px rgba(255, 255, 255, 0.3);
       filter: brightness(1.06);
-    }
-
-    /* Keyboard cursor ring (a11y) */
-    .tile.ky-cursor {
-      z-index: 22;
-      border: 2.5px solid rgba(255, 255, 255, 0.92);
-      box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.3), 0 0 12px rgba(255, 255, 255, 0.7);
-    }
-    /* Keyboard held tile (Enter, then arrow to swap) */
-    .tile.ky-grabbed {
-      z-index: 21;
-      transform: scale(1.12);
-      border: 2.5px solid rgba(255, 214, 102, 0.95);
-      box-shadow: 0 0 14px rgba(255, 214, 102, 0.85), inset 0 0 6px rgba(255, 255, 255, 0.25);
     }
 
     /* Tile that would match if swapped with the held tile */
@@ -1281,9 +1248,6 @@
       line-height: 1;
     }
 
-    /* Score stays internal; combo theater is visible */
-    #score, #combo { display: none; }
-
     .action-bar {
       width: 100%;
       display: flex;
@@ -1938,48 +1902,6 @@
     .last-run-info {
       font-size: 0.78rem;
       color: #4a4035;
-    }
-    .last-run-ov-result {
-      font-size: 1rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      margin-bottom: 4px;
-    }
-    .last-run-ov-result.win { color: #2e8b57; }
-    .last-run-ov-result.loss { color: #c23b2f; }
-    .last-run-ov-hero {
-      font-size: 1rem;
-      font-weight: 700;
-      color: #3a3025;
-      margin-bottom: 2px;
-    }
-    .last-run-ov-detail {
-      font-size: 0.82rem;
-      color: #6a6055;
-    }
-    .last-run-ov-section {
-      font-size: 0.65rem;
-      font-weight: 700;
-      color: #8a7e74;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-top: 12px;
-      margin-bottom: 6px;
-    }
-    .last-run-ov-picks {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      justify-content: center;
-    }
-    .last-run-ov-chip {
-      font-size: 0.68rem;
-      background: rgba(60, 45, 30, 0.08);
-      border: 1px solid rgba(60, 50, 40, 0.1);
-      border-radius: 6px;
-      padding: 2px 6px;
-      color: #5a5048;
     }
 
     .top-game-bar {
@@ -3943,9 +3865,41 @@ body.ult-hitstop .board-wrap {
       flex-wrap: wrap;
       gap: 4px;
     }
-    body.skin-midnight .run-stats-body .rs-head { color: #e8e2d8; }
-    body.skin-midnight .run-stats-body .rs-pill { background: rgba(255, 255, 255, 0.07); color: #cfc7b8; border-color: rgba(255, 255, 255, 0.12); }
+    .run-stats-body .rs-kit-details {
+      margin-top: 2px;
+    }
+    .run-stats-body .rs-kit-summary {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .run-stats-body .rs-kit-summary .rs-caret {
+      font-size: 0.8rem;
+      color: var(--accent);
+      transition: transform 0.15s ease;
+      line-height: 1;
+    }
+    .run-stats-body .rs-kit-details[open] .rs-kit-summary .rs-caret {
+      transform: rotate(90deg);
+    }
+    .run-stats-body .rs-kit-summary::-webkit-details-marker { display: none; }
+    .run-stats-body .rs-kit-summary .rs-sec { margin-bottom: 0; }
+    .run-stats-body .rs-kit-count {
+      font-size: 0.66rem;
+      font-weight: 700;
+      color: #5a4a3c;
+      background: rgba(60, 50, 40, 0.08);
+      border-radius: 20px;
+      padding: 1px 8px;
+      margin-left: auto;
+    }
+    body.skin-midnight .run-stats-body .rs-kit-count { color: #cfc7b8; background: rgba(255, 255, 255, 0.08); }
     body.skin-midnight .run-stats-body .rs-grid div { border-bottom-color: rgba(255, 255, 255, 0.12); }
+    body.skin-midnight .run-stats-body .rs-head { color: #e8e2d8; }
 
     /* ===== Tile skins — subtle act-tinted faces ===== */
     .tile::before {
@@ -5138,9 +5092,6 @@ body.ult-hitstop .board-wrap {
       </div>
     </div>
 
-    <!-- Hidden for JS refs (score/combo theater still tracks internally) -->
-    <span id="score" hidden>0</span>
-    <span id="combo" hidden>0</span>
     <!-- Board -->
     <div class="board-wrap">
       <svg class="board-corner tl" viewBox="0 0 34 34" aria-hidden="true"><use href="#vineCurl"/></svg>
@@ -5151,7 +5102,7 @@ body.ult-hitstop .board-wrap {
       <svg class="board-vine bv2" viewBox="0 0 36 220" aria-hidden="true"><use href="#hangVine"/></svg>
       <svg class="board-vine bv3" viewBox="0 0 36 170" aria-hidden="true"><use href="#hangRoot"/></svg>
       <div class="combo-display" id="comboText"></div>
-      <div class="grid" id="grid" role="grid" tabindex="0" aria-label="7 by 6 puzzle grid, arrow keys to move, Enter to grab a tile"></div>
+      <div class="grid" id="grid" aria-label="7 by 6 puzzle grid"></div>
       <div id="tileTooltip" class="tile-tooltip" style="display:none"></div>
     </div>
 
@@ -5584,7 +5535,7 @@ body.ult-hitstop .board-wrap {
   <!-- FULL RUN STATS -->
   <div class="overlay" id="runStatsOverlay">
     <div class="panel" style="margin:auto;max-width:420px">
-      <h2>📊 Run Stats</h2>
+      <h2 id="runStatsTitle">📊 Run Stats</h2>
       <div id="runStatsBody" class="run-stats-body"></div>
       <button type="button" class="action-btn primary" id="btnRunStatsClose" style="width:100%;margin-top:12px">Close</button>
     </div>

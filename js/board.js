@@ -155,9 +155,26 @@
       </svg>`
     };
 
+    // Each icon SVG is parsed exactly once per type, then cloneNode'd — cloning
+    // avoids the HTML re-parse that `innerHTML = ICONS[type]` paid on EVERY tile
+    // refresh (rebuildVisual ran 42 of those per cascade step / swap).
+    const _iconNodes = {};
+    function iconNode(key) {
+      let n = _iconNodes[key];
+      if (!n) {
+        const wrap = document.createElement("div");
+        wrap.innerHTML = SEAL_ICONS[key] || ICONS[key]; // "cross"/"x" come from SEAL_ICONS
+        n = wrap.firstChild;
+        _iconNodes[key] = n;
+      }
+      return n.cloneNode(true);
+    }
     function setType(el, type, kind) {
+      const nextKind = (kind === "cross" || kind === "x") ? kind : "";
+      if (el.dataset.type === type && el.dataset.kind === nextKind) return; // no-op: skip
       el.dataset.type = type;
-      el.innerHTML = (kind === "cross" || kind === "x") ? SEAL_ICONS[kind] : ICONS[type];
+      el.dataset.kind = nextKind;
+      el.replaceChildren((nextKind === "cross" || nextKind === "x") ? iconNode(nextKind) : iconNode(type));
     }
 
     const SPECIAL_CLASS = { bloom: "special", cross: "seal-cross", x: "seal-x" };
@@ -182,27 +199,68 @@
       if (!_gridRectCache) _gridRectCache = gridEl.getBoundingClientRect();
       return _gridRectCache;
     }
-    function clearGridRectCache() { _gridRectCache = null; }
+    function clearGridRectCache() { _gridRectCache = null; _METRICS.ready = false; }
+
+    // ---------- cached board geometry ----------
+    // applyGravityAndFill / trySwap / FX spawns used to read offsetHeight,
+    // getComputedStyle().gap and per-tile getBoundingClientRect() on EVERY call —
+    // forcing synchronous layout inside the animation burst. These are sampled
+    // once per resolve (42 rect reads total) and reused everywhere.
+    const _METRICS = { step: 0, tileH: 0, cellCX: null, cellCY: null, ready: false };
+    function refreshBoardMetrics() {
+      if (!cells.length) return _METRICS;
+      const gap = parseFloat(getComputedStyle(gridEl).gap) || 8;
+      _METRICS.tileH = getCell(0, 0).offsetHeight;
+      _METRICS.step = _METRICS.tileH + gap;
+      _METRICS.cellCX = new Array(cells.length);
+      _METRICS.cellCY = new Array(cells.length);
+      const gr = gridEl.getBoundingClientRect();
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const rc = getCell(r, c).getBoundingClientRect();
+          _METRICS.cellCX[idx(r, c)] = rc.left + rc.width / 2 - gr.left;
+          _METRICS.cellCY[idx(r, c)] = rc.top + rc.height / 2 - gr.top;
+        }
+      }
+      _METRICS.ready = true;
+      return _METRICS;
+    }
+    function boardMetrics() {
+      return _METRICS.ready ? _METRICS : refreshBoardMetrics();
+    }
 
     // Hard cap on live FX nodes (particles + petals + flashes). Big cascades
     // would otherwise spawn 300+ animated nodes and cook mobile GPUs.
     let fxNodeCount = 0;
     function fxCap() { return (typeof settings !== "undefined" && settings.liteMode === true) ? 30 : 140; }
     function fxNodeAllowed() { return fxNodeCount < fxCap(); }
-    function fxTrack(el, anim, dur) {
+    function fxTrack(el, anim, dur, recycle) {
       fxNodeCount++;
-      const done = () => { fxNodeCount = Math.max(0, fxNodeCount - 1); el.remove(); };
+      const done = () => { fxNodeCount = Math.max(0, fxNodeCount - 1); el.remove(); if (recycle) recycle(el); };
       if (anim && anim.onfinish !== undefined) anim.onfinish = done;
       else setTimeout(done, dur || 600);
     }
 
+    // Bounded recycle bin: particles/dmg-pops reuse divs instead of allocating
+    // a fresh node + style every burst. A decade of GC pressure gone per cascade.
+    const fxPool = [];
+    function popFXNode(cls) {
+      const n = fxPool.length ? fxPool.pop() : document.createElement("div");
+      n.className = cls;
+      return n;
+    }
+    function pushFXNode(n) {
+      try { n.removeAttribute("style"); n.removeAttribute("id"); } catch (_) {}
+      if (fxPool.length < 120) fxPool.push(n);
+    }
+
     function spawnParticles(r, c, type, comboLevel) {
       if (!fxNodeAllowed()) return;
-      const el = getCell(r, c);
-      const rect = el.getBoundingClientRect();
-      const gridRect = getGridRect();
-      const cx = rect.left + rect.width / 2 - gridRect.left;
-      const cy = rect.top + rect.height / 2 - gridRect.top;
+      const i = idx(r, c);
+      const m = boardMetrics();
+      if (!m.cellCX || !m.cellCX[i]) return; // not measured this resolve — skip silently
+      const cx = m.cellCX[i];
+      const cy = m.cellCY[i];
       const color = COLORS[type]?.icon || "#c9b8a8";
       const softColor = COLORS[type]?.bg || "#e8e0d4";
 
@@ -211,21 +269,22 @@
       const distMul = 1 + (cl - 1) * 0.18;
       const sizeMul = 1 + (cl - 1) * 0.1;
       const durMul = 1 + (cl - 1) * 0.08;
-      for (let i = 0; i < count; i++) {
-        const p = document.createElement("div");
-        p.className = "particle";
+      const lite = typeof settings !== "undefined" && settings.liteMode === true;
+      for (let k = 0; k < count; k++) {
+        if (!fxNodeAllowed()) break;
+        const p = popFXNode("particle");
         const size = (6 + Math.random() * 9) * sizeMul;
         p.style.width = size + "px";
         p.style.height = size + "px";
-        p.style.background = i % 2 === 0 ? color : softColor;
+        p.style.background = k % 2 === 0 ? color : softColor;
         p.style.left = cx + "px";
         p.style.top = cy + "px";
         p.style.marginLeft = -size / 2 + "px";
         p.style.marginTop = -size / 2 + "px";
         p.style.borderRadius = "50%";
-        p.style.filter = "blur(0.4px)";
+        if (!lite) p.style.filter = "blur(0.4px)"; // blur raster cost skipped on lite
 
-        const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.7;
+        const angle = (Math.PI * 2 * k) / count + (Math.random() - 0.5) * 0.7;
         const dist = (22 + Math.random() * 32) * distMul;
         const tx = Math.cos(angle) * dist;
         const ty = Math.sin(angle) * dist - 8;
@@ -241,26 +300,25 @@
           easing: "cubic-bezier(0.15, 0.75, 0.3, 1)",
           fill: "forwards"
         });
-        fxTrack(p, anim);
+        fxTrack(p, anim, 0, pushFXNode);
       }
     }
 
     // Golden plus-flash marking the crossing tile of a T / L / + clear
     function spawnCrossFlash(r, c) {
       if (!fxNodeAllowed()) return;
-      const el = getCell(r, c);
-      const rect = el.getBoundingClientRect();
-      const gridRect = getGridRect();
-      const fx = document.createElement("div");
-      fx.className = "cross-flash";
-      fx.style.left = rect.left + rect.width / 2 - gridRect.left + "px";
-      fx.style.top = rect.top + rect.height / 2 - gridRect.top + "px";
+      const i = idx(r, c);
+      const m = boardMetrics();
+      if (!m.cellCX || !m.cellCX[i]) return;
+      const fx = popFXNode("cross-flash");
+      fx.style.left = m.cellCX[i] + "px";
+      fx.style.top = m.cellCY[i] + "px";
       gridEl.appendChild(fx);
       const anim = fx.animate([
         { transform: "translate(-50%,-50%) scale(0.35) rotate(0deg)", opacity: 0.95 },
         { transform: "translate(-50%,-50%) scale(2.3) rotate(180deg)", opacity: 0 }
       ], { duration: 460, easing: "cubic-bezier(0.15, 0.75, 0.3, 1)", fill: "forwards" });
-      anim.onfinish = () => fx.remove();
+      fxTrack(fx, anim, 0, pushFXNode);
     }
 
     // ---------- drifting petals (cascade juice) ----------
@@ -287,23 +345,23 @@
         petalBudgetTimer = setTimeout(() => { petalBudget = 26; petalBudgetTimer = null; }, 1200);
       }
       const cl = Math.min(comboLevel || 1, 5);
-      const el = getCell(r, c);
-      const rect = el.getBoundingClientRect();
-      const gridRect = getGridRect();
-      const cx = rect.left + rect.width / 2 - gridRect.left;
-      const cy = rect.top + rect.height * 0.35 - gridRect.top;
+      const i = idx(r, c);
+      const m = boardMetrics();
+      if (!m.cellCX || !m.cellCX[i]) return;
+      const cx = m.cellCX[i];
+      const cy = m.cellCY[i] - m.tileH * 0.15;
+      const spread = m.tileH * 0.7;
       let count = Math.min(petalBudget, (cl >= 3 ? 2 : 1) + (Math.random() < 0.5 ? 1 : 0));
       petalBudget -= count;
       for (let i = 0; i < count; i++) {
-        const p = document.createElement("div");
-        p.className = "petal-fx";
+        const p = popFXNode("petal-fx");
         const size = 7 + Math.random() * 6;
         p.style.width = size + "px";
         p.style.height = size * 1.35 + "px";
         const palette = (typeof run !== "undefined" && run.ngLoop > 0) ? GOLDEN_PETALS : PETAL_COLORS;
         const [c1, c2] = palette[Math.floor(Math.random() * palette.length)];
         p.style.background = `linear-gradient(135deg, ${c1}, ${c2})`;
-        p.style.left = cx + (Math.random() - 0.5) * rect.width * 0.7 + "px";
+        p.style.left = cx + (Math.random() - 0.5) * spread + "px";
         p.style.top = cy + "px";
         gridEl.appendChild(p);
         const drift = (Math.random() - 0.5) * 48;
@@ -318,7 +376,7 @@
           easing: "cubic-bezier(0.25, 0.6, 0.45, 1)",
           fill: "forwards"
         });
-        fxTrack(p, anim);
+        fxTrack(p, anim, 0, pushFXNode);
       }
     }
 
@@ -369,6 +427,7 @@
           gridEl.appendChild(el);
         }
       }
+      refreshBoardMetrics();
     }
 
     // ---------- shuffle (preserves tile types AND specials) ----------
@@ -455,6 +514,7 @@
     // ---------- core loop ----------
     async function resolveBoard() {
       clearGridRectCache(); // fresh layout each resolve (scroll/resize safe)
+      refreshBoardMetrics(); // sample step + all cell centers ONCE for this resolve
       startCascade(); // Begin cascade log buffering
       while (true) {
         // Battle already decided (overlay open) — stop resolving cascades
@@ -673,9 +733,7 @@
         }
       }
 
-      const tileH = getCell(0, 0).offsetHeight;
-      const gap = parseFloat(getComputedStyle(gridEl).gap) || 8;
-      const step = tileH + gap;
+      const step = boardMetrics().step;
 
       for (const d of drops) {
         const el = getCell(d.fromR, d.c);
@@ -734,25 +792,36 @@
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
           const el = getCell(r, c);
-          el.className = "tile" + specialClassFor(specials[r][c]) + (tileStatus[r][c] ? " ts-" + tileStatus[r][c] : "");
-          // Highlight enemy signature tiles with a subtle indicator
-          if (enemySigType && board[r][c] === enemySigType) {
-            el.classList.add("enemy-sig");
-          }
-          el.style.transform = "";
-          el.style.opacity = board[r][c] ? "1" : "0";
-          el.dataset.row = r;
-          el.dataset.col = c;
-          if (board[r][c]) setType(el, board[r][c], specials[r][c]);
+          const type = board[r][c];
+          const kind = specials[r][c];
+          const status = tileStatus[r][c];
+          // Diff every write: className/style/dataset writes are cheap only when
+          // they actually change something. Transient classes (highlight, falling,
+          // landing, spawning, selected) now survive rebuilds since we no longer
+          // rewrite className just to rebuild the same base string.
+          const cls = "tile" + specialClassFor(kind) + (status ? " ts-" + status : "");
+          if (el.className !== cls) el.className = cls;
+          // Old rebuildVisual reassigned className and thereby stripped transient
+          // classes. We diff instead (cheaper AND keeps AI highlights lit), so
+          // strip the one class that nothing else removes: the gravity "falling".
+          if (el.classList.contains("falling")) el.classList.remove("falling");
+          const wantSig = !!enemySigType && type === enemySigType;
+          if (el.classList.contains("enemy-sig") !== wantSig) el.classList.toggle("enemy-sig", wantSig);
+          const op = type ? "1" : "0";
+          if (el.style.opacity !== op) el.style.opacity = op;
+          if (el.style.transform !== "") el.style.transform = ""; // clear fall/swap transforms (diffed: no dirty-style writes when already empty)
+          if ((+el.dataset.row) !== r || (+el.dataset.col) !== c) { el.dataset.row = r; el.dataset.col = c; }
+          if (type) setType(el, type, kind); // no-op (cloned-icon early return) when face unchanged
         }
       }
     }
     // Root Bind: mark/unmark bound tiles with CSS class
     function syncBoundVisuals() {
+      if (typeof combat === "undefined" || !combat.boundTiles || combat.boundTiles.size === 0) return;
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
           const el = getCell(r, c);
-          if (typeof combat !== "undefined" && combat.boundTiles && combat.boundTiles.has(r + "," + c)) {
+          if (combat.boundTiles.has(r + "," + c)) {
             el.classList.add("bound");
           } else {
             el.classList.remove("bound");
@@ -777,9 +846,7 @@
 
       const el1 = getCell(r1, c1);
       const el2 = getCell(r2, c2);
-      const tileH = el1.offsetHeight;
-      const gap = parseFloat(getComputedStyle(gridEl).gap) || 8;
-      const step = tileH + gap;
+      const step = boardMetrics().step;
       const dx = (c2 - c1) * step;
       const dy = (r2 - r1) * step;
 

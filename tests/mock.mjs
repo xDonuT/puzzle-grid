@@ -5,13 +5,15 @@ function stubEl() {
     get(t, p) { if (p === "setProperty") return () => {}; if (typeof p === "string") return t[p]; },
     set(t, p, v) { t[p] = v; return true; }
   });
-  return {
-    classList: { add: noop, remove: noop, toggle: noop, contains: () => false },
+  const self = {
+    classList: { add: noop, remove: noop, toggle: noop, contains: () => false, remove: noop },
     style,
     dataset: {},
     children: [], firstChild: null, lastChild: null, nextSibling: null, parentNode: null,
     parentElement: null, closest: () => stubEl(),
     appendChild: noop, removeChild: noop, insertBefore: noop, replaceWith: noop, remove: noop,
+    cloneNode: (deep) => stubEl(),
+    replaceChildren: noop,
     addEventListener: noop, removeEventListener: noop,
     setAttribute: noop, getAttribute: () => null, removeAttribute: noop,
     querySelector: () => stubEl(), querySelectorAll: () => [],
@@ -22,6 +24,10 @@ function stubEl() {
     offsetWidth: 0, offsetHeight: 0, value: "", checked: false, disabled: false, hidden: false, tabIndex: 0,
     scrollTop: 0, scrollHeight: 0, focus: noop, blur: noop, click: noop
   };
+  // iconNode() wraps an SVG string in a div, then reads .firstChild to cache the
+  // node. First-child must be a clone-able node so the icon cache works headlessly.
+  self.firstChild = { cloneNode: () => stubEl() };
+  return self;
 }
 function stubStyle() {
   const store = Object.create(null);

@@ -356,8 +356,11 @@ assertEq(fmClone.any, fm.any, "findMatches(grid) matches live board results");
 assertEq(JSON.stringify(fmClone.mark), JSON.stringify(fm.mark), "findMatches(grid) marks equal live board");
 
 // ---------- collectMatchesFromMark + bloom expansion (AI lookahead) ----------
+// mark rows are Uint8Array (pooled scratch) — count cells explicitly rather than
+// relying on Array.prototype.flat(), which does not expand typed arrays.
+const markedCount = fm.mark.reduce((n, row) => { for (const v of row) if (v) n++; return n; }, 0);
 const list = collectMatchesFromMark(fm.mark, board);
-assertEq(list.length, fm.mark.flat().filter(Boolean).length, "collectMatchesFromMark lists every marked cell with its type");
+assertEq(list.length, markedCount, "collectMatchesFromMark lists every marked cell with its type");
 const bloomMark = fm.mark.map(r => r.slice());
 bloomMark[0][0] = true; // seed a "matched" bloom at a corner
 specials[0][0] = "bloom";
